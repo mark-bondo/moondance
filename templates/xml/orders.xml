@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<OrderQueryRequest>
+    <Credentials>
+        <AccountName>moondance</AccountName>
+        <Key>%(key)s</Key>
+    </Credentials>
+    <OrderDateRange>
+        <OrderDateStart>
+            <DateTime>
+                <Date>%(start_date)s</Date>
+                <Time>00:00</Time>
+            </DateTime>
+        </OrderDateStart>
+        <OrderDateEnd>
+            <DateTime>
+                <Date>%(end_date)s</Date>
+                <Time>23:59</Time>
+            </DateTime>
+        </OrderDateEnd>
+    </OrderDateRange>
+    %(page_number)s
+</OrderQueryRequest>

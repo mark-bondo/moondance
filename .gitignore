@@ -1,0 +1,18 @@
+# Installer logs
+pip-log.txt
+
+# Vim specific
+*~
+*.pyc
+*.csv
+*.txt
+*.tsv
+*.log
+*.py-merge
+*.py-original
+*.py-baseline
+*.xls
+*.xlsx
+*.xlsm
+*.env
+data/*
