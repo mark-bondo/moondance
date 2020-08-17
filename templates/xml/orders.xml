@@ -4,19 +4,19 @@
         <AccountName>moondance</AccountName>
         <Key>%(key)s</Key>
     </Credentials>
-    <OrderDateRange>
-        <OrderDateStart>
+    <OrderUpdRange>
+        <OrderUpdStart>
             <DateTime>
                 <Date>%(start_date)s</Date>
                 <Time>00:00</Time>
             </DateTime>
-        </OrderDateStart>
-        <OrderDateEnd>
+        </OrderUpdStart>
+        <OrderUpdEnd>
             <DateTime>
                 <Date>%(end_date)s</Date>
                 <Time>23:59</Time>
             </DateTime>
-        </OrderDateEnd>
-    </OrderDateRange>
+        </OrderUpdEnd>
+    </OrderUpdRange>
     %(page_number)s
 </OrderQueryRequest>

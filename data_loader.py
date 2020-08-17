@@ -19,6 +19,12 @@ order_header_list = [
         "type": "str"
     },
     {
+        "name": "Datetime Updated",
+        "api_name": "date",
+        "parent": "lastupd",
+        "type": "datetime"
+    },
+    {
         "name": "Order Number",
         "api_name": "orderno",
         "parent": "order",
@@ -37,13 +43,13 @@ order_header_list = [
         "type": "str"
     },
     {
-        "name": "Order Date",
+        "name": "Datetime Ordered",
         "api_name": "date",
         "parent": "orderdate",
-        "type": "date"
+        "type": "datetime"
     },
     {
-        "name": "Ship Date",
+        "name": "Datetime Shipped",
         "api_name": "date",
         "parent": "shipto",
         "type": "date"
@@ -289,7 +295,7 @@ class Nexternal_API(object):
         self.xml_dict["page_number"] = ""
 
         with open("templates/xml/orders.xml", "r") as f:
-            self.xml = f
+            self.xml = f.read()
 
         self.write_to_file()
 
@@ -300,25 +306,26 @@ class Nexternal_API(object):
         self.xml_dict["page_number"] = ""
 
         with open("templates/xml/products.xml", "r") as f:
-            self.xml = f
+            self.xml = f.read()
 
         self.write_to_file()
 
     def write_to_file(self):
-        self.xml_file_name =  "{}/{}/moondance_{}_{}_to_{}.xml".format(
+        self.xml_file_name =  "{}/nexternal/{}/moondance_{}_{}_to_{}.xml".format(
             self.data_dir,
             self.data_type,
             self.data_type,
-            self.xml_dict["start_date"].replace("/", "-"),
-            self.xml_dict["end_date"].replace("/", "-")
+            datetime.datetime.strptime(self.xml_dict["start_date"], "%m/%d/%Y").strftime("%Y-%m-%d"),
+            datetime.datetime.strptime(self.xml_dict["end_date"], "%m/%d/%Y").strftime("%Y-%m-%d"),
         )
         current_page = 1
 
         with open(self.xml_file_name, "w", encoding="utf-8") as w:
+            print("Nexternal Orders: connecting to {}".format(self.url_dict[self.data_type]))
             while True:
                 data = self.xml % self.xml_dict
-                print("connecting to {}".format(self.url_dict[self.data_type]))
-                print(data)
+
+                print("Nexternal Orders: writing page {}".format(current_page))
                 response = requests.get(self.url_dict[self.data_type], data=data, headers=self.headers).text
                 w.write(response)
                 current_page += 1
@@ -339,6 +346,7 @@ class Nexternal_API(object):
             self.data_type = "orders"
 
             # for data_file in data_file_list:
+            self.row_count=0
             with codecs.open(self.xml_file_name, "r", encoding="utf-8", errors="ignore") as f:
                 root = BeautifulSoup(f, features="html.parser")
                 order_list = root.find_all("order")
@@ -363,11 +371,19 @@ class Nexternal_API(object):
 
                             if element:
                                 element = element.get_text()
+
+                                if h["type"] == "datetime":
+                                    print(h["name"])
+                                    element = "{} {}".format(
+                                        datetime.datetime.strptime(element, "%m/%d/%Y").strftime("%Y-%m-%d"),
+                                        order_element.find(h["parent"]).find("time").get_text()
+                                    )
                             else:
                                 element = ""
 
                             row.append(element)
                         row.append(self.xml_file_name)
+                        self.row_count+=1
                         w.write("{}\n".format("\t".join(row)))
 
         header_list.append({
@@ -376,22 +392,30 @@ class Nexternal_API(object):
         self.header_list = header_list
 
     def load_order_data(self):
-        with open("templates/sql/date_append.sql", "r") as f:
-            sql = f % {
+        primary_key_list = [
+            "order_number",
+            "order_line"
+        ]
+        with open("templates/sql/pk_append.sql", "r") as f:
+            sql = f.read() % {
                 "schema": "public",
                 "table_name": "sales_orders_nexternal",
                 "column_select": ",".join(['"{}"'.format(x["name"].lower().replace(" ", "_")) for x in self.header_list]),
                 "delim": "\t",
-                "date_append_column": "order_date",
-                "start_date": self.xml_dict["start_date"],
-                "end_date": self.xml_dict["end_date"]
+                "date_append_column": "datetime_updated",
+                "primary_key_join": " AND ".join(['a."{0}"=b."{0}"'.format(x) for x in primary_key_list if primary_key_list]),
+                "start_date": "{} 00:00".format(datetime.datetime.strptime(self.xml_dict["start_date"], "%m/%d/%Y").strftime("%Y-%m-%d")),
+                "end_date": "{} 23:59".format(datetime.datetime.strptime(self.xml_dict["end_date"], "%m/%d/%Y").strftime("%Y-%m-%d")),
             }
 
         with contextlib.closing(psycopg2.connect(os.environ.get("DB_STRING"))) as conn:
             with contextlib.closing(conn.cursor()) as cursor:
+                print("Nexternal Orders: starting data load for {} order lines".format(self.row_count))
                 print(sql)
                 cursor.copy_expert(sql, open(self.order_file_name, "r", encoding="utf-8"))
+
             conn.commit()
+            print("Nexterna Orders: completed data load")
 
     def merge_product_data(self, header_list):
         workbook = xlsxwriter.Workbook(

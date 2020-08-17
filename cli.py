@@ -30,15 +30,20 @@ def cli():
         data_dir = "data"
 
         if not date_range:
-            start_date = (datetime.datetime.now() - datetime.timedelta(14)).strftime("%m/%d/%Y")
+            start_date = (datetime.datetime.now() - datetime.timedelta(3)).strftime("%m/%d/%Y")
             end_date = datetime.datetime.now().strftime("%m/%d/%Y")
         else:
             dates = date_range.split(" to ")
-            start_date = datetime.datetime.strptime(dates[0], "YYYY-MM-DD").strftime("%m/%d/%Y")
-            end_date = datetime.datetime.strptime(dates[1], "YYYY-MM-DD").strftime("%m/%d/%Y")
+            start_date = datetime.datetime.strptime(dates[0], "%Y-%m-%d").strftime("%m/%d/%Y")
+            end_date = datetime.datetime.strptime(dates[1], "%Y-%m-%d").strftime("%m/%d/%Y")
+        
+        print("Nexternal Orders: starting load for date ranges {} to {}".format(start_date, end_date))
 
         api = Nexternal_API(data_dir=data_dir)
         api.get_order_data(start_date=start_date, end_date=end_date)
         api.merge_order_data()
         api.load_order_data()
 
+
+if __name__ == "__main__":
+    cli()
