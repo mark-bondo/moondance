@@ -166,13 +166,13 @@ order_header_list = [
 
 product_header_list = [
     {
-        "name": "Product Name",
+        "name": "Name",
         "api_name": "productname",
         "parent": "product",
         "type": "str"
     },
     {
-        "name": "Product Attribute",
+        "name": "Attribute",
         "api_name": "attribute",
         "parent": "product",
         "type": "str"
@@ -184,7 +184,7 @@ product_header_list = [
         "type": "integer"
     },
     {
-        "name": "Product SKU",
+        "name": "SKU",
         "api_name": "productsku",
         "parent": "product",
         "type": "str"
@@ -192,12 +192,6 @@ product_header_list = [
     {
         "name": "Inventory Onhand",
         "api_name": "inventory",
-        "parent": "product",
-        "type": "integer"
-    },
-    {
-        "name": "Product Number",
-        "api_name": "productno",
         "parent": "product",
         "type": "integer"
     },
@@ -262,91 +256,80 @@ product_header_list = [
         "type": "str"
     },
     {
-        "name": "Date Created",
+        "name": "Datetime Created",
         "api_name": "date",
         "parent": "created",
-        "type": "date"
+        "type": "datetime"
     },
     {
-        "name": "Date Last Updated",
+        "name": "Datetime Updated",
         "api_name": "date",
         "parent": "lastupd",
-        "type": "date"
+        "type": "datetime"
     },
 ]
 
 
 class Nexternal_API(object):
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, table_name, primary_key_list, data_type, start_date, end_date, load_method):
         self.data_dir = data_dir
         self.url_dict = {
-            "orders": "https://www.nexternal.com/shared/xml/orderquery.rest",
+            "sales_orders": "https://www.nexternal.com/shared/xml/orderquery.rest",
             "products": "https://www.nexternal.com/shared/xml/productquery.rest"
         }
-        self.headers = {"Content-Type": "application/xml"}
-        self.xml_dict = {
-            "key": os.environ.get("NEXTERNAL_API_KEY"),
-        }
-
-    def get_order_data(self, start_date, end_date):
-        self.data_type = "orders"
-        self.xml_dict["start_date"] = start_date
-        self.xml_dict["end_date"] = end_date
-        self.xml_dict["page_number"] = ""
-
-        with open("templates/xml/orders.xml", "r") as f:
-            self.xml = f.read()
-
-        self.write_to_file()
-
-    def get_product_data(self, start_date, end_date):
-        self.data_type = "products"
-        self.xml_dict["start_date"] = start_date
-        self.xml_dict["end_date"] = end_date
-        self.xml_dict["page_number"] = ""
-
-        with open("templates/xml/products.xml", "r") as f:
-            self.xml = f.read()
-
-        self.write_to_file()
-
-    def write_to_file(self):
-        self.xml_file_name =  "{}/nexternal/{}/moondance_{}_{}_to_{}.xml".format(
+        self.table_name = table_name
+        self.file_name = "{}.tsv".format(self.table_name)
+        self.primary_key_list = primary_key_list
+        self.data_type = data_type
+        self.start_date = start_date
+        self.end_date = end_date
+        self.load_method = load_method
+        self.xml_file_name =  "{}/nexternal/{}/{}_to_{}.xml".format(
             self.data_dir,
             self.data_type,
-            self.data_type,
-            datetime.datetime.strptime(self.xml_dict["start_date"], "%m/%d/%Y").strftime("%Y-%m-%d"),
-            datetime.datetime.strptime(self.xml_dict["end_date"], "%m/%d/%Y").strftime("%Y-%m-%d"),
+            self.start_date.strftime("%Y-%m-%d"),
+            self.end_date.strftime("%Y-%m-%d")
         )
+
+    def get_data(self):
+        with open("templates/xml/{}.xml".format(self.data_type), "r") as f:
+            xml = f.read()
+
         current_page = 1
+        page_number = ""
 
         with open(self.xml_file_name, "w", encoding="utf-8") as w:
-            print("Nexternal Orders: connecting to {}".format(self.url_dict[self.data_type]))
+            print("{}: connecting to {}".format(self.table_name, self.url_dict[self.data_type]))
             while True:
-                data = self.xml % self.xml_dict
+                data = xml % {
+                    "start_date": self.start_date.strftime("%m/%d/%Y"),
+                    "end_date": self.end_date.strftime("%m/%d/%Y"),
+                    "page_number": page_number,
+                    "key": os.environ.get("NEXTERNAL_API_KEY")
+                }
 
-                print("Nexternal Orders: writing page {}".format(current_page))
-                response = requests.get(self.url_dict[self.data_type], data=data, headers=self.headers).text
+                print("{}: writing page {}".format(self.table_name, current_page))
+                response = requests.get(
+                    self.url_dict[self.data_type],
+                    data=data,
+                    headers={"Content-Type": "application/xml"}
+                ).text
                 w.write(response)
                 current_page += 1
-                self.xml_dict["page_number"] = f"<Page>{current_page}</Page>"
+                page_number = f"<Page>{current_page}</Page>"
 
                 if "<NextPage />" not in response:
                     break
 
-    def merge_order_data(self, header_list=order_header_list):
-        self.order_file_name = "Moondance - Nexternal Order Data.tsv"
-        with open(self.order_file_name, encoding="utf-8", mode="w") as w:
+    def parse_order_data(self, header_list=order_header_list):
+        self.row_count = 0
 
+        with open(self.file_name, encoding="utf-8", mode="w") as w:
             w.write("{}\t{}\n".format(
                  [h["name"] for h in header_list],
                 "Source File"
             ))
 
-            self.data_type = "orders"
-
-            # for data_file in data_file_list:
-            self.row_count=0
             with codecs.open(self.xml_file_name, "r", encoding="utf-8", errors="ignore") as f:
                 root = BeautifulSoup(f, features="html.parser")
                 order_list = root.find_all("order")
@@ -373,7 +356,6 @@ class Nexternal_API(object):
                                 element = element.get_text()
 
                                 if h["type"] == "datetime":
-                                    print(h["name"])
                                     element = "{} {}".format(
                                         datetime.datetime.strptime(element, "%m/%d/%Y").strftime("%Y-%m-%d"),
                                         order_element.find(h["parent"]).find("time").get_text()
@@ -391,127 +373,95 @@ class Nexternal_API(object):
         })
         self.header_list = header_list
 
-    def load_order_data(self):
-        primary_key_list = [
-            "order_number",
-            "order_line"
-        ]
-        with open("templates/sql/pk_append.sql", "r") as f:
-            sql = f.read() % {
-                "schema": "public",
-                "table_name": "sales_orders_nexternal",
-                "column_select": ",".join(['"{}"'.format(x["name"].lower().replace(" ", "_")) for x in self.header_list]),
-                "delim": "\t",
-                "date_append_column": "datetime_updated",
-                "primary_key_join": " AND ".join(['a."{0}"=b."{0}"'.format(x) for x in primary_key_list if primary_key_list]),
-                "start_date": "{} 00:00".format(datetime.datetime.strptime(self.xml_dict["start_date"], "%m/%d/%Y").strftime("%Y-%m-%d")),
-                "end_date": "{} 23:59".format(datetime.datetime.strptime(self.xml_dict["end_date"], "%m/%d/%Y").strftime("%Y-%m-%d")),
-            }
+    def parse_product_data(self, header_list=product_header_list):
+        self.row_count = 1
 
-        with contextlib.closing(psycopg2.connect(os.environ.get("DB_STRING"))) as conn:
-            with contextlib.closing(conn.cursor()) as cursor:
-                print("Nexternal Orders: starting data load for {} order lines".format(self.row_count))
-                print(sql)
-                cursor.copy_expert(sql, open(self.order_file_name, "r", encoding="utf-8"))
+        with open(self.file_name, encoding="utf-8", mode="w") as w:
+            w.write("{}\t{}\n".format(
+                    "\t".join([h["name"] for h in header_list]),
+                "Source File"
+            ))
 
-            conn.commit()
-            print("Nexterna Orders: completed data load")
-
-    def merge_product_data(self, header_list):
-        workbook = xlsxwriter.Workbook(
-            "Moondance - Nexternal Product Data.xlsx",
-            {
-                "constant_memory": False,
-                "default_date_format": "m/d/yyyy",
-                "remove_timezone": True,
-            }
-        )
-        workbook.add_format({"num_format": "m/d/yyyy"})
-        worksheet = workbook.add_worksheet()
-        worksheet.write_row(0, 0, [h["name"] for h in header_list])
-        row_number = 1
-        self.data_type = "products"
-        data_file_list = ["{}/{}/{}".format(self.data_dir, self.data_type, f) for f in listdir("{}/{}".format(self.data_dir, self.data_type)) if isfile(join("{}/{}".format(self.data_dir, self.data_type), f))]
-
-        for data_file in data_file_list:
-            with codecs.open(data_file, "r", encoding="utf-8", errors="ignore") as f:
+            with codecs.open(self.xml_file_name, "r", encoding="utf-8", errors="ignore") as f:
                 root = BeautifulSoup(f, features="html.parser")
                 product_list = root.find_all("product")
 
-
-                for line in product_list:
-                    sku_list = line.find_all("sku")
-                    product_name = line.find("productname")
+                for product in product_list:
+                    sku_list = product.find_all("sku")
+                    product_name = product.find("productname")
+                    attributes = []
 
                     if sku_list:
-                        for s in sku_list:
-                            row = []
+                        attributes = []
 
-                            for h in header_list:
-                                if h["api_name"] == "productsku":
-                                    element = s.get("sku")
+                        for sku in sku_list:
+                            attribute_list = sku.find_all("attribute")
 
-                                    if not element:
-                                        element = line.find(h["api_name"])
 
-                                elif h["api_name"] == "attribute":
-                                    element = s.find("attribute")
-                                elif h["parent"] != "product":
-                                    element = line.find(h["parent"])
+                            for a in attribute_list:
+                                attribute_string = "{}: {}".format(a.get("name"), a.get_text())
+                                attributes.append(attribute_string)
 
-                                    if element:
-                                        element = element.find(h["api_name"])
-                                else:
-                                    element = line.find(h["api_name"])
-
-                                if element and type(element) is not str:
-                                    element = element.get_text()
-
-                                    if h["type"] == "date":
-                                        element = datetime.datetime.strptime(element, "%m/%d/%Y")
-                                    elif h["type"] == "integer":
-                                        element = float(element)
-                                elif type(element) is str:
-                                    element = element
-                                else:
-                                    element = None
-
-                                row.append(element)
-                            worksheet.write_row(row_number, 0, row)
-                            row_number += 1
-                    elif product_name:
+                    if product_name:
                         row = []
 
                         for h in header_list:
+                            if h["api_name"] == "attribute":
+                                element = product.find(h["api_name"])
+
+                                if not element:
+                                    element = ";".join(attributes)
                             if h["parent"] != "product":
-                                element = line.find(h["parent"])
+                                element = product.find(h["parent"])
 
                                 if element:
                                     element = element.find(h["api_name"])
                             else:
-                                element = line.find(h["api_name"])
+                                element = product.find(h["api_name"])
 
-                            if element:
+                            if element and element is not str:
                                 element = element.get_text()
 
-                                if h["type"] == "date":
-                                    element = datetime.datetime.strptime(element, "%m/%d/%Y")
-                                elif h["type"] == "integer":
-                                    element = float(element)
+                                if h["type"] == "datetime":
+                                    element = "{} {}".format(
+                                        datetime.datetime.strptime(element, "%m/%d/%Y").strftime("%Y-%m-%d"),
+                                        product.find(h["parent"]).find("time").get_text()
+                                    )
                             else:
-                                element = None
+                                element = ""
 
-                            row.append(element)
-                        worksheet.write_row(row_number, 0, row)
-                        row_number += 1
+                            row.append(element.replace("\n", "    ").replace("\t", "    ").replace("\r", "    "))
+                        self.row_count += 1
+                        w.write("{}\n".format("\t".join(row)))
 
-                    # if row_number >= 50:
-                    #     break
-        workbook.close()
+        self.header_list = header_list
+                        # if row_number >= 50:
+                        #     break
+    def load_data(self):
+        with open("templates/sql/{}.sql".format(self.load_method), "r") as f:
+            sql = f.read() % {
+                "schema": "public",
+                "table_name": self.table_name,
+                "column_select": ",".join(['"{}"'.format(x["name"].lower().replace(" ", "_")) for x in self.header_list]),
+                "delim": "\t",
+                "date_append_column": "datetime_updated",
+                "primary_key_join": " AND ".join(['a."{0}"=b."{0}"'.format(x) for x in self.primary_key_list if self.primary_key_list]),
+                "start_date": "{} 00:00:00.000000".format(self.start_date),
+                "end_date": "{} 23:59:59.000000".format(self.end_date),
+            }
+
+        with contextlib.closing(psycopg2.connect(os.environ.get("DB_STRING"))) as conn:
+            with contextlib.closing(conn.cursor()) as cursor:
+                print("{}: starting data load for {} order lines".format(self.table_name, self.row_count))
+                print(sql)
+                cursor.copy_expert(sql, open(self.file_name, "r", encoding="utf-8"))
+
+            conn.commit()
+            os.remove(self.file_name)
+            print("{}: completed data load".format(self.table_name))
 
 
 def combine_amazon_files(data_dir):
-
     data_file_list = ["{}/{}".format(data_dir,  f) for f in listdir(data_dir) if isfile(join(data_dir, f))]
 
     with codecs.open("Moondance - Amazon Order Data.tsv", "w", encoding="utf-8", errors="ignore") as w:
@@ -554,14 +504,14 @@ def combine_amazon_files(data_dir):
                     w.write(line)
 
 
-if __name__ == "__main__":
-    start_date = (datetime.datetime.now() - datetime.timedelta(14)).strftime("%m/%d/%Y")
-    end_date = datetime.datetime.now().strftime("%m/%d/%Y")
-    data_dir = "data"
+# if __name__ == "__main__":
+#     start_date = (datetime.datetime.now() - datetime.timedelta(14)).strftime("%m/%d/%Y")
+#     end_date = datetime.datetime.now().strftime("%m/%d/%Y")
+#     data_dir = "data"
 
-    api = Nexternal_API(data_dir=data_dir)
-    api.get_product_data(start_date='01/01/1900', end_date="12/31/2030")
-    api.merge_product_data(product_header_list)
+#     api = Nexternal_API(data_dir=data_dir)
+#     api.get_product_data(start_date='01/01/1900', end_date="12/31/2030")
+#     api.merge_product_data(product_header_list)
 
     # data_dir = "data/amazon"
     # combine_amazon_files(data_dir)
