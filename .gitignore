@@ -16,3 +16,6 @@ pip-log.txt
 *.xlsm
 *.env
 data/*
+analysis/*
+excel_loaders/*
+media/*

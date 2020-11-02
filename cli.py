@@ -33,7 +33,7 @@ def cli():
 
     if not args.date_range:
         now = datetime.datetime.now()
-        start_date = (now - datetime.timedelta(50))
+        start_date = (now - datetime.timedelta(14))
         end_date = now
     else:
         dates = args.date_range.split(" to ")
@@ -46,7 +46,6 @@ def cli():
 
         api = Nexternal_API(
             data_dir="data",
-            load_method="pk_append",
             table_name=table_name,
             primary_key_list=[
                 "order_number",
@@ -54,7 +53,8 @@ def cli():
             ],
             data_type="sales_orders",
             start_date=start_date,
-            end_date=end_date
+            end_date=end_date,
+            load_method="pk_append"
         )
         api.get_data()
         api.parse_order_data()
@@ -73,7 +73,7 @@ def cli():
             start_date=start_date,
             end_date=end_date
         )
-        api.get_data()
+        # api.get_data()
         api.parse_product_data()
         api.load_data()
 

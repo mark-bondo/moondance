@@ -25,12 +25,12 @@ WITH nexternal_shipping AS (
         n.order_line,
         ((n.total_weight::NUMERIC / d.total_weight::NUMERIC) * n.shipping_rate::NUMERIC)::NUMERIC(16, 2) as weighted_average_shipping,
         CASE
-            WHEN d.total_weight <= 0.25 THEN '0oz - 4oz'
-            WHEN d.total_weight <= 0.5 THEN '4oz - 8oz'
-            WHEN d.total_weight <= 0.75 THEN '8oz - 12oz'
-            WHEN d.total_weight <= 1 THEN '12oz - 16oz'
-            WHEN d.total_weight <= 2 THEN '32oz - 48oz'
-            ELSE '48oz+'
+            WHEN d.total_weight <= 0.25 THEN '00-04 oz'
+            WHEN d.total_weight <= 0.5 THEN '04-08 oz'
+            WHEN d.total_weight <= 0.75 THEN '08-12 oz'
+            WHEN d.total_weight <= 1 THEN '12-16 oz'
+            WHEN d.total_weight <= 2 THEN '32-48 oz'
+            ELSE '48 oz+'
         END as weight_bucket
         
     FROM
@@ -66,17 +66,17 @@ WITH nexternal_shipping AS (
 )*/
 
 
-
+select * from (
 
 SELECT
     'Nexternal'::TEXT as platform,
     so.order_status,
     so.order_number::VARCHAR as order_number,
     so.order_line,
-    so.order_date,
-    DATE_PART('YEAR', so.order_date)::INTEGER as order_year,
-    DATE_PART('MONTH', so.order_date)::INTEGER as order_month,
-    so.ship_date,
+    so.datetime_ordered,
+    DATE_PART('YEAR', so.datetime_ordered)::INTEGER as order_year,
+    DATE_PART('MONTH', so.datetime_ordered)::INTEGER as order_month,
+    so.datetime_shipped,
     so.customer_type,
     so.product_category as marketing_category,
     COALESCE(item_master_nexternal.supply_chain_category, no_sku.supply_chain_category) as supply_chain_category,
@@ -84,28 +84,32 @@ SELECT
     item_master_nexternal.name as product_name_nexternal,
     (
         COALESCE(item_master_nexternal.supply_chain_name, no_sku.supply_chain_name) || 
-        CASE WHEN item_master_nexternal.measure IS NOT NULL THEN ' ' || item_master_nexternal.measure::NUMERIC(16, 1)::TEXT ELSE '' END ||
-        CASE WHEN item_master_nexternal.unit_of_measure IS NOT NULL THEN item_master_nexternal.unit_of_measure ELSE '' END 
+        CASE WHEN COALESCE(item_master_nexternal.measure, no_sku.measure) IS NOT NULL THEN ' ' || COALESCE(item_master_nexternal.measure, no_sku.measure)::NUMERIC(16, 1)::TEXT || ' ' ELSE '' END ||
+        CASE WHEN COALESCE(item_master_nexternal.unit_of_measure, no_sku.unit_of_measure) IS NOT NULL THEN COALESCE(item_master_nexternal.unit_of_measure, no_sku.unit_of_measure) ELSE '' END 
     ) as supply_chain_name,
     so.product_sku as nexternal_sku,
     NULL::TEXT as amazon_asin,
     so.product_attribute,
     so.unit_price as unit_sale_price,
+    COALESCE(item_master_nexternal.unit_cost, no_sku.unit_cost) as unit_material_cost,
     (nexternal_shipping.weighted_average_shipping / CASE WHEN so.quantity = 0 THEN NULL ELSE so.quantity END)::NUMERIC(16, 2) as unit_cost_shipping,
-    COALESCE((so.sales_tax_rate::NUMERIC/100::NUMERIC) * so.unit_price, 0)::NUMERIC(16, 2) as unit_cost_tax,
+    --COALESCE((so.sales_tax_rate::NUMERIC/100::NUMERIC) * so.unit_price, 0)::NUMERIC(16, 2) as unit_cost_tax,
     (
          COALESCE(so.unit_price, 0)
+        -COALESCE(item_master_nexternal.unit_cost, no_sku.unit_cost, 0)
         -COALESCE((nexternal_shipping.weighted_average_shipping / CASE WHEN so.quantity = 0 THEN NULL ELSE so.quantity END)::NUMERIC(16, 2), 0)
-        -COALESCE((so.sales_tax_rate::NUMERIC/100::NUMERIC) * so.unit_price, 0)
+        --COALESCE((so.sales_tax_rate::NUMERIC/100::NUMERIC) * so.unit_price, 0)
     )::NUMERIC(16, 2) as unit_margin,
     so.quantity,
     so.extended_price as total_sales,
+    (COALESCE(item_master_nexternal.unit_cost, no_sku.unit_cost) * so.quantity)::NUMERIC(16, 2) as total_material_cost,
     nexternal_shipping.weighted_average_shipping as total_cost_shipping,
-    ((so.sales_tax_rate::NUMERIC/100::NUMERIC) * so.extended_price)::NUMERIC(16, 2) as total_cost_tax,
+   -- ((so.sales_tax_rate::NUMERIC/100::NUMERIC) * so.extended_price)::NUMERIC(16, 2) as total_cost_tax,
     (
-         COALESCE(so.extended_price, 0)
-        -COALESCE(nexternal_shipping.weighted_average_shipping, 0)
-        -COALESCE((so.sales_tax_rate::NUMERIC/100::NUMERIC) * so.extended_price, 0)
+         (COALESCE(so.unit_price, 0) * so.quantity)
+        -(COALESCE(item_master_nexternal.unit_cost, no_sku.unit_cost, 0) * so.quantity)
+        -(COALESCE(nexternal_shipping.weighted_average_shipping, 0))
+        --COALESCE((so.sales_tax_rate::NUMERIC/100::NUMERIC) * so.extended_price, 0)
     )::NUMERIC(16, 2) as total_margin,
     so.shipping_method,
     so.tracking_number,
@@ -135,33 +139,37 @@ SELECT
     DATE_PART('MONTH', so.purchase_date)::INTEGER as order_month,
     NULL::DATE as ship_date,
     'Consumer'::TEXT as customer_type,
-    n.marketing_category,
+    n.product_category as marketing_category,
     n.supply_chain_category,
     so.product_name as product_name_historical,
     n.name as product_name_nexternal,
     (
         n.supply_chain_name || 
-        CASE WHEN n.measure IS NOT NULL THEN ' ' || measure::NUMERIC(16, 1)::TEXT ELSE '' END ||
+        CASE WHEN n.measure IS NOT NULL THEN ' ' || measure::NUMERIC(16, 1)::TEXT || ' ' ELSE '' END ||
         CASE WHEN n.unit_of_measure IS NOT NULL THEN unit_of_measure ELSE '' END 
     ) as supply_chain_name,
     n.sku as nexternal_sku,
     so.asin as amazon_asin,
     NULL::TEXT as product_attribute,
     (so.item_price / CASE WHEN so.quantity = 0 THEN NULL ELSE so.quantity END)::NUMERIC(16, 2) as unit_sale_price,
+    (so.quantity * n.unit_cost) as unit_material_cost,
     (so.shipping_price / CASE WHEN so.quantity = 0 THEN 1 ELSE so.quantity END)::NUMERIC(16, 2) as unit_cost_shipping,
-    (so.item_tax / CASE WHEN so.quantity = 0 THEN 1 ELSE so.quantity END)::NUMERIC(16, 2) as unit_cost_shipping,
+   -- (so.item_tax / CASE WHEN so.quantity = 0 THEN 1 ELSE so.quantity END)::NUMERIC(16, 2) as unit_cost_tax,
     (
-        COALESCE((so.item_price / CASE WHEN so.quantity = 0 THEN NULL ELSE so.quantity END), 0)::NUMERIC(16, 2)
+         COALESCE((so.item_price / CASE WHEN so.quantity = 0 THEN NULL ELSE so.quantity END), 0)::NUMERIC(16, 2)
+        -COALESCE(n.unit_cost, 0)
         -COALESCE((so.shipping_price / CASE WHEN so.quantity = 0 THEN 1 ELSE so.quantity END), 0)::NUMERIC(16, 2)
-        -COALESCE((so.item_tax / CASE WHEN so.quantity = 0 THEN 1 ELSE so.quantity END), 0)::NUMERIC(16, 2)
+        --COALESCE((so.item_tax / CASE WHEN so.quantity = 0 THEN 1 ELSE so.quantity END), 0)::NUMERIC(16, 2)
     )::NUMERIC(16, 2) as unit_margin,
     so.quantity,
     so.item_price as total_sales,
+    COALESCE(so.quantity * n.unit_cost, 0) as total_material_cost,
     (COALESCE(so.shipping_price, 0) + COALESCE(so.shipping_tax, 0))::NUMERIC(16, 2) as total_cost_shipping,
-    so.item_tax as total_cost_tax,
+    --so.item_tax as total_cost_tax,
     (
          COALESCE(so.item_price, 0)
-        -COALESCE(so.item_tax, 0)
+        -COALESCE(so.quantity * n.unit_cost, 0)
+        --COALESCE(so.item_tax, 0)
         -COALESCE(so.shipping_price, 0)
     )::NUMERIC(16, 2) as total_margin,
     so.ship_service_level as shipping_method,
@@ -174,3 +182,10 @@ FROM
     "public"."sales_orders_amazon" so
     LEFT JOIN public.item_master_amazon a ON so.asin = a.asin
     LEFT JOIN public.item_master_nexternal n ON a.nexternal_sku = n.sku
+) s
+WHERE
+    order_year >= 2019 AND
+    --unit_sale_price = 0 AND
+    order_number NOT LIKE 'S%' AND
+    order_status NOT IN ('Canceled', 'Cancelled') AND
+    COALESCE(supply_chain_category, '') != 'Packaging'

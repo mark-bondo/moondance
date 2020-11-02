@@ -5,7 +5,8 @@ WITH
     DELIMITER AS '%(delim)s'
     HEADER
     CSV
-    QUOTE AS E'\b'
+    QUOTE E'\b'
+    ESCAPE E'\b'
 ;
 
 DELETE FROM %(schema)s.%(table_name)s a

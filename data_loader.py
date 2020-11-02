@@ -172,6 +172,12 @@ product_header_list = [
         "type": "str"
     },
     {
+        "name": "Image URL",
+        "api_name": "main",
+        "parent": "images",
+        "type": "str"
+    },
+    {
         "name": "Attribute",
         "api_name": "attribute",
         "parent": "product",
@@ -284,7 +290,7 @@ class Nexternal_API(object):
         self.start_date = start_date
         self.end_date = end_date
         self.load_method = load_method
-        self.xml_file_name =  "{}/nexternal/{}/{}_to_{}.xml".format(
+        self.xml_file_name =  "{}/nexternal/{}_{}_to_{}.xml".format(
             self.data_dir,
             self.data_type,
             self.start_date.strftime("%Y-%m-%d"),
@@ -373,6 +379,52 @@ class Nexternal_API(object):
         })
         self.header_list = header_list
 
+    def get_product_element(self, h, product, sku=None):
+        # sku level parsing
+        if sku:
+            if h["name"] == "Inventory Onhand":
+                element = sku.find(h["api_name"])
+                
+                if not element:
+                    element = product.find(h["api_name"])
+            elif h["name"] == "SKU" and sku.get("sku") is not None:
+                element = sku.get("sku")
+            elif h["name"] == "Attribute":
+                attributes = sku.find_all("attribute")
+                attribute_list = []
+
+                for a in attributes:
+                    attribute_string = "{}: {}".format(a.get("name"), a.get_text())
+                    attribute_list.append(attribute_string)
+                
+                # print(attributes)
+                
+                element = ";".join(attribute_list)
+        
+        # product level parsing
+        if h["parent"] != "product":
+            element = product.find(h["parent"])
+
+            if element:
+                element = element.find(h["api_name"])
+        else:
+            element = product.find(h["api_name"])
+
+        if element and not isinstance(element, str):
+            element = element.get_text()
+
+            if h["type"] == "datetime":
+                element = "{} {}".format(
+                    datetime.datetime.strptime(element, "%m/%d/%Y").strftime("%Y-%m-%d"),
+                    product.find(h["parent"]).find("time").get_text()
+                )
+        elif element:
+            element = element
+        else:
+            element = ""
+        
+        return element.replace("\n", "    ").replace("\t", "    ").replace("\r", "    ")
+
     def parse_product_data(self, header_list=product_header_list):
         self.row_count = 1
 
@@ -389,48 +441,24 @@ class Nexternal_API(object):
                 for product in product_list:
                     sku_list = product.find_all("sku")
                     product_name = product.find("productname")
-                    attributes = []
 
                     if sku_list:
-                        attributes = []
-
                         for sku in sku_list:
-                            attribute_list = sku.find_all("attribute")
+                            row = []
 
+                            for h in header_list:
+                                element = self.get_product_element(h, product, sku)
+                                row.append(element)
 
-                            for a in attribute_list:
-                                attribute_string = "{}: {}".format(a.get("name"), a.get_text())
-                                attributes.append(attribute_string)
-
-                    if product_name:
+                            self.row_count += 1
+                            w.write("{}\n".format("\t".join(row)))
+                    elif product_name:
                         row = []
 
                         for h in header_list:
-                            if h["api_name"] == "attribute":
-                                element = product.find(h["api_name"])
+                            element = self.get_product_element(h, product)
+                            row.append(element)
 
-                                if not element:
-                                    element = ";".join(attributes)
-                            if h["parent"] != "product":
-                                element = product.find(h["parent"])
-
-                                if element:
-                                    element = element.find(h["api_name"])
-                            else:
-                                element = product.find(h["api_name"])
-
-                            if element and element is not str:
-                                element = element.get_text()
-
-                                if h["type"] == "datetime":
-                                    element = "{} {}".format(
-                                        datetime.datetime.strptime(element, "%m/%d/%Y").strftime("%Y-%m-%d"),
-                                        product.find(h["parent"]).find("time").get_text()
-                                    )
-                            else:
-                                element = ""
-
-                            row.append(element.replace("\n", "    ").replace("\t", "    ").replace("\r", "    "))
                         self.row_count += 1
                         w.write("{}\n".format("\t".join(row)))
 

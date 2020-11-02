@@ -25,7 +25,8 @@ INSERT INTO %(schema)s.%(table_name)s (
     direct_checkout_link,
     datetime_created,
     datetime_updated,
-    product_category
+    product_category,
+    image_url
 )
 SELECT
     DISTINCT ON (a.sku)
@@ -45,7 +46,8 @@ SELECT
     direct_checkout_link,
     datetime_created,
     datetime_updated,
-    product_category
+    product_category,
+    image_url
 FROM
     staging.%(table_name)s a JOIN
     (
@@ -81,36 +83,38 @@ DO
         direct_checkout_link = excluded.direct_checkout_link,
         datetime_created = excluded.datetime_created,
         datetime_updated = excluded.datetime_updated,
-        product_category = excluded.product_category
-;
-
-INSERT INTO public.item_master_nexternal_no_sku(
-    %(column_select)s
-) 
-
-SELECT
-    %(column_select)s
-FROM
-    staging.%(table_name)s a
-WHERE
-    a.sku IS NULL
-ON CONFLICT ON CONSTRAINT itemmasternexternalnosku_ix1
-DO
-    UPDATE SET
-        product_id = excluded.product_id,
-        status = excluded.status,
-        short_description = excluded.short_description,
-        long_description = excluded.long_description,
-        key_words = excluded.key_words,
-        inventory_onhand = excluded.inventory_onhand,
-        unit_weight = excluded.unit_weight,
-        unit_price = excluded.unit_price,
-        visibility = excluded.visibility,
-        store_front_link = excluded.store_front_link,
-        direct_checkout_link = excluded.direct_checkout_link,
-        datetime_created = excluded.datetime_created,
-        datetime_updated = excluded.datetime_updated,
         product_category = excluded.product_category,
-        sku = excluded.sku
+        image_url = excluded.image_url
 ;
+
+-- INSERT INTO public.item_master_nexternal_no_sku(
+--     %(column_select)s
+-- ) 
+
+-- SELECT
+--     %(column_select)s
+-- FROM
+--     staging.%(table_name)s a
+-- WHERE
+--     a.sku IS NULL
+-- ON CONFLICT ON CONSTRAINT itemmasternexternalnosku_ix1
+-- DO
+--     UPDATE SET
+--         product_id = excluded.product_id,
+--         status = excluded.status,
+--         short_description = excluded.short_description,
+--         long_description = excluded.long_description,
+--         key_words = excluded.key_words,
+--         inventory_onhand = excluded.inventory_onhand,
+--         unit_weight = excluded.unit_weight,
+--         unit_price = excluded.unit_price,
+--         visibility = excluded.visibility,
+--         store_front_link = excluded.store_front_link,
+--         direct_checkout_link = excluded.direct_checkout_link,
+--         datetime_created = excluded.datetime_created,
+--         datetime_updated = excluded.datetime_updated,
+--         product_category = excluded.product_category,
+--         sku = excluded.sku,
+--         image_url = excluded.image_url
+-- ;
 
