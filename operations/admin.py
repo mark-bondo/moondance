@@ -158,9 +158,9 @@ class Product_Admin(admin.ModelAdmin):
 
     list_display = [
         "sku",
+        "description",
         "product_type",
         "product_code",
-        "description",
         "unit_of_measure",
         "quantity_onhand",
         "unit_weight",
