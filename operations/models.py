@@ -4,20 +4,42 @@ from django.db import models
 from meta_models import MetaModel
 
 
+class Product_Code(MetaModel):
+    family = models.CharField(max_length=200)
+    category = models.CharField(max_length=200, unique=True)
+
+    def __str__(self):
+        return "{}: {}".format(self.family, self.category)
+
+    class Meta:
+        verbose_name = "Product Hierarchy"
+        verbose_name_plural = "Product Hierarchy"
+
+
 class Product(MetaModel):
     unit_of_measure_choices = (
         ("grams", "grams"),
         ("ounces", "ounces"),
     )
-
-    sku = models.CharField(max_length=200, unique=True)
+    type_list = (
+        ("Finished Goods", "Finished Goods"),
+        ("WIP", "WIP"),
+        ("Raw Materials",  "Raw Materials"),
+    )
+    product_type = models.CharField(max_length=200, choices=type_list)
+    product_code = models.ForeignKey(
+        Product_Code,
+        on_delete=models.PROTECT,
+        related_name="Product_product_code_fk"
+    )
+    sku = models.CharField(max_length=200, unique=True, verbose_name="SKU")
     description = models.CharField(max_length=200)
-    upc = models.CharField(max_length=200, null=True)
+    upc = models.CharField(max_length=200, null=True, blank=True, verbose_name="UPC")
     unit_of_measure = models.CharField(max_length=200, choices=unit_of_measure_choices, default="grams")
-    quantity_onhand = models.DecimalField(max_digits=12, decimal_places=2, null=True)
-    unit_weight = models.DecimalField(max_digits=12, decimal_places=2, null=True)
-    unit_price = models.DecimalField(max_digits=12, decimal_places=2, null=True)
-    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True)
+    quantity_onhand = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    unit_weight = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Unit Sales Price")
+    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
     def __str__(self):
         return "{}: {}".format(self.sku, self.description)
@@ -57,13 +79,14 @@ class Shopify_Product(MetaModel):
 
 class Supplier(MetaModel):
     name = models.CharField(max_length=200, unique=True)
-    contact_name = models.CharField(max_length=200, null=True)
-    contact_email = models.CharField(max_length=200, null=True)
-    street_address = models.CharField(max_length=200, null=True)
-    city = models.CharField(max_length=200, null=True)
-    state = models.CharField(max_length=200, null=True)
-    postal_code = models.CharField(max_length=200, null=True)
-    country = models.CharField(max_length=200, null=True, default="United States")
+    contact_name = models.CharField(max_length=200, null=True, blank=True)
+    contact_email = models.CharField(max_length=200, null=True, blank=True)
+    street_address = models.CharField(max_length=200, null=True, blank=True)
+    city = models.CharField(max_length=200, null=True, blank=True)
+    state = models.CharField(max_length=200, null=True, blank=True)
+    postal_code = models.CharField(max_length=200, null=True, blank=True)
+    country = models.CharField(max_length=200, null=True, blank=True, default="United States")
+    notes = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return "{}".format(self.name)
