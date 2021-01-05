@@ -1,0 +1,35 @@
+#header {
+    background-color: #554e6e;
+}
+
+#changelist-form a:link {
+    color: #554e6e;
+}
+
+#changelist-form a:visited {
+    color: #554e6e;
+}
+
+div.breadcrumbs {
+    background-color: #2d283f;
+}
+
+.module h2, .module caption, .inline-group h2 {
+    background:  #71ac63 ;
+}
+
+#nav-sidebar .current-model {
+    background: #e4fade;
+}
+
+.object-tools a:link:hover, .object-tools a:visited:hover {
+    background:  #71ac63 ;
+}
+
+#header {
+    color: #ffffff;
+}
+
+a:link, a:visited {
+    color:#3a5c32;
+}

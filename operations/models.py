@@ -14,7 +14,7 @@ class Product_Code(MetaModel):
     class Meta:
         verbose_name = "Product Hierarchy"
         verbose_name_plural = "Product Hierarchy"
-
+        ordering = ("family", "category",)
 
 class Product(MetaModel):
     unit_of_measure_choices = (
@@ -94,6 +94,7 @@ class Supplier(MetaModel):
     class Meta:
         verbose_name = "Supplier"
         verbose_name_plural = "Suppliers"
+        ordering = ("name",)
 
 
 class Supplier_Product(MetaModel):

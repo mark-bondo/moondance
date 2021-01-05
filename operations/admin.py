@@ -13,6 +13,10 @@ class Product_Code_Admin(admin.ModelAdmin):
         "family",
         "category",
     ]
+    list_filter = [
+        "_active",
+        "family",
+    ]
     search_fields = [
         "family",
         "category",
@@ -53,6 +57,7 @@ class Supplier_Admin(admin.ModelAdmin):
     model = Supplier
     list_display = [
         "name",
+        "_active",
         "contact_name",
         "contact_email",
         "street_address",
@@ -66,6 +71,7 @@ class Supplier_Admin(admin.ModelAdmin):
         "contact_name",
     ]
     list_filter = [
+        "_active",
         "state",
     ]
     fieldsets = (
