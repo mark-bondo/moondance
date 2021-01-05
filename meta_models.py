@@ -41,7 +41,6 @@ class AdminStaticMixin(admin.ModelAdmin):
 
 #         return y | x
 
-
 # Q.__bases__ += (QQ,)
 
 
