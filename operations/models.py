@@ -2,6 +2,7 @@ import sys
 sys.path.append('.')
 from django.db import models
 from meta_models import MetaModel
+import decimal
 
 
 class Product_Code(MetaModel):
@@ -9,7 +10,7 @@ class Product_Code(MetaModel):
     category = models.CharField(max_length=200, unique=True)
 
     def __str__(self):
-        return "{}: {}".format(self.family, self.category)
+        return "{}".format(self.category)
 
     class Meta:
         verbose_name = "Product Hierarchy"
@@ -19,7 +20,9 @@ class Product_Code(MetaModel):
 class Product(MetaModel):
     unit_of_measure_choices = (
         ("grams", "grams"),
-        ("ounces", "ounces"),
+        ("oz", "oz"),
+        ("lbs", "lbs"),
+        ("each", "each"),
     )
     type_list = (
         ("Finished Goods", "Finished Goods"),
@@ -35,18 +38,95 @@ class Product(MetaModel):
     sku = models.CharField(max_length=200, unique=True, verbose_name="SKU")
     description = models.CharField(max_length=200)
     upc = models.CharField(max_length=200, null=True, blank=True, verbose_name="UPC")
-    unit_of_measure = models.CharField(max_length=200, choices=unit_of_measure_choices, default="grams")
+    unit_of_measure = models.CharField(max_length=200, choices=unit_of_measure_choices, default="grams", verbose_name="Default Unit of Measure")
     quantity_onhand = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     unit_weight = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Unit Sales Price")
     unit_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    freight_factor_percentage = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    notes = models.TextField(null=True, blank=True)
+
+    __original_unit_of_measure = None
+
+    def __init__(self, *args, **kwargs):
+        super(Product, self).__init__(*args, **kwargs)
+        self.__original_unit_of_measure = self.unit_of_measure
+
+    def save(self, force_insert=False, force_update=False, *args, **kwargs):
+        if self.unit_of_measure != self.__original_unit_of_measure:
+            if self.quantity_onhand:
+                if self.__original_unit_of_measure == "lbs":
+                    if self.unit_of_measure == "oz":
+                        self.quantity_onhand = self.quantity_onhand * decimal.Decimal(16)
+                    if self.unit_of_measure == "grams":
+                        self.quantity_onhand = self.quantity_onhand * decimal.Decimal(453.592)
+                elif self.__original_unit_of_measure == "oz":
+                        if self.unit_of_measure == "lbs":
+                            self.quantity_onhand = self.quantity_onhand / decimal.Decimal(16)
+                        if self.unit_of_measure == "grams":
+                            self.quantity_onhand = self.quantity_onhand * decimal.Decimal(28.3495)
+                elif self.__original_unit_of_measure == "grams":
+                        if self.unit_of_measure == "lbs":
+                            self.quantity_onhand = self.quantity_onhand / decimal.Decimal(453.592)
+                        if self.unit_of_measure == "oz":
+                            self.quantity_onhand = self.quantity_onhand / decimal.Decimal(28.3495)
+
+        super(Product, self).save(force_insert, force_update, *args, **kwargs)
+        self.__original_unit_of_measure = self.unit_of_measure
+
+
+    @property
+    def total_cost(self):
+        return round((self.unit_cost or 0) * (self.quantity_onhand or 0), 2)
+
+    @property
+    def total_sales_price(self):
+        return round((self.unit_price or 0) * (self.quantity_onhand or 0))
 
     def __str__(self):
         return "{}: {}".format(self.sku, self.description)
 
+
+
     class Meta:
         verbose_name = "Product Master"
         verbose_name_plural = "Product Master"
+        ordering = ("sku",)
+
+
+class Materials_Management_Proxy(Product):
+
+    class Meta:
+        proxy = True
+        verbose_name = "Material"
+        verbose_name_plural = "Materials Management"
+        ordering = ("sku",)
+
+
+class Inventory_Onhand(MetaModel):
+    location_list = (
+        ("Bondo - Garage", "Bondo - Garage"),
+        ("Bondo - 2nd Floor", "Bondo - 2nd Floor"),
+        ("MoonDance HQ - Workshop",  "MoonDance HQ - Workshop"),
+        ("MoonDance HQ - Fulfillment Center",  "MoonDance HQ - Fulfillment Center"),
+    )
+
+    sku = models.ForeignKey(
+        Product,
+        on_delete=models.PROTECT,
+        related_name="Inventory_Onhand_sku_fk"
+    )
+    location = models.CharField(max_length=200, choices=location_list)
+    quantity_onhand = models.DecimalField(max_digits=12, decimal_places=2)
+
+    def __str__(self):
+        return "{} ({})".format(self.sku, self.location)
+
+    class Meta:
+        verbose_name = "Inventory Onhand"
+        verbose_name_plural = "Inventory Onhand"
+        ordering = ("sku", "location")
+
 
 
 class Amazon_Product(MetaModel):
@@ -63,6 +143,7 @@ class Amazon_Product(MetaModel):
     class Meta:
         verbose_name = "Amazon Product"
         verbose_name_plural = "Amazon Products"
+        ordering = ("asin",)
 
 
 class Shopify_Product(MetaModel):
@@ -101,6 +182,7 @@ class Supplier_Product(MetaModel):
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="Supplier_Product_product_fk")
     supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="supplier_product_supplier_fk")
     supplier_sku = models.CharField(max_length=200)
+    supplier_sku_description = models.CharField(max_length=200)
 
     def __str__(self):
         return "{}: {} ({})".format(self.product, self.supplier, self.supplier_sku)
@@ -109,5 +191,5 @@ class Supplier_Product(MetaModel):
         verbose_name = "Supplier Product"
         verbose_name_plural = "Supplier Products"
         unique_together = (("product", "supplier_sku"))
-
+        ordering = ("product", "supplier_sku")
 

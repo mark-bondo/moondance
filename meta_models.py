@@ -8,6 +8,7 @@ from django.contrib import admin
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.db.models import Model, Q, DateTimeField, ForeignKey, PROTECT, BooleanField
 from django.http import HttpResponse
+from django.utils import timezone
 # from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -64,7 +65,15 @@ class MetaModel(Model):
         verbose_name="Created By",
         related_name="%(class)s_created_by"
     )
-
-
     class Meta:
         abstract = True
+
+def set_meta_fields(request, obj, form, change, inline=False):
+    if form.has_changed() or inline:
+        if form.changed_data or inline:
+            obj._last_updated_by = request.user
+            obj._updated = timezone.now()
+        if not obj.pk:
+            obj._created_by = request.user
+
+    return obj
