@@ -250,8 +250,8 @@ class Materials_Management_Proxy_Admin(admin.ModelAdmin):
                     "product_type",
                     "product_code",
                     "description",
-                    "unit_cost",
                     "unit_of_measure",
+                    "unit_cost",
                     "quantity_onhand",
                     "_active",
                 ]

@@ -58,29 +58,29 @@ class Product(MetaModel):
                 if self.__original_unit_of_measure == "lbs":
                     if self.unit_of_measure == "oz":
                         math = decimal.Decimal(16)
-                        self.unit_cost = self.unit_cost * math
+                        self.unit_cost = self.unit_cost / math
                         self.quantity_onhand = self.quantity_onhand * math
                     if self.unit_of_measure == "grams":
                         math = decimal.Decimal(453.592)
-                        self.unit_cost = self.unit_cost * math
+                        self.unit_cost = self.unit_cost / math
                         self.quantity_onhand = self.quantity_onhand * math
                 elif self.__original_unit_of_measure == "oz":
                     if self.unit_of_measure == "lbs":
                         math = decimal.Decimal(16)
-                        self.unit_cost = self.unit_cost / math
+                        self.unit_cost = self.unit_cost * math
                         self.quantity_onhand = self.quantity_onhand / math
                     if self.unit_of_measure == "grams":
                         math = decimal.Decimal(28.3495)
-                        self.unit_cost = self.unit_cost * math
+                        self.unit_cost = self.unit_cost / math
                         self.quantity_onhand = self.quantity_onhand * math
                 elif self.__original_unit_of_measure == "grams":
                     if self.unit_of_measure == "lbs":
                         math = decimal.Decimal(453.592)
-                        self.unit_cost = self.unit_cost / math
+                        self.unit_cost = self.unit_cost * math
                         self.quantity_onhand = self.quantity_onhand / math
                     if self.unit_of_measure == "oz":
                         math = decimal.Decimal(28.3495)
-                        self.unit_cost = self.unit_cost / math
+                        self.unit_cost = self.unit_cost * math
                         self.quantity_onhand = self.quantity_onhand / math
 
         super(Product, self).save(force_insert, force_update, *args, **kwargs)
