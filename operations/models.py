@@ -42,7 +42,7 @@ class Product(MetaModel):
     quantity_onhand = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     unit_weight = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Unit Sales Price")
-    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    unit_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
     freight_factor_percentage = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
 
@@ -57,19 +57,31 @@ class Product(MetaModel):
             if self.quantity_onhand:
                 if self.__original_unit_of_measure == "lbs":
                     if self.unit_of_measure == "oz":
-                        self.quantity_onhand = self.quantity_onhand * decimal.Decimal(16)
+                        math = decimal.Decimal(16)
+                        self.unit_cost = self.unit_cost * math
+                        self.quantity_onhand = self.quantity_onhand * math
                     if self.unit_of_measure == "grams":
-                        self.quantity_onhand = self.quantity_onhand * decimal.Decimal(453.592)
+                        math = decimal.Decimal(453.592)
+                        self.unit_cost = self.unit_cost * math
+                        self.quantity_onhand = self.quantity_onhand * math
                 elif self.__original_unit_of_measure == "oz":
-                        if self.unit_of_measure == "lbs":
-                            self.quantity_onhand = self.quantity_onhand / decimal.Decimal(16)
-                        if self.unit_of_measure == "grams":
-                            self.quantity_onhand = self.quantity_onhand * decimal.Decimal(28.3495)
+                    if self.unit_of_measure == "lbs":
+                        math = decimal.Decimal(16)
+                        self.unit_cost = self.unit_cost / math
+                        self.quantity_onhand = self.quantity_onhand / math
+                    if self.unit_of_measure == "grams":
+                        math = decimal.Decimal(28.3495)
+                        self.unit_cost = self.unit_cost * math
+                        self.quantity_onhand = self.quantity_onhand * math
                 elif self.__original_unit_of_measure == "grams":
-                        if self.unit_of_measure == "lbs":
-                            self.quantity_onhand = self.quantity_onhand / decimal.Decimal(453.592)
-                        if self.unit_of_measure == "oz":
-                            self.quantity_onhand = self.quantity_onhand / decimal.Decimal(28.3495)
+                    if self.unit_of_measure == "lbs":
+                        math = decimal.Decimal(453.592)
+                        self.unit_cost = self.unit_cost / math
+                        self.quantity_onhand = self.quantity_onhand / math
+                    if self.unit_of_measure == "oz":
+                        math = decimal.Decimal(28.3495)
+                        self.unit_cost = self.unit_cost / math
+                        self.quantity_onhand = self.quantity_onhand / math
 
         super(Product, self).save(force_insert, force_update, *args, **kwargs)
         self.__original_unit_of_measure = self.unit_of_measure
