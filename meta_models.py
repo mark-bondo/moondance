@@ -20,7 +20,11 @@ class AdminStaticMixin(admin.ModelAdmin):
 
     class Media:
         js = ()
-        css = {}
+        css = {
+            "all": (
+                staticfiles_storage.url("admin/style.css"),
+            )
+        }
 
 
 # class QQ:

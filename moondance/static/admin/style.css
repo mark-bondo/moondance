@@ -1,0 +1,11 @@
+#materials_management_proxy_form select{
+    width: 275px;
+}
+
+#materials_management_proxy_form input[type=text], #materials_management_proxy_form input[type=number]{
+    width: 260px;
+}
+
+#inventory_onhand_form .select2-container{
+    width: 350px !important;
+}

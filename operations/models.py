@@ -2,22 +2,26 @@ import sys
 sys.path.append('.')
 from django.db import models
 from meta_models import MetaModel
+from simple_history.models import HistoricalRecords
 import decimal
 
 
 class Product_Code(MetaModel):
     family = models.CharField(max_length=200)
     category = models.CharField(max_length=200, unique=True)
+    freight_factor_percentage = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Percentage adder to material cost. Use whole numbers with 2 decimals maximum.")
 
     def __str__(self):
         return "{}".format(self.category)
 
     class Meta:
-        verbose_name = "Product Hierarchy"
-        verbose_name_plural = "Product Hierarchy"
+        verbose_name = "Product - Category"
+        verbose_name_plural = "Product - Categories"
         ordering = ("family", "category",)
 
 class Product(MetaModel):
+    history = HistoricalRecords()
+
     unit_of_measure_choices = (
         ("grams", "grams"),
         ("oz", "oz"),
@@ -39,10 +43,20 @@ class Product(MetaModel):
     description = models.CharField(max_length=200)
     upc = models.CharField(max_length=200, null=True, blank=True, verbose_name="UPC")
     unit_of_measure = models.CharField(max_length=200, choices=unit_of_measure_choices, default="grams", verbose_name="Default Unit of Measure")
-    quantity_onhand = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    total_quantity_onhand = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Total Onhand Quantity",
+        help_text="Total inventory across all locations.  Updates to quantites to should be done using the Inventory Onhand form below."
+    )
+    total_freight_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Calculated using a percentage adder to account for inbound freight based upon type of material.")
+    total_material_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    total_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     unit_weight = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    unit_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Unit Sales Price")
-    unit_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
+    unit_sales_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    unit_material_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
     freight_factor_percentage = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
 
@@ -86,19 +100,8 @@ class Product(MetaModel):
         super(Product, self).save(force_insert, force_update, *args, **kwargs)
         self.__original_unit_of_measure = self.unit_of_measure
 
-
-    @property
-    def total_cost(self):
-        return round((self.unit_cost or 0) * (self.quantity_onhand or 0), 2)
-
-    @property
-    def total_sales_price(self):
-        return round((self.unit_price or 0) * (self.quantity_onhand or 0))
-
     def __str__(self):
-        return "{}: {}".format(self.sku, self.description)
-
-
+        return "{} ({})".format(self.description, self.sku)
 
     class Meta:
         verbose_name = "Product Master"
@@ -107,15 +110,17 @@ class Product(MetaModel):
 
 
 class Materials_Management_Proxy(Product):
-
+    # history = HistoricalRecords()
     class Meta:
         proxy = True
-        verbose_name = "Material"
-        verbose_name_plural = "Materials Management"
+        verbose_name = "Product - Raw Material"
+        verbose_name_plural = "Product - Raw Materials"
         ordering = ("sku",)
 
 
 class Inventory_Onhand(MetaModel):
+    history = HistoricalRecords()
+
     location_list = (
         ("Bondo - Garage", "Bondo - Garage"),
         ("Bondo - 2nd Floor", "Bondo - 2nd Floor"),
@@ -124,7 +129,7 @@ class Inventory_Onhand(MetaModel):
     )
 
     sku = models.ForeignKey(
-        Product,
+        Materials_Management_Proxy,
         on_delete=models.PROTECT,
         related_name="Inventory_Onhand_sku_fk"
     )
@@ -171,6 +176,8 @@ class Shopify_Product(MetaModel):
 
 
 class Supplier(MetaModel):
+    history = HistoricalRecords()
+
     name = models.CharField(max_length=200, unique=True)
     contact_name = models.CharField(max_length=200, null=True, blank=True)
     contact_email = models.CharField(max_length=200, null=True, blank=True)
@@ -179,6 +186,7 @@ class Supplier(MetaModel):
     state = models.CharField(max_length=200, null=True, blank=True)
     postal_code = models.CharField(max_length=200, null=True, blank=True)
     country = models.CharField(max_length=200, null=True, blank=True, default="United States")
+    supplier_website = models.URLField(max_length=200, null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
 
     def __str__(self):
@@ -191,10 +199,13 @@ class Supplier(MetaModel):
 
 
 class Supplier_Product(MetaModel):
+    history = HistoricalRecords()
+
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="Supplier_Product_product_fk")
     supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="supplier_product_supplier_fk")
     supplier_sku = models.CharField(max_length=200)
     supplier_sku_description = models.CharField(max_length=200)
+    supplier_sku_link = models.URLField(max_length=200, null=True, blank=True)
 
     def __str__(self):
         return "{}: {} ({})".format(self.product, self.supplier, self.supplier_sku)
