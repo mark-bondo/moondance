@@ -9,7 +9,7 @@ import decimal
 class Product_Code(MetaModel):
     family = models.CharField(max_length=200)
     category = models.CharField(max_length=200, unique=True)
-    freight_factor_percentage = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Percentage adder to material cost. Use whole numbers with 2 decimals maximum.")
+    freight_factor_percentage = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Percentage adder to material cost. Use whole numbers with 2 decimals maximum.")
 
     def __str__(self):
         return "{}".format(self.category)

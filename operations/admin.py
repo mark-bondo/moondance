@@ -92,6 +92,7 @@ class Supplier_Product_Admin_Inline(admin.TabularInline):
         "supplier",
         "supplier_sku",
         "supplier_sku_description",
+        "supplier_sku_link",
         "_last_updated",
 
     )
@@ -110,6 +111,7 @@ class Supplier_Admin(SimpleHistoryAdmin):
     list_display = [
         "name",
         "_active",
+        "supplier_website",
         "contact_name",
         "contact_email",
         "street_address",
@@ -121,6 +123,7 @@ class Supplier_Admin(SimpleHistoryAdmin):
     history_list_display = [
         "name",
         "_active",
+        "supplier_website",
         "contact_name",
         "contact_email",
         "street_address",
@@ -147,6 +150,7 @@ class Supplier_Admin(SimpleHistoryAdmin):
             {
                 "fields": [
                     "name",
+                    "supplier_website",
                     "contact_name",
                     "contact_email",
                     "notes",
@@ -184,41 +188,41 @@ class Supplier_Admin(SimpleHistoryAdmin):
 
         formset.save_m2m()
 
-class Amazon_Product_Admin_Inline(admin.TabularInline):
-    model = Amazon_Product
-    extra = 1
-    fields = (
-        "asin",
-        "_active",
-        "_last_updated",
-        "_last_updated_by",
-        "_created",
-        "_created_by",
-    )
-    readonly_fields = (
-        "_last_updated",
-        "_last_updated_by",
-        "_created",
-        "_created_by",
-    )
+# class Amazon_Product_Admin_Inline(admin.TabularInline):
+#     model = Amazon_Product
+#     extra = 1
+#     fields = (
+#         "asin",
+#         "_active",
+#         "_last_updated",
+#         "_last_updated_by",
+#         "_created",
+#         "_created_by",
+#     )
+#     readonly_fields = (
+#         "_last_updated",
+#         "_last_updated_by",
+#         "_created",
+#         "_created_by",
+#     )
 
-class Shopify_Product_Admin_Inline(admin.TabularInline):
-    model = Shopify_Product
-    extra = 1
-    fields = (
-        "shopify_product_id",
-        "_active",
-        "_last_updated",
-        "_last_updated_by",
-        "_created",
-        "_created_by",
-    )
-    readonly_fields = (
-        "_last_updated",
-        "_last_updated_by",
-        "_created",
-        "_created_by",
-    )
+# class Shopify_Product_Admin_Inline(admin.TabularInline):
+#     model = Shopify_Product
+#     extra = 1
+#     fields = (
+#         "shopify_product_id",
+#         "_active",
+#         "_last_updated",
+#         "_last_updated_by",
+#         "_created",
+#         "_created_by",
+#     )
+#     readonly_fields = (
+#         "_last_updated",
+#         "_last_updated_by",
+#         "_created",
+#         "_created_by",
+#     )
 
 @admin.register(Inventory_Onhand)
 class Inventory_Onhand_Admin(AdminStaticMixin, SimpleHistoryAdmin):
