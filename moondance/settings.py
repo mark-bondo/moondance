@@ -33,6 +33,7 @@ DEBUG = os.getenv("DJANGO_DEBUG")
 ALLOWED_HOSTS = [
     'soapmaker.pythonanywhere.com',
     'localhost',
+    'operations.moondancesoaps.com',
 ]
 
 
