@@ -5,6 +5,7 @@ from django.contrib import admin
 from meta_models import set_meta_fields, AdminStaticMixin
 from simple_history.admin import SimpleHistoryAdmin
 from .models import (
+    Recipe,
     Product,
     Product_Code,
     Inventory_Onhand,
@@ -17,19 +18,26 @@ from .models import (
 from .forms import Materials_Management_Proxy_Form
 
 
+def convert_weight(unit_of_measure, weight):
+    if unit_of_measure == "oz":
+        return {
+            "grams": weight * decimal.Decimal(28.3495),
+            "lbs": weight / decimal.Decimal(16),
+            "oz": weight
+        }
+    elif unit_of_measure == "lbs":
+        return {
+            "grams":  weight * decimal.Decimal(453.592),
+            "lbs": weight,
+            "oz": weight * decimal.Decimal(16)
+        }
+    elif unit_of_measure == "grams":
+        return {
+            "grams":  weight,
+            "lbs": weight * decimal.Decimal(453.592),
+            "oz": weight / decimal.Decimal(28.3495)
+        }
 
-def update_inventory(instance):
-    location_instance = Inventory_Onhand.objects.filter(sku=instance)
-    total_inventory_onhand = 0
-
-    for i in location_instance:
-        total_inventory_onhand += (i.quantity_onhand or 0)
-    
-    instance.total_quantity_onhand = total_inventory_onhand
-    instance.total_material_cost = (total_inventory_onhand * (instance.unit_material_cost or 0))
-    instance.total_freight_cost = (decimal.Decimal(Product.objects.get(pk=instance.pk).product_code.freight_factor_percentage or 0) / decimal.Decimal(100)) * instance.total_material_cost
-    instance.total_cost = instance.total_material_cost + (instance.total_freight_cost or 0)
-    instance.save()
 
 @admin.register(Product_Code)
 class Product_Code_Admin(admin.ModelAdmin):
@@ -83,6 +91,18 @@ class Product_Code_Admin(admin.ModelAdmin):
         "_created",
         "_created_by",
     )
+
+    def save_model(self, request, obj, form, change):
+        obj = set_meta_fields(request, obj, form, change)
+        super().save_model(request, obj, form, change)
+
+        if obj.original_freight_factor_percentage != obj.freight_factor_percentage:
+            skus = Materials_Management_Proxy.objects.filter(product_code=obj.pk)
+
+            for sku in skus:
+                sku.total_freight_cost = (sku.total_material_cost or 0) * ((obj.freight_factor_percentage or 0)  / decimal.Decimal(100))
+                sku.total_cost = (sku.total_material_cost or 0) + sku.total_freight_cost
+                sku.save()
 
 
 class Supplier_Product_Admin_Inline(admin.TabularInline):
@@ -188,42 +208,6 @@ class Supplier_Admin(SimpleHistoryAdmin):
 
         formset.save_m2m()
 
-# class Amazon_Product_Admin_Inline(admin.TabularInline):
-#     model = Amazon_Product
-#     extra = 1
-#     fields = (
-#         "asin",
-#         "_active",
-#         "_last_updated",
-#         "_last_updated_by",
-#         "_created",
-#         "_created_by",
-#     )
-#     readonly_fields = (
-#         "_last_updated",
-#         "_last_updated_by",
-#         "_created",
-#         "_created_by",
-#     )
-
-# class Shopify_Product_Admin_Inline(admin.TabularInline):
-#     model = Shopify_Product
-#     extra = 1
-#     fields = (
-#         "shopify_product_id",
-#         "_active",
-#         "_last_updated",
-#         "_last_updated_by",
-#         "_created",
-#         "_created_by",
-#     )
-#     readonly_fields = (
-#         "_last_updated",
-#         "_last_updated_by",
-#         "_created",
-#         "_created_by",
-#     )
-
 @admin.register(Inventory_Onhand)
 class Inventory_Onhand_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Inventory_Onhand
@@ -258,20 +242,19 @@ class Inventory_Onhand_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         obj = set_meta_fields(request, obj, form, change)
         super().save_model(request, obj, form, change)
 
-        instance = Materials_Management_Proxy.objects.get(pk=obj.sku.id)
-        update_inventory(instance=instance)
-    # def save_formset(self, request, form, formset, change):
-    #     instances = formset.save(commit=False)
+        # recalculate inventory weights and costs
+        location_inventory = Inventory_Onhand.objects.filter(sku=obj.sku)
+        total_quantity_onhand = 0
 
-    #     for obj in instances:
-    #         obj = set_meta_fields(request, obj, form, change, inline=True)
-    #         obj.save()
+        for i in location_inventory:
+            total_quantity_onhand += (i.quantity_onhand or 0)
 
-    #     for obj in formset.deleted_objects:
-    #         obj.delete()
-
-    #     formset.save_m2m()
-    #     update_inventory(instance=form.instance)
+        parent_obj = Materials_Management_Proxy.objects.get(pk=obj.sku.id)
+        parent_obj.total_quantity_onhand = total_quantity_onhand
+        parent_obj.total_material_cost = total_quantity_onhand * parent_obj.unit_material_cost
+        parent_obj.total_freight_cost = (decimal.Decimal(parent_obj.product_code.freight_factor_percentage or 0) / decimal.Decimal(100)) * parent_obj.total_material_cost
+        parent_obj.total_cost = parent_obj.total_material_cost + (parent_obj.total_freight_cost or 0)
+        parent_obj.save()
 
 
 class Inventory_Onhand_Admin_Inline(admin.TabularInline):
@@ -281,9 +264,11 @@ class Inventory_Onhand_Admin_Inline(admin.TabularInline):
         "sku",
         "location",
         "quantity_onhand",
+        "unit_of_measure",
         "history_link",
     )
     readonly_fields = (
+        "unit_of_measure",
         "history_link",
     )
 
@@ -298,6 +283,7 @@ class Inventory_Onhand_Admin_Inline(admin.TabularInline):
 
     history_link.allow_tags = True
     history_link.short_description = "History"
+
 
 @admin.register(Materials_Management_Proxy)
 class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
@@ -390,23 +376,22 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "total_cost",
     )
 
-    # def total_material_cost(self, obj):
-    #     return obj._hero_count
-
-    # total_material_cost.admin_order_field = '_hero_count'
-
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.filter(product_type__in=["WIP", "Raw Materials"])
 
-    def save_model(self, request, obj, form, change):
-        obj = set_meta_fields(request, obj, form, change)
-        super().save_model(request, obj, form, change)
+    # def save_model(self, request, obj, form, change):
+    #     obj = set_meta_fields(request, obj, form, change)
+    #     print(obj.original_unit_of_measure)
+    #     print(obj.unit_of_measure)
+    #     super().save_model(request, obj, form, change)
 
     def save_formset(self, request, form, formset, change):
-        instances = formset.save(commit=False)
+        # set meta fields
+        parent_obj = set_meta_fields(request, form.instance, form, change)
+        inline_formsets = formset.save(commit=False)
 
-        for obj in instances:
+        for obj in inline_formsets:
             obj = set_meta_fields(request, obj, form, change, inline=True)
             obj.save()
 
@@ -415,24 +400,161 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
         formset.save_m2m()
 
+        # recalculate inventory weights and costs
         if formset.model == Inventory_Onhand:
-            # location_inventory = Inventory_Onhand.objects.filter(sku=form.instance)
-            # total_inventory_onhand = 0
+            location_inventory = Inventory_Onhand.objects.filter(sku=form.instance)
+            total_quantity_onhand = 0
+            total_cost_previous_unit_of_measure = 0
 
-            # for i in location_inventory:
-            #     total_inventory_onhand += (i.quantity_onhand or 0)
-            
-            # form.instance.total_quantity_onhand = total_inventory_onhand
-            # form.instance.total_material_cost = (total_inventory_onhand * (form.instance.unit_material_cost or 0))
-            # form.instance.total_freight_cost = (decimal.Decimal(Product.objects.get(pk=form.instance.pk).product_code.freight_factor_percentage or 0) / decimal.Decimal(100)) * form.instance.total_material_cost
-            # form.instance.total_cost = form.instance.total_material_cost + (form.instance.total_freight_cost or 0)
-            # form.instance.save()
+            for i in location_inventory:
+                total_cost_previous_unit_of_measure += i.quantity_onhand * parent_obj.original_unit_material_cost
 
-            update_inventory(instance=form.instance)
+                if parent_obj.original_unit_of_measure != parent_obj.unit_of_measure:
+                    new_weight_dict = convert_weight(unit_of_measure=parent_obj.original_unit_of_measure, weight=i.quantity_onhand)
+                    i.quantity_onhand = new_weight_dict[parent_obj.unit_of_measure]
+                
+                i.unit_of_measure = parent_obj.unit_of_measure
+                i.save()
 
-    # def formfield_for_foreignkey(self, db_field, request, **kwargs):
-    #     if db_field.name == "category":
-    #         kwargs["queryset"] = Category.objects.filter(name__in=['God', 'Demi God'])
-    #     return super().formfield_for_foreignkey(db_field, request, **kwargs)
+                total_quantity_onhand += (i.quantity_onhand or 0)
+
+            if parent_obj.original_unit_of_measure != parent_obj.unit_of_measure:
+                if location_inventory:
+                    parent_obj.unit_material_cost = total_cost_previous_unit_of_measure / total_quantity_onhand
+                else:
+                    new_weight_dict = convert_weight(unit_of_measure=parent_obj.unit_of_measure, weight=parent_obj.unit_material_cost)
+                    parent_obj.unit_material_cost = new_weight_dict[parent_obj.original_unit_of_measure]
+
+            parent_obj.total_quantity_onhand = total_quantity_onhand
+            parent_obj.total_material_cost = total_quantity_onhand * parent_obj.unit_material_cost
+            parent_obj.total_freight_cost = (decimal.Decimal(parent_obj.product_code.freight_factor_percentage or 0) / decimal.Decimal(100)) * parent_obj.total_material_cost
+            parent_obj.total_cost = parent_obj.total_material_cost + (parent_obj.total_freight_cost or 0)
+            parent_obj.save()
 
 
+class Recipe_Inline_Admin(admin.TabularInline):
+    model = Recipe
+    fk_name = "sku_parent"
+    fields = (
+        "sku",
+        "quantity",
+        "unit_of_measure",
+        "_active",
+    )
+    history_list_display = [
+        "sku",
+        "quantity",
+        "unit_of_measure",
+        "_active",
+        "_last_updated",
+        "_last_updated_by",
+        "_created",
+        "_created_by",
+    ]
+    autocomplete_fields = [
+        "sku",
+    ]
+
+
+@admin.register(Product)
+class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
+    model = Product
+    inlines = (Recipe_Inline_Admin,)
+    list_display = [
+        "sku",
+        "description",
+        "_active",
+        "product_type",
+        "product_code",
+        "unit_of_measure",
+        "total_quantity_onhand",
+        "unit_material_cost",
+        "total_cost",
+    ]
+    search_fields = [
+        "sku",
+        "description",
+        "product_code__category",
+        "product_code__family",
+    ]
+    list_filter = [
+        ("_active", admin.BooleanFieldListFilter),
+        "product_type",
+        "product_code",
+    ]
+    history_list_display = [
+        "sku",
+        "description",
+        "_active",
+        "product_type",
+        "product_code",
+        "unit_of_measure",
+        "total_quantity_onhand",
+        "unit_material_cost",
+        "total_cost",
+        "_last_updated",
+        "_last_updated_by",
+        "_created",
+        "_created_by",
+    ]
+    fields = (
+        "sku",
+        "description",
+    )
+    readonly_fields = (
+        "sku",
+        "description",
+    )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(product_type__in=["WIP", "Finished Goods"])
+
+    def save_formset(self, request, form, formset, change):
+        # set meta fields
+        inline_formsets = formset.save(commit=False)
+
+        for obj in inline_formsets:
+            obj = set_meta_fields(request, obj, form, change, inline=True)
+            obj.save()
+
+        for obj in formset.deleted_objects:
+            obj.delete()
+
+        formset.save_m2m()
+
+# class Amazon_Product_Admin_Inline(admin.TabularInline):
+#     model = Amazon_Product
+#     extra = 1
+#     fields = (
+#         "asin",
+#         "_active",
+#         "_last_updated",
+#         "_last_updated_by",
+#         "_created",
+#         "_created_by",
+#     )
+#     readonly_fields = (
+#         "_last_updated",
+#         "_last_updated_by",
+#         "_created",
+#         "_created_by",
+#     )
+
+# class Shopify_Product_Admin_Inline(admin.TabularInline):
+#     model = Shopify_Product
+#     extra = 1
+#     fields = (
+#         "shopify_product_id",
+#         "_active",
+#         "_last_updated",
+#         "_last_updated_by",
+#         "_created",
+#         "_created_by",
+#     )
+#     readonly_fields = (
+#         "_last_updated",
+#         "_last_updated_by",
+#         "_created",
+#         "_created_by",
+#     )
