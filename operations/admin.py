@@ -439,7 +439,11 @@ class Recipe_Inline_Admin(admin.TabularInline):
         "sku",
         "quantity",
         "unit_of_measure",
+        "cost",
         "_active",
+    )
+    readonly_fields = (
+        "cost",
     )
     history_list_display = [
         "sku",
@@ -455,6 +459,19 @@ class Recipe_Inline_Admin(admin.TabularInline):
         "sku",
     ]
 
+    def cost(self, obj):
+        # print(obj.sku, obj.quantity, obj.sku.unit_material_cost)
+
+        if obj.pk:
+            if obj.unit_of_measure == 'each':
+                converted_weight = obj.quantity
+            else:
+                new_weight_dict = convert_weight(unit_of_measure=obj.unit_of_measure, weight=obj.quantity)
+                converted_weight = new_weight_dict[obj.sku.unit_of_measure]
+            
+        # print(obj.sku, obj.unit_of_measure, obj.quantity, converted_weight)
+
+            return round(decimal.Decimal(obj.sku.unit_material_cost or 0) * decimal.Decimal(converted_weight or 0), 5)
 
 @admin.register(Product)
 class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
@@ -500,15 +517,34 @@ class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     fields = (
         "sku",
         "description",
+        "recipe_cost",
     )
     readonly_fields = (
         "sku",
         "description",
+        "recipe_cost",
     )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.filter(product_type__in=["WIP", "Finished Goods"])
+
+    def recipe_cost(self, obj):
+        cost = Recipe.objects.filter(sku_parent=obj.pk).select_related()
+        recipe_cost = 0
+
+        for c in cost:
+            # print(c.sku, c.sku.unit_of_measure, c.sku.unit_material_cost)
+
+            if c.unit_of_measure == 'each':
+                converted_weight = c.quantity
+            else:
+                new_weight_dict = convert_weight(unit_of_measure=c.unit_of_measure, weight=c.quantity)
+                converted_weight = new_weight_dict[c.sku.unit_of_measure]
+            
+            recipe_cost += (c.sku.unit_material_cost or 0) * (converted_weight or 0)
+
+        return round(recipe_cost, 5)
 
     def save_formset(self, request, form, formset, change):
         # set meta fields

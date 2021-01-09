@@ -65,6 +65,7 @@ class Product(MetaModel):
     unit_material_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
     freight_factor_percentage = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
+    # recipe = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return "{} ({})".format(self.description, self.sku)
