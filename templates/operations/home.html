@@ -3,7 +3,6 @@
 <html lang="en">
 <head>
     <title>Recipes</title>
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
     <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
@@ -31,10 +30,12 @@ body {
     width: 550px !important;
 }
 
-.ag-header-cell {
-    background-color: #71ac63;
-    color: #FFF;
+.ag-header-cell, .ag-row-pinned {
+    background-color: #71ac63 !important;
+    color: #FFF !important;
+    font-weight: bold !important;
 }
+
 
 </style>
 </head>
@@ -45,6 +46,7 @@ body {
           color="deep-purple accent-5"
           dark
           prominent
+          height="90"
         >
           <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
           <v-img
@@ -52,7 +54,13 @@ body {
             src="{% static "/site-wide/logo-large-white.png" %}" 
             max-width="300"
           ></v-img>
+          <!-- <v-toolbar-title
+            v-text="app_name"
+            class="text-h2 pb-3 flex text-center"
+          >
+          </v-toolbar-title> -->
         </v-app-bar>
+        
         <v-navigation-drawer
           v-model="drawer"
           absolute
@@ -82,26 +90,221 @@ body {
             </v-list-item-group>
           </v-list>
         </v-navigation-drawer>
-  
-        <v-container style="height: 100%;">
+
+        <v-container 
+          style="height: 100%;"
+          v-show="app_name === 'Home'"
+        >
+        </v-container>
+
+        <v-container 
+          style="height: 100%;"
+          v-show="app_name === 'Recipes'"
+        >
           <!-- RECIPES -->
           <v-container
           >
-          <v-row>
-            <div
-              class="text-h3 ma-5"
-              v-text="app_name"
-            ></div>
+          <v-row
+            class="mb-4"
+          >
+            <v-col cols="5">
+              <div
+                class="text-h3"
+                v-text="app_name"
+              ></div>
+            </v-col>
+          </v-row>
+          <v-row
+            class="mb-5"
+          >
+            <v-col cols="5">
+              <v-card>
+                <v-row>
+                  <v-col cols="8">
+                    <v-card-title>What Are You Making?</v-card-title>
+                    <v-card-text>
+                      <v-combobox
+                        v-model="recipe_selected"
+                        :items="recipe_list"
+                        label="Recipes"
+                        class="ma-5"
+                      ></v-combobox>
+
+                      <v-text-field
+                        label="Batch Size"
+                        type="number"
+                        hide-details="auto"
+                        class="ma-5"
+                        clearable
+                      ></v-text-field>
+                    </v-card-text>
+                  </v-col>
+                </v-row>
+              </v-card>
+            </v-col>
           </v-row>
           <v-row>
-            <v-col cols="4">
-              <v-combobox
-                v-model="recipe_selected"
-                :items="recipe_list"
-                label="Recipes"
-                outlined
-              ></v-combobox>
+            <v-col cols="5">
+              <v-card>
+                <v-card-title>How Long Does It Take?</v-card-title>
+                <v-card-text>
+                  <v-row>
+                    <v-col cols="8">
+                      <v-text-field
+                        v-model="how_long.setup"
+                        label="Setup and Preperation"
+                        type="number"
+                        hide-details="auto"
+                        class="ma-5"
+                        suffix="hours"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="4">
+                      <v-text-field
+                        v-model="how_long.setup_rate"
+                        label="Hourly Rate"
+                        type="number"
+                        hide-details="auto"
+                        class="ma-5"
+                        prefix="$"
+                      ></v-text-field>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col cols="8">
+                      <v-text-field
+                        v-model="how_long.making"
+                        label="Making"
+                        type="number"
+                        hide-details="auto"
+                        class="ma-5"
+                        suffix="hours"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="4">
+                      <v-text-field
+                        v-model="how_long.making_rate"
+                        label="Hourly Rate"
+                        type="number"
+                        hide-details="auto"
+                        class="ma-5"
+                        prefix="$"
+                      ></v-text-field>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col cols="8">
+                      <v-text-field
+                        v-model="how_long.clean_up"
+                        label="Clean Up"
+                        type="number"
+                        hide-details="auto"
+                        class="ma-5"
+                        suffix="hours"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="4">
+                      <v-text-field
+                        v-model="how_long.clean_up_rate"
+                        label="Hourly Rate"
+                        type="number"
+                        hide-details="auto"
+                        class="ma-5"
+                        prefix="$"
+                      ></v-text-field>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col cols="8">
+                      <v-text-field
+                        v-model="how_long.design"
+                        label="Custom Labeling Design"
+                        type="number"
+                        hide-details="auto"
+                        class="ma-5"
+                        suffix="hours"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="4">
+                      <v-text-field
+                        v-model="how_long.design_rate"
+                        label="Hourly Rate"
+                        type="number"
+                        hide-details="auto"
+                        class="ma-5"
+                        prefix="$"
+                      ></v-text-field>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col cols="8">
+                      <v-text-field
+                        v-model="how_long.formulation"
+                        label="Custom Formulation"
+                        type="number"
+                        hide-details="auto"
+                        class="ma-5"
+                        suffix="hours"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="4">
+                      <v-text-field
+                        v-model="how_long.formulation_rate"
+                        label="Hourly Rate"
+                        type="number"
+                        hide-details="auto"
+                        class="ma-5"
+                        prefix="$"
+                      ></v-text-field>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col cols="8">
+                      <v-text-field
+                        v-model="total_labor_hours"
+                        label="Total Hours"
+                        type="number"
+                        class="ma-5"
+                        outlined
+                        readonly
+                        filled
+                        suffix="hours"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="4">
+                      <v-text-field
+                        v-model="total_labor_dollars"
+                        label="Total Labor Cost"
+                        type="number"
+                        class="ma-5"
+                        prefix="$"
+                        outlined
+                        readonly
+                        filled
+                      ></v-text-field>
+                    </v-col>
+                  </v-row>
+                </v-card-text>
+              </v-card>
             </v-col>
+
+          </v-row>
+          <v-spacer></v-spacer>
+          <v-row>
+            <v-col>
+              <v-btn
+                dark
+                color="blue"
+                v-on:click="onBtExport"
+                class="mb-3"
+              >
+                <v-icon>
+                  mdi-cloud-download
+                </v-icon>
+              </v-btn>
+            </v-col>
+          </v-row>
+
           </v-row>
           <v-row>
             <div 
@@ -111,39 +314,23 @@ body {
             >
           </v-row>
         </v-container>
-      </v-container>
 
+
+
+      </v-container>
         <!-- <v-card-text>
           The navigation drawer will appear from the bottom on smaller size screens.
         </v-card-text> -->
     </v-app>
   </div>
-
-    <!-- <div id="menu-top">
-        <div id="header" style="padding-bottom: 0px;">
-            <div id="branding">
-            <img src="{% static "/site-wide/logo-large-white.png" %}" width="300px">
-            </div>
-        </div>
-    </div>
-    <div class="recipe">
-        <h1>Recipes</h1>
-        <select id="skus">
-            <option selected disabled="true">Select a Product</option>
-            {% for s in skus %}
-                <option value="{{s.id}}">{{s.description}} ({{s.sku}})</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div id="myGrid" class="ag-theme-alpine" style="width: 100%; height: 100%;">
-    </div> -->
 </body>
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ag-grid/25.0.0/ag-grid-community.min.js" integrity="sha512-7VPz1NAYcuVu1/eQooUfDUcG2sGRdmy2P9sa6ZgtXOpAVY66bN4u+cDXPcmhrVKA44LdznEEZwMabZ3qO8HB6A==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ag-grid-enterprise/all-modules@25.0.1/dist/ag-grid-enterprise.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue@2.x"></script>
 <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
 <script>
+var sku_url = "/operations/recipes/";
+var gridDiv;
 
 function currencyFormatter(currency) {
     var sansDec = parseFloat(currency.value).toFixed(2);
@@ -157,55 +344,137 @@ function numberFormatter(currency) {
     return `${formatted}`;
 }
 
-var sku_url = "/operations/recipes/";
+function getBooleanValue(cssSelector) {
+  return document.querySelector(cssSelector).checked === true;
+}
+
+function getTextValue(cssSelector) {
+  return document.querySelector(cssSelector).value;
+}
+
+function getNumericValue(cssSelector) {
+  var value = parseFloat(getTextValue(cssSelector));
+  if (isNaN(value)) {
+    var message = 'Invalid number entered in ' + cssSelector + ' field';
+    alert(message);
+    throw new Error(message);
+  }
+  return value;
+}
+
+function onBtExport() {
+  var params = {
+
+  };
+
+  gridOptions.api.exportDataAsExcel(params);
+}
+
+function onPinnedRowBottomCount(data) {
+  var rows = create_subtotals(data);
+  gridOptions.api.setPinnedBottomRowData(rows);
+}
+
+function create_subtotals(data){
+  var subtotal = [{
+      sku: "",
+      description: "",
+      quantity_needed: 0,
+      unit_of_measure: "",
+      total_cost: 0
+    }];
+
+  if(data){
+    var total_cost = 0;
+    $.each(data, function( index, value ) {
+      total_cost+= value.total_cost;
+    });
+
+    subtotal[0].total_cost = total_cost;
+  }
+
+  return subtotal
+}
+
 var gridOptions = {
   enableRangeSelection: true,
   enableRangeHandle: true,
   columnDefs: [
       {
-        field: 'SKU',
+        field: "sku",
+        headerName: "SKU",
         width: 300,
       },
       {
-        field: 'Description',
-        width: 450,
+        field: "description",
+        headerName: "Description",
+        width: 400,
+      },
+      {
+        field: "unit_of_measure",
+        headerName: "Unit of Measure",
+        width: 175,
       },
       { 
-          field: 'Quantity Needed',
-          width: 150,
-          valueFormatter: numberFormatter
+        field: "quantity_needed",
+        headerName: "Quantity Needed",
+        width: 175,
+        valueFormatter: numberFormatter
       },
       {
-        field: 'Unit of Measure',
+        field: "total_cost",
+        headerName: "Total Cost",
         width: 150,
-      },
-      {
-          field: 'Cost',
-          width: 150,
-          valueFormatter: currencyFormatter
+        valueFormatter: currencyFormatter
       },
   ],
+  pinnedBottomRowData: create_subtotals(),
   defaultColDef: {
       // flex: 1,
-      editable: true,
-      resizable: true,
+    sortable: true,
+    filter: true,
+    resizable: true,
   },
   rowData: [],
-
 };
 
 var vm = new Vue({
     el: '#app',
     vuetify: new Vuetify(),
     data: {
-        app_name: "",
-        drawer: false,
-        group: null,
-        recipe_list: [{
-          value: 'me',
-          text: 'you'
-        }],
-        recipe_selected: ""
+      app_name: "Recipes",
+      drawer: false,
+      group: null,
+      recipe_list: [],
+      recipe_selected: "",
+      how_long: {
+        setup: null,
+        setup_rate: 15,
+        making: null,
+        making_rate: 15,
+        clean_up: null,
+        clean_up_rate: 15,
+        design: null,
+        design_rate: 15,
+        formulation: null,
+        formulation_rate: 15
+      }
+    },
+    computed: {
+      total_labor_hours: function(){
+        var val = this.how_long;
+        return Number(val.setup) + Number(val.making) + Number(val.clean_up) + Number(val.design) + Number(val.formulation);
+      },
+      total_labor_dollars: function(){
+        var val = this.how_long;
+        return (
+          (Number(val.setup) * Number(val.setup_rate)) +
+          (Number(val.making) * Number(val.making_rate)) +
+          (Number(val.clean_up) * Number(val.clean_up_rate)) +
+          (Number(val.design) * Number(val.design_rate)) +
+          (Number(val.formulation) * Number(val.formulation_rate))
+        )
+      }
     },
     watch: {
         group () {
@@ -218,22 +487,24 @@ var vm = new Vue({
             })
             .then(function (data) {
                 gridOptions.api.setRowData(data);
+                onPinnedRowBottomCount(data);
             });
-        }
+        },
     },
     mounted(){
-      var gridDiv = document.querySelector('#recipe_grid');
+      gridDiv = document.querySelector('#recipe_grid');
       new agGrid.Grid(gridDiv, gridOptions);
       gridOptions.api.setDomLayout('autoHeight');
 
+      $.getJSON(sku_url, function(data) {
+        vm.recipe_list = data;
+      });
     },
     methods: {
       getSKUs: function () {
         vm.app_name = "Recipes";
 
-        $.getJSON(sku_url, function(data) {
-          vm.recipe_list = data;
-        });
+
       }
     }
 })

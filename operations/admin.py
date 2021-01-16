@@ -5,7 +5,8 @@ from django.contrib import admin
 from meta_models import set_meta_fields, AdminStaticMixin
 from simple_history.admin import SimpleHistoryAdmin
 from .models import (
-    Recipe,
+    Recipe_Line,
+    Recipe_Proxy,
     Product,
     Product_Code,
     Inventory_Onhand,
@@ -13,7 +14,9 @@ from .models import (
     Shopify_Product,
     Supplier,
     Supplier_Product,
-    Materials_Management_Proxy
+    Materials_Management_Proxy,
+    Invoice,
+    Invoice_Line
 )
 from .forms import Materials_Management_Proxy_Form
 
@@ -112,40 +115,42 @@ class Supplier_Product_Admin_Inline(admin.TabularInline):
         "supplier",
         "supplier_sku",
         "supplier_sku_description",
+        "sku",
         "supplier_sku_link",
-        "_last_updated",
+        # "_last_updated",
 
     )
     autocomplete_fields = [
-        "supplier",
+        "sku",
     ]
-    readonly_fields = (
-        "_last_updated",
-    )
+    # readonly_fields = (
+    #     "_last_updated",
+    # )
 
 
 @admin.register(Supplier)
-class Supplier_Admin(SimpleHistoryAdmin):
+class Supplier_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Supplier
     inlines = (Supplier_Product_Admin_Inline,)
     list_display = [
         "name",
+        "type",
         "_active",
         "supplier_website",
         "contact_name",
         "contact_email",
-        "street_address",
+        "phone_number",
         "city",
         "state",
-        "postal_code",
-        "country",
     ]
     history_list_display = [
         "name",
+        "type",
         "_active",
         "supplier_website",
         "contact_name",
         "contact_email",
+        "phone_number",
         "street_address",
         "city",
         "state",
@@ -159,9 +164,11 @@ class Supplier_Admin(SimpleHistoryAdmin):
     search_fields = [
         "name",
         "contact_name",
+        "contact_email",
     ]
     list_filter = [
         "_active",
+        "type",
         "state",
     ]
     fieldsets = (
@@ -169,10 +176,12 @@ class Supplier_Admin(SimpleHistoryAdmin):
             "Summary",
             {
                 "fields": [
+                    "type",
                     "name",
                     "supplier_website",
                     "contact_name",
                     "contact_email",
+                    "phone_number",
                     "notes",
                     "_active",
                 ]
@@ -418,12 +427,13 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
                 total_quantity_onhand += (i.quantity_onhand or 0)
 
-            if parent_obj.original_unit_of_measure != parent_obj.unit_of_measure:
+            if parent_obj.original_unit_of_measure != parent_obj.unit_of_measure and parent_obj.unit_of_measure != 'each':
                 if location_inventory:
                     parent_obj.unit_material_cost = total_cost_previous_unit_of_measure / total_quantity_onhand
                 else:
                     new_weight_dict = convert_weight(unit_of_measure=parent_obj.unit_of_measure, weight=parent_obj.unit_material_cost)
                     parent_obj.unit_material_cost = new_weight_dict[parent_obj.original_unit_of_measure]
+
 
             parent_obj.total_quantity_onhand = total_quantity_onhand
             parent_obj.total_material_cost = total_quantity_onhand * parent_obj.unit_material_cost
@@ -432,8 +442,8 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             parent_obj.save()
 
 
-class Recipe_Inline_Admin(admin.TabularInline):
-    model = Recipe
+class Recipe_Line_Inline_Admin(admin.TabularInline):
+    model = Recipe_Line
     fk_name = "sku_parent"
     fields = (
         "sku",
@@ -473,10 +483,10 @@ class Recipe_Inline_Admin(admin.TabularInline):
 
             return round(decimal.Decimal(obj.sku.unit_material_cost or 0) * decimal.Decimal(converted_weight or 0), 5)
 
-@admin.register(Product)
+@admin.register(Recipe_Proxy)
 class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
-    model = Product
-    inlines = (Recipe_Inline_Admin,)
+    model = Recipe_Proxy
+    inlines = (Recipe_Line_Inline_Admin,)
     list_display = [
         "sku",
         "description",
@@ -545,6 +555,105 @@ class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             recipe_cost += (c.sku.unit_material_cost or 0) * (converted_weight or 0)
 
         return round(recipe_cost, 5)
+
+    def save_formset(self, request, form, formset, change):
+        # set meta fields
+        inline_formsets = formset.save(commit=False)
+
+        for obj in inline_formsets:
+            obj = set_meta_fields(request, obj, form, change, inline=True)
+            obj.save()
+
+        for obj in formset.deleted_objects:
+            obj.delete()
+
+        formset.save_m2m()
+
+class Invoice_Line_Inline(admin.TabularInline):
+    model = Invoice_Line
+    fields = (
+        "sku",
+        "unit_of_measure",
+        "quantity",
+        "total_cost",
+        "manufacturer",
+    )
+    history_list_display = [
+        "sku",
+        "unit_of_measure",
+        "quantity",
+        "total_cost",
+        "manufacturer",
+        "_active",
+        "_last_updated",
+        "_last_updated_by",
+        "_created",
+        "_created_by",
+    ]
+    autocomplete_fields = [
+        "sku",
+        "manufacturer",
+    ]
+
+@admin.register(Invoice)
+class Invocie_Admin(AdminStaticMixin, SimpleHistoryAdmin):
+    model = Invoice
+    inlines = (Invoice_Line_Inline,)
+    list_display = [
+        "date_invoiced",
+        "supplier",
+        "invoice",
+        "order",
+        "freight_charges",
+        "total_cost"
+    ]
+    search_fields = [
+        "supplier__name",
+        "invoice",
+        "order",
+    ]
+    list_filter = (
+        ("supplier", admin.RelatedOnlyFieldListFilter),
+        "date_invoiced"
+    )
+    autocomplete_fields = [
+        "supplier",
+    ]
+    history_list_display = [
+        "date_invoiced",
+        "supplier",
+        "invoice",
+        "order",
+        "freight_charges",
+        "total_cost",
+        "_active",
+        "_last_updated",
+        "_last_updated_by",
+        "_created",
+        "_created_by",
+    ]
+    fields = (
+        "supplier",
+        "invoice",
+        "order",
+        "date_invoiced",
+        "freight_charges",
+        "total_cost",
+    )
+    readonly_fields = (
+        "total_cost",
+    )
+
+    def total_cost(self, obj):
+        invoice_lines = Invoice_Line.objects.filter(invoice=obj.pk).select_related()
+        total_cost = 0  + (obj.freight_charges or 0)
+
+        for row in invoice_lines:
+            # print(c.sku, c.sku.unit_of_measure, c.sku.unit_material_cost)
+            
+            total_cost += (row.total_cost or 0)
+
+        return round(total_cost, 2)
 
     def save_formset(self, request, form, formset, change):
         # set meta fields

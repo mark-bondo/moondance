@@ -3,6 +3,8 @@ sys.path.append('.')
 from django.db import models
 from meta_models import MetaModel
 from simple_history.models import HistoricalRecords
+from datetime import datetime
+from django.utils import timezone
 import decimal
 
 unit_of_measure_choices = (
@@ -71,10 +73,20 @@ class Product(MetaModel):
         return "{} ({})".format(self.description, self.sku)
 
     class Meta:
-        verbose_name = "Product - Recipe"
-        verbose_name_plural = "Product - Recipes"
+        verbose_name = "Product"
+        verbose_name_plural = "Products"
         ordering = ("sku",)
 
+
+class Recipe_Proxy(Product):
+
+    def __str__(self):
+        return "{} ({})".format(self.description, self.sku)
+    class Meta:
+        proxy = True
+        verbose_name = "Recipe"
+        verbose_name_plural = "Recipes"
+        ordering = ("sku",)
 
 class Materials_Management_Proxy(Product):
     # history = HistoricalRecords()
@@ -151,8 +163,14 @@ class Shopify_Product(MetaModel):
 
 
 class Supplier(MetaModel):
+    type_choices = (
+        ("Distributor", "Distributor"),
+        ("Manufacturer", "Manufacturer"),
+    )
+
     history = HistoricalRecords()
 
+    type = models.CharField(max_length=200, choices=type_choices, default="Manufacturer")
     name = models.CharField(max_length=200, unique=True)
     contact_name = models.CharField(max_length=200, null=True, blank=True)
     contact_email = models.CharField(max_length=200, null=True, blank=True)
@@ -163,6 +181,7 @@ class Supplier(MetaModel):
     country = models.CharField(max_length=200, null=True, blank=True, default="United States")
     supplier_website = models.URLField(max_length=200, null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
+    phone_number = models.CharField(max_length=50, null=True, blank=True)
 
     def __str__(self):
         return "{}".format(self.name)
@@ -176,7 +195,7 @@ class Supplier(MetaModel):
 class Supplier_Product(MetaModel):
     history = HistoricalRecords()
 
-    sku = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="Supplier_Product_product_fk")
+    sku = models.ForeignKey(Materials_Management_Proxy, on_delete=models.PROTECT, related_name="Supplier_Product_product_fk")
     supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="supplier_product_supplier_fk")
     supplier_sku = models.CharField(max_length=200)
     supplier_sku_description = models.CharField(max_length=200)
@@ -192,7 +211,7 @@ class Supplier_Product(MetaModel):
         ordering = ("sku", "supplier_sku")
 
 
-class Recipe(MetaModel):
+class Recipe_Line(MetaModel):
     history = HistoricalRecords()
     sku = models.ForeignKey(Materials_Management_Proxy, on_delete=models.PROTECT, related_name="Recipe_sku_fk")
     sku_parent = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="Recipe_sku_parent_fk")
@@ -203,7 +222,50 @@ class Recipe(MetaModel):
         return "{} ({})".format(self.sku, self.sku_parent)
 
     class Meta:
-        verbose_name = "Recipe"
-        verbose_name_plural = "Recipes"
+        verbose_name = "Recipe Line"
+        verbose_name_plural = "Recipe Lines"
         unique_together = (("sku", "sku_parent",),)
         ordering = ("sku_parent", "sku")
+
+class Invoice(MetaModel):
+    history = HistoricalRecords()
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="Invoice_supplier_fk", verbose_name="Invoicing Supplier")
+    invoice = models.CharField(max_length=200)
+    order = models.CharField(max_length=200, blank=True, null=True)
+    date_invoiced = models.DateField(default=timezone.now)
+    freight_charges = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    def __str__(self):
+        return "{} ({})".format(self.invoice, self.supplier)
+
+    class Meta:
+        verbose_name = "Invoice"
+        verbose_name_plural = "Invoices"
+        ordering = ("-date_invoiced", "invoice")
+
+class Invoice_Line(MetaModel):
+    history = HistoricalRecords()
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="Invoice_Line_invoice_fk")
+    sku = models.ForeignKey(Materials_Management_Proxy, on_delete=models.PROTECT, related_name="Invoice_Line_sku_fk", verbose_name="MoonDance SKU")
+    manufacturer = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="Invoice_Manufacturer_fk", verbose_name="Manufacturer", blank=True, null=True)
+    unit_of_measure = models.CharField(max_length=200, choices=unit_of_measure_choices)
+    quantity = models.DecimalField(max_digits=12, decimal_places=2)
+    total_cost = models.DecimalField(max_digits=12, decimal_places=2)
+
+    def __str__(self):
+        return "{} ({})".format(self.invoice, self.sku)
+
+    class Meta:
+        verbose_name = "Invoice Line"
+        verbose_name_plural = "Invoice Lines"
+        unique_together = (("sku", "invoice",),)
+        ordering = ("sku",)
+
+class Weight_Conversions(models.Model):
+    from_measure = models.CharField(max_length=200, choices=unit_of_measure_choices)
+    to_measure = models.CharField(max_length=200, choices=unit_of_measure_choices)
+    conversion_rate = models.DecimalField(max_digits=16, decimal_places=6)
+
+    class Meta:
+        verbose_name = "Weight Conversion"
+        verbose_name_plural = "Weight Conversions"

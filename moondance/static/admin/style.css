@@ -10,14 +10,22 @@
     width: 350px !important;
 }
 
+.field-supplier .select2-container{
+    width: 350px !important;
+}
+
 #product_form .select2-container{
     width: 550px !important;
 }
 
-#product_form td.original p {
-    visibility: hidden;
+#Invoice_Line_invoice_fk-group .select2-container{
+    width: 400px !important;
 }
 
-#product_form .inline-group .tabular tr.has_original td {
-    padding-top: 5px;
+td.original p {
+    visibility: hidden !important;
+}
+
+.inline-group .tabular tr.has_original td {
+    padding-top: 5px !important;
  }
