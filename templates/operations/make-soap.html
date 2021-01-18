@@ -1,0 +1,467 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Recipes</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">  
+<style>
+body {
+    font-family: Helvetica,"Helvetica Neue",Arial,"Lucida Grande",sans-serif;
+}
+#header, #menu-top {
+    background-color: #554e6e;
+    margin: -8px
+}
+
+#header {
+    color: #ffffff;
+    padding: 10px 15px 15px 48px;
+}
+
+.recipe {
+    padding: 15px;
+}
+
+
+.recipe .select2-container{
+    width: 550px !important;
+}
+
+.ag-header-cell, .ag-row-pinned {
+    background-color: #71ac63 !important;
+    color: #FFF !important;
+    font-weight: bold !important;
+}
+
+
+</style>
+</head>
+<body>
+  <div id="app" height="100%">
+    <v-app>
+        <v-app-bar
+          color="deep-purple accent-5"
+          dark
+          prominent
+          max-height="90"
+        >
+          <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
+          <v-img
+            class="ma-2"
+            src="{% static "/site-wide/logo-large-white.png" %}" 
+            max-width="300"
+          ></v-img>
+          <!-- <v-toolbar-title
+            v-text="app_name"
+            class="text-h2 pb-3 flex text-center"
+          >
+          </v-toolbar-title> -->
+        </v-app-bar>
+        
+        <v-navigation-drawer
+          v-model="drawer"
+          absolute
+          bottom
+          temporary
+        >
+          <v-list
+            nav
+          >
+            <v-list-item-group
+              v-model="group"
+              active-class="deep-purple--text text--accent-4"
+            >
+              <v-list-item 
+              >
+                <v-list-item-title>Recipes</v-list-item-title>
+              </v-list-item>
+              <v-list-item>
+                <v-list-item-title>Inventory</v-list-item-title>
+              </v-list-item>
+    
+              <v-list-item>
+                <v-list-item-title>Suppliers</v-list-item-title>
+              </v-list-item>
+    
+            </v-list-item-group>
+          </v-list>
+        </v-navigation-drawer>
+
+        <v-container style="height: calc(100% - 90px);">
+            <!-- APP NAME -->
+            <v-row style="height: 80px">
+              <v-col cols="12">
+                <div
+                  class="text-h3"
+                  v-text="app_name"
+                ></div>
+              </v-col>
+            </v-row>
+            <v-row fill-height>
+              <v-col cols="12">
+                <!-- STEPPER NAME -->
+                <v-stepper v-model="e1">
+                  <v-stepper-header>
+                    <v-stepper-step
+                      :complete="e1 > 1"
+                      step="1"
+                    >
+                      Select Products
+                    </v-stepper-step>
+                    <v-divider>
+                    </v-divider>
+                    <v-stepper-step
+                      :complete="e1 > 2"
+                      step="2"
+                    >
+                      Review Materials Needed
+                    </v-stepper-step>
+                    <v-divider></v-divider>
+                    <v-stepper-step step="3">
+                      Review Labor Required
+                    </v-stepper-step>
+                    </v-stepper-step>
+                    <v-divider></v-divider>
+                    <v-stepper-step step="4">
+                      Create Production Order
+                    </v-stepper-step>
+                  </v-stepper-header>
+                  <!-- STEPPER CONTENT -->
+                  <v-stepper-items >
+                    <!-- STEP 1 -->
+                    <v-stepper-content step="1">
+                      <v-card 
+                        class="mb-5"
+                        min-height="400px"
+                        width="100%"
+                        fill-height
+                      >
+                        <v-card-text>
+                          <div v-for="recipe, index in recipes">
+                            <v-row>
+                              <v-col cols="5">
+                                <v-combobox
+                                  v-model="recipe.sku"
+                                  :items="recipeChoices"
+                                  label="Select a recipe"
+                                  class="mx-5"
+                                ></v-combobox>
+                              </v-col>
+                              <v-col cols="2">
+                                <v-text-field
+                                  v-model="recipe.batchSize"
+                                  label="Batch size"
+                                  type="number"
+                                  hide-details="auto"
+                                  class="mx-5"
+                                  clearable
+                                ></v-text-field>
+                              </v-col>
+                              <v-col cols="1">
+                                <v-btn 
+                                  color="error"
+                                  class="mx-5 mt-2"
+                                  v-on:click="removeRecipe(index)"
+                                >
+                                  <v-icon
+                                    dark
+                                  >
+                                    mdi-close
+                                </v-icon>
+                                </v-btn>
+                              </v-col>
+                            </v-row>
+                          </div>
+                          <v-row class="mt-10">
+                            <v-col cols="5">
+                              <v-btn 
+                                v-on:click="addRecipe"
+                                color="success"
+                                class="mx-5 mt-3"
+                              >
+                                Add Another
+                              </v-btn>
+                            </v-col>
+                            <v-col cols="2">
+                              <v-text-field
+                                v-model="totalBatchSize"
+                                label="Total Batch Size"
+                                type="number"
+                                class="mx-5"
+                                disabled
+                                filled
+                                outlined
+                              ></v-text-field>
+                            </v-col>
+                          </v-row>
+                        </v-card-text>
+                      </v-card>
+                      <v-btn
+                        color="primary"
+                        class="ml-9"
+                        @click="e1 = 2"
+                        v-on:click="getMaterials"
+                      >
+                        Next
+                      </v-btn>
+                    </v-stepper-content>
+                    <!-- STEP 2 -->
+                    <v-stepper-content step="2">
+                      <v-card
+                        class="mb-5"
+                        min-height="400px"
+                        width="100%"
+                        height="100%"
+                      >
+                        <v-data-table
+                          :headers="materialsHeader"
+                          :items="materialsList"
+                          class="elevation-1"
+                          :loading="isLoading"
+                          loading-text="Loading... Please wait"
+                          hide-default-footer
+                        ></v-data-table>
+                      
+                      </v-card>
+                      <v-btn
+                        color="primary"
+                        class="ml-9"
+                        @click="e1 = 3"
+                      >
+                        Next
+                      </v-btn>
+                      <v-btn 
+                        text
+                        @click="e1 = 1"
+                      >
+                        Back
+                      </v-btn>
+                    </v-stepper-content>
+                    <v-stepper-content step="3">
+                      <v-card
+                        class="mb-5"
+                        min-height="400px"
+                        width="100%"
+                        height="100%"
+                      >
+                        <v-row>
+                          <v-col cols="5">
+                            <v-text-field
+                              v-model="labor.setup"
+                              label="Setup and Preperation"
+                              type="number"
+                              hide-details="auto"
+                              class="mx-5"
+                              suffix="hours"
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+                        <v-row>
+                          <v-col cols="5">
+                            <v-text-field
+                              v-model="labor.making"
+                              label="Making"
+                              type="number"
+                              hide-details="auto"
+                              class="mx-5"
+                              suffix="hours"
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+                        <v-row>
+                          <v-col cols="5">
+                            <v-text-field
+                              v-model="labor.cleanUp"
+                              label="Clean Up"
+                              type="number"
+                              hide-details="auto"
+                              class="mx-5"
+                              suffix="hours"
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+                        <v-row>
+                          <v-col cols="5">
+                            <v-text-field
+                              v-model="labor.design"
+                              label="Custom Labeling Design"
+                              type="number"
+                              hide-details="auto"
+                              class="mx-5"
+                              suffix="hours"
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+                        <v-row>
+                          <v-col cols="5">
+                            <v-text-field
+                              v-model="labor.formulation"
+                              label="Custom Formulation"
+                              type="number"
+                              hide-details="auto"
+                              class="mx-5"
+                              suffix="hours"
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+                        <v-row>
+                          <v-col cols="5">
+                            <v-text-field
+                              v-model="totalLabor"
+                              label="Total Hours"
+                              type="number"
+                              class="mx-5 my-10"
+                              outlined
+                              readonly
+                              filled
+                              suffix="hours"
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+                      </v-card>
+                      <v-btn
+                        color="primary"
+                        class="ml-9"
+                        @click="e1 = 4"
+                      >
+                        Next
+                      </v-btn>
+              
+                      <v-btn 
+                        text
+                        @click="e1 = 2"
+                      >
+                        Back
+                      </v-btn>
+
+                      <v-stepper-content step="4">
+                        <v-card
+                          class="mb-5"
+                          min-height="400px"
+                          width="100%"
+                          height="100%"
+                        >
+                        </v-card>
+                        <v-btn
+                          color="primary"
+                          class="ml-9"
+                        >
+                          Create Production Order
+                        </v-btn>
+                
+                        <v-btn 
+                          text
+                          @click="e1 = 3"
+                        >
+                          Back
+                        </v-btn>
+
+
+                    </v-stepper-content>
+                  </v-stepper-items>
+                </v-stepper>
+              </v-col>
+            </v-row>
+      </v-container>
+        <!-- <v-card-text>
+          The navigation drawer will appear from the bottom on smaller size screens.
+        </v-card-text> -->
+    </v-app>
+  </div>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ag-grid-enterprise/all-modules@25.0.1/dist/ag-grid-enterprise.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.x"></script>
+<script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+<script>
+var sku_url = "/operations/recipes/";
+
+var vm = new Vue({
+    el: '#app',
+    vuetify: new Vuetify(),
+    data: {
+      app_name: "Recipes",
+      e1: 1,
+      drawer: false,
+      group: null,
+      recipeChoices: [],
+      isLoading: false,
+      recipe: {
+        batchSize: null,
+        sku: null
+      },
+      recipes: [
+        {batchSize: null, sku: null}
+      ],
+      materialsList: [],
+      materialsHeader: [
+        {text: "SKU", value: "sku"},
+        {text: "Product Family", value: "family"},
+        {text: "Description", value: "description"},
+        {text: "Unit of Measure", value: "unit_of_measure"},
+        {text: "Quantity Needed", value: "quantity_needed"},
+        {text: "Quantity Onhand", value: "quantity_onhand"}
+      ],
+      labor: {
+        setup: null,
+        making: null,
+        cleanUp: null,
+        design: null,
+        formulation: null,
+      }
+    },
+    watch: {
+        group () {
+            this.drawer = false
+        },
+    },
+    computed: {
+      totalBatchSize(){
+        var total = 0;
+        $.each(this.recipes, function( index, value ) {
+          total+= Number(value.batchSize);
+        });
+
+        return total;
+      },
+      totalLabor(){
+        var labor = this.labor;
+        return Number(labor.setup) + Number(labor.making) + Number(labor.cleanUp) + Number(labor.design) + Number(labor.formulation);
+      }
+    },
+    mounted(){
+      $.getJSON(sku_url, function(data) {
+        vm.recipeChoices = data;
+      });
+    },
+    methods: {
+      getMaterials: function () {
+        var sku_list = [];
+        vm.isLoading = true;
+        $.each(this.recipes, function( index, value ) {
+          sku_list.push(value.sku.value);
+        });
+
+        $.getJSON("../get-materials/",
+        {
+          skus: sku_list
+        },
+        function(data) {
+          vm.materialsList = data;
+          vm.isLoading = false;
+        });
+      },
+      addRecipe: function () {
+        this.recipes.push(Vue.util.extend({}, this.recipe))
+      },
+      removeRecipe: function (index) {
+        Vue.delete(this.recipes, index);
+    },
+    }
+})
+
+</script>
+</html>

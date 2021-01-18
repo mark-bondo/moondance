@@ -496,7 +496,11 @@ var vm = new Vue({
       new agGrid.Grid(gridDiv, gridOptions);
       gridOptions.api.setDomLayout('autoHeight');
 
-      $.getJSON(sku_url, function(data) {
+      $.getJSON(sku_url,
+        {
+
+        },
+        function(data) {
         vm.recipe_list = data;
       });
     },

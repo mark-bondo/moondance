@@ -4,17 +4,19 @@ from django.http import HttpResponse
 from django.db import connection
 from django.views import generic
 from .admin import convert_weight
+from django.contrib.auth.decorators import login_required
 from . import forms, models
 
 
-def operations_home(request):
+@login_required
+def make_soap(request):
     return render(
         request, 
-        "operations/home.html", 
+        "operations/make-soap.html", 
         context={}
     )
 
-
+@login_required
 def get_products(request):
     with connection.cursor() as cursor:
         sql = """
@@ -32,8 +34,12 @@ def get_products(request):
 
     return HttpResponse(json_data , content_type="application/json")
 
+@login_required
+def get_materials(request):
+    print(request.GET.getlist("skus[]"), 'x' * 50)
+    print(request.GET)
+    sku_list = [int(x) for x in request.GET.getlist("skus[]")]
 
-def get_recipe(request, id):
     with connection.cursor() as cursor:
         sql = """
             SELECT
@@ -41,15 +47,15 @@ def get_recipe(request, id):
             FROM
                 (
                 SELECT 
-                    (select row_to_json(_) from (select family, sku, description, unit_of_measure, quantity_needed, total_cost) as _) as json
+                    (select row_to_json(_) from (select product_id, product_description, family, sku, description, unit_of_measure, quantity_needed::NUMERIC(16, 5), total_cost::NUMERIC(16, 5), quantity_onhand::NUMERIC(16, 5)) as _) as json
                 FROM
                     public.vw_recipes
                 WHERE
-                    product_id = %s
+                    product_id = ANY(%s)
             ) s
             ;
         """
-        cursor.execute(sql, [id])
+        cursor.execute(sql, [sku_list])
         json_data = cursor.fetchall()[0][0]
     
     return HttpResponse(json_data , content_type="application/json")

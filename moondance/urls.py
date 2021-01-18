@@ -17,10 +17,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf import settings
+from moondance.views import render_home
 
 urlpatterns = [
-    path("select2/", include("django_select2.urls")),
+    path("", render_home),
     path('admin/', admin.site.urls),
+    path("select2/", include("django_select2.urls")),
     path("operations/", include("operations.urls")),
 ]
 

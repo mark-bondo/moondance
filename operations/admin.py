@@ -540,7 +540,7 @@ class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         return qs.filter(product_type__in=["WIP", "Finished Goods"])
 
     def recipe_cost(self, obj):
-        cost = Recipe.objects.filter(sku_parent=obj.pk).select_related()
+        cost = Recipe_Line.objects.filter(sku_parent=obj.pk).select_related()
         recipe_cost = 0
 
         for c in cost:
