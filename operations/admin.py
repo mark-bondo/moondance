@@ -302,6 +302,7 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         Inventory_Onhand_Admin_Inline,
         Supplier_Product_Admin_Inline,
     )
+    save_as = True
 
     list_display = [
         "sku",
