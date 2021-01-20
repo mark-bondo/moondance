@@ -50,24 +50,12 @@ class Product(MetaModel):
     sku = models.CharField(max_length=200, unique=True, verbose_name="SKU")
     description = models.CharField(max_length=200)
     upc = models.CharField(max_length=200, null=True, blank=True, verbose_name="UPC")
-    unit_of_measure = models.CharField(max_length=200, choices=unit_of_measure_choices, default="lbs", verbose_name="Default Unit of Measure")
-    total_quantity_onhand = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        verbose_name="Total Onhand Quantity",
-        help_text="Total inventory across all locations.  Updates to quantites to should be done using the Inventory Onhand form below."
-    )
-    total_freight_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Calculated using a percentage adder to account for inbound freight based upon type of material.")
-    total_material_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    total_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    unit_of_measure = models.CharField(max_length=200, choices=unit_of_measure_choices, default="lbs")
     unit_weight = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     unit_sales_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     unit_material_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
-    freight_factor_percentage = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    notes = models.TextField(null=True, blank=True)
-    # recipe = models.TextField(null=True, blank=True)
+    unit_freight_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
+    product_notes = models.TextField(null=True, blank=True, verbose_name="Product Notes")
 
     def __str__(self):
         return "{} ({})".format(self.description, self.sku)
@@ -207,7 +195,7 @@ class Supplier_Product(MetaModel):
     class Meta:
         verbose_name = "Supplier Product"
         verbose_name_plural = "Supplier Products"
-        unique_together = (("sku", "supplier_sku"))
+        unique_together = (("supplier", "supplier_sku"))
         ordering = ("sku", "supplier_sku")
 
 

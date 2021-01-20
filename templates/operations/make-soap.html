@@ -220,10 +220,22 @@ body {
                           :headers="materialsHeader"
                           :items="materialsList"
                           class="elevation-1"
+                          group-by="wip"
                           :loading="isLoading"
                           loading-text="Loading... Please wait"
                           hide-default-footer
-                        ></v-data-table>
+                          dense
+                          disable-pagination
+                        >
+                          <template v-slot:item.quantity_remaining="{ item }">
+                            <v-text
+                              :color="getColor(item.quantity_remaining)"
+                              dark
+                            >
+                            {% verbatim %}{{ item.quantity_remaining }}{% endverbatim %}
+                            </v-text>
+                          </template>
+                        </v-data-table>
                       
                       </v-card>
                       <v-btn
@@ -398,12 +410,14 @@ var vm = new Vue({
       ],
       materialsList: [],
       materialsHeader: [
-        {text: "SKU", value: "sku"},
+        {text: "WIP", value: "wip"},
         {text: "Product Family", value: "family"},
+        {text: "SKU", value: "sku"},
         {text: "Description", value: "description"},
         {text: "Unit of Measure", value: "unit_of_measure"},
-        {text: "Quantity Needed", value: "quantity_needed"},
-        {text: "Quantity Onhand", value: "quantity_onhand"}
+        {text: "Quantity Needed", value: "quantity_needed", align: "right",},
+        {text: "Quantity Onhand", value: "quantity_onhand", align: "right",},
+        {text: "Quantity Remaining", value: "quantity_remaining", align: "right",},
       ],
       labor: {
         setup: null,
@@ -416,7 +430,7 @@ var vm = new Vue({
     watch: {
         group () {
             this.drawer = false
-        },
+        }
     },
     computed: {
       totalBatchSize(){
@@ -424,8 +438,6 @@ var vm = new Vue({
         $.each(this.recipes, function( index, value ) {
           total+= Number(value.batchSize);
         });
-
-        return total;
       },
       totalLabor(){
         var labor = this.labor;
@@ -450,7 +462,7 @@ var vm = new Vue({
           skus: sku_list
         },
         function(data) {
-          vm.materialsList = data;
+          vm.materialsList = vm.setTotalQuantity(data);
           vm.isLoading = false;
         });
       },
@@ -459,7 +471,26 @@ var vm = new Vue({
       },
       removeRecipe: function (index) {
         Vue.delete(this.recipes, index);
-    },
+      },
+      setTotalQuantity: function(data){
+        var batches = {};
+        $.each(this.recipes, function( index, value ) {
+          batches[value.sku.value] = value.batchSize;
+        });
+
+        $.each(data, function( index, value ) {
+          value.quantity_needed = (parseFloat(value.quantity_needed) * parseFloat(batches[value.product_id])).toFixed(5);
+          value.quantity_remaining = (parseFloat(value.quantity_onhand) - parseFloat(value.quantity_needed)).toFixed(2);
+        });
+
+        return data;
+      },
+      getColor: function(quantity_remaining) {
+        if (quantity_remaining <= 0) 
+          return 'red';
+        // else if (quantity_remaining > 200) return 'orange'
+        else return 'green';
+      },
     }
 })
 

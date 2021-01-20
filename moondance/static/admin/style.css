@@ -2,8 +2,16 @@
     width: 275px;
 }
 
-#materials_management_proxy_form input[type=text], #materials_management_proxy_form input[type=number]{
+#materials_management_proxy_form input[type=text]{
     width: 260px;
+}
+
+#materials_management_proxy_form input[type=number]{
+    width: 150px;
+}
+
+#materials_management_proxy_form .readonly{
+    width: 165px;
 }
 
 #inventory_onhand_form .select2-container{

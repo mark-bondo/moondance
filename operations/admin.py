@@ -103,8 +103,7 @@ class Product_Code_Admin(admin.ModelAdmin):
             skus = Materials_Management_Proxy.objects.filter(product_code=obj.pk)
 
             for sku in skus:
-                sku.total_freight_cost = (sku.total_material_cost or 0) * ((obj.freight_factor_percentage or 0)  / decimal.Decimal(100))
-                sku.total_cost = (sku.total_material_cost or 0) + sku.total_freight_cost
+                sku.unit_freight_cost = (sku.unit_material_cost or 0) * ((obj.freight_factor_percentage or 0)  / decimal.Decimal(100))
                 sku.save()
 
 
@@ -266,6 +265,21 @@ class Inventory_Onhand_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         parent_obj.save()
 
 
+class Invoice_Line_History_Inline(admin.TabularInline):
+    model = Invoice_Line
+    extra = 1
+    fields = (
+        "unit_of_measure",
+        "quantity",
+        "total_cost",
+    )
+    readonly_fields = (
+        "unit_of_measure",
+        "quantity",
+        "total_cost",
+    )
+
+
 class Inventory_Onhand_Admin_Inline(admin.TabularInline):
     model = Inventory_Onhand
     extra = 1
@@ -300,6 +314,7 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     form = Materials_Management_Proxy_Form
     inlines = (
         Inventory_Onhand_Admin_Inline,
+        Invoice_Line_History_Inline,
         Supplier_Product_Admin_Inline,
     )
     save_as = True
@@ -311,9 +326,9 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "product_type",
         "product_code",
         "unit_of_measure",
-        "total_quantity_onhand",
-        "unit_material_cost",
-        "total_cost",
+        "onhand_quantity",
+        "unit_cost_total",
+        "total_cost"
     ]
     history_list_display = [
         "sku",
@@ -322,9 +337,10 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "product_type",
         "product_code",
         "unit_of_measure",
-        "total_quantity_onhand",
+        "onhand_quantity",
         "unit_material_cost",
-        "total_cost",
+        "unit_freight_cost",
+        "unit_cost_total",
         "_last_updated",
         "_last_updated_by",
         "_created",
@@ -354,11 +370,10 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                     "product_type",
                     "product_code",
                     "unit_of_measure",
-                    "unit_material_cost",
-                    "total_material_cost",
-                    "total_freight_cost",
-                    "total_cost",
-                    "total_quantity_onhand",
+                    "onhand_quantity",
+                    ("unit_material_cost", "total_material_cost"),
+                    ("unit_freight_cost", "total_freight_cost"),
+                    ("unit_cost_total", "total_cost"),
                     "_active",
                 ]
             },
@@ -376,25 +391,44 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         # ),
     )
     readonly_fields = (
-        "_last_updated",
-        "_last_updated_by",
-        "_created",
-        "_created_by",
-        "total_quantity_onhand",
+        "unit_freight_cost",
+        "unit_cost_total",
+        "onhand_quantity",
         "total_material_cost",
         "total_freight_cost",
         "total_cost",
+        "_last_updated",
+        "total_cost",
+        "_created",
+        "_created_by",
     )
+
+    def unit_cost_total(self, obj):
+        return (obj.unit_material_cost or 0) + (obj.unit_freight_cost or 0)
+
+    def get_quantity(self, sku_id):
+        total_quantity = 0
+        
+        for q in Inventory_Onhand.objects.filter(sku_id=sku_id):
+            total_quantity += q.quantity_onhand or 0
+        
+        return total_quantity
+
+    def onhand_quantity(self, obj):
+        return self.get_quantity(obj.pk)
+
+    def total_material_cost(self, obj):
+        return (obj.unit_material_cost or 0) * self.get_quantity(obj.pk)
+
+    def total_freight_cost(self, obj):
+        return (obj.unit_freight_cost or 0) * self.get_quantity(obj.pk)
+
+    def total_cost(self, obj):
+        return (obj.unit_material_cost or 0) * self.get_quantity(obj.pk)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.filter(product_type__in=["WIP", "Raw Materials"])
-
-    # def save_model(self, request, obj, form, change):
-    #     obj = set_meta_fields(request, obj, form, change)
-    #     print(obj.original_unit_of_measure)
-    #     print(obj.unit_of_measure)
-    #     super().save_model(request, obj, form, change)
 
     def save_formset(self, request, form, formset, change):
         # set meta fields
@@ -495,9 +529,8 @@ class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "product_type",
         "product_code",
         "unit_of_measure",
-        "total_quantity_onhand",
         "unit_material_cost",
-        "total_cost",
+        "unit_freight_cost",
     ]
     search_fields = [
         "sku",
@@ -517,9 +550,8 @@ class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "product_type",
         "product_code",
         "unit_of_measure",
-        "total_quantity_onhand",
         "unit_material_cost",
-        "total_cost",
+        "unit_freight_cost",
         "_last_updated",
         "_last_updated_by",
         "_created",
@@ -528,11 +560,13 @@ class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     fields = (
         "sku",
         "description",
+        "unit_of_measure",
         "recipe_cost",
     )
     readonly_fields = (
         "sku",
         "description",
+        "unit_of_measure",
         "recipe_cost",
     )
 

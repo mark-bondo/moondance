@@ -5,8 +5,8 @@ from django_select2 import forms as s2forms
 class Materials_Management_Proxy_Form(forms.ModelForm):
     model = Materials_Management_Proxy
     product_type_list = (
-        ("WIP", "WIP"),
         ("Raw Materials",  "Raw Materials"),
-    )
+        ("WIP", "WIP"),
 
-    product_type = forms.ChoiceField(choices=product_type_list)
+    )
+    product_type = forms.ChoiceField(choices=product_type_list, initial="Raw Materials")
