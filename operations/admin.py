@@ -2,7 +2,7 @@ import decimal
 import django.urls as urlresolvers
 from django.utils.safestring import mark_safe
 from django.contrib import admin
-from meta_models import set_meta_fields, AdminStaticMixin
+from moondance.meta_models import set_meta_fields, AdminStaticMixin
 from simple_history.admin import SimpleHistoryAdmin
 from .models import (
     Recipe_Line,

@@ -1,7 +1,6 @@
 import sys
-sys.path.append('.')
 from django.db import models
-from meta_models import MetaModel
+from moondance.meta_models import MetaModel
 from simple_history.models import HistoricalRecords
 from datetime import datetime
 from django.utils import timezone
