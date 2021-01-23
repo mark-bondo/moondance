@@ -16,9 +16,13 @@ from .models import (
     Supplier_Product,
     Materials_Management_Proxy,
     Invoice,
-    Invoice_Line
+    Invoice_Line,
+    Finished_Goods_Proxy
 )
-from .forms import Materials_Management_Proxy_Form
+from .forms import (
+    Materials_Management_Proxy_Form,
+    Finished_Goods_Proxy_Form,
+)
 
 
 def convert_weight(unit_of_measure, weight):
@@ -40,6 +44,14 @@ def convert_weight(unit_of_measure, weight):
             "lbs": weight * decimal.Decimal(453.592),
             "oz": weight / decimal.Decimal(28.3495)
         }
+
+def get_sku_quantity(sku_id):
+    total_quantity = 0
+    
+    for q in Inventory_Onhand.objects.filter(sku_id=sku_id):
+        total_quantity += q.quantity_onhand or 0
+    
+    return total_quantity
 
 
 @admin.register(Product_Code)
@@ -116,15 +128,10 @@ class Supplier_Product_Admin_Inline(admin.TabularInline):
         "supplier_sku_description",
         "sku",
         "supplier_sku_link",
-        # "_last_updated",
-
     )
     autocomplete_fields = [
         "sku",
     ]
-    # readonly_fields = (
-    #     "_last_updated",
-    # )
 
 
 @admin.register(Supplier)
@@ -358,7 +365,7 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     list_filter = [
         ("_active", admin.BooleanFieldListFilter),
         "product_type",
-        "product_code",
+        ("product_code", admin.RelatedOnlyFieldListFilter),
     ]
     fieldsets = (
         (
@@ -378,17 +385,6 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                 ]
             },
         ),
-        # (
-        #     "Change History",
-        #     {
-        #         "fields": (
-        #             "_last_updated",
-        #             "_last_updated_by",
-        #             "_created",
-        #             "_created_by",
-        #         )
-        #     },
-        # ),
     )
     readonly_fields = (
         "unit_freight_cost",
@@ -406,28 +402,20 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     def unit_cost_total(self, obj):
         return (obj.unit_material_cost or 0) + (obj.unit_freight_cost or 0)
 
-    def get_quantity(self, sku_id):
-        total_quantity = 0
-        
-        for q in Inventory_Onhand.objects.filter(sku_id=sku_id):
-            total_quantity += q.quantity_onhand or 0
-        
-        return total_quantity
-
     def onhand_quantity(self, obj):
-        return self.get_quantity(obj.pk)
+        return get_sku_quantity(obj.pk)
 
     def total_material_cost(self, obj):
-        return (obj.unit_material_cost or 0) * self.get_quantity(obj.pk)
+        return (obj.unit_material_cost or 0) * get_sku_quantity(obj.pk)
 
     def total_freight_cost(self, obj):
-        return (obj.unit_freight_cost or 0) * self.get_quantity(obj.pk)
+        return (obj.unit_freight_cost or 0) * get_sku_quantity(obj.pk)
 
     def total_cost(self, obj):
-        return (obj.unit_material_cost or 0) * self.get_quantity(obj.pk)
+        return ((obj.unit_material_cost or 0) + (obj.unit_freight_cost or 0)) * get_sku_quantity(obj.pk)
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
+        qs = super().get_queryset(request).prefetch_related("product_code")
         return qs.filter(product_type__in=["WIP", "Raw Materials"])
 
     def save_formset(self, request, form, formset, change):
@@ -703,38 +691,118 @@ class Invocie_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
         formset.save_m2m()
 
-# class Amazon_Product_Admin_Inline(admin.TabularInline):
-#     model = Amazon_Product
-#     extra = 1
-#     fields = (
-#         "asin",
-#         "_active",
-#         "_last_updated",
-#         "_last_updated_by",
-#         "_created",
-#         "_created_by",
-#     )
-#     readonly_fields = (
-#         "_last_updated",
-#         "_last_updated_by",
-#         "_created",
-#         "_created_by",
-#     )
 
-# class Shopify_Product_Admin_Inline(admin.TabularInline):
-#     model = Shopify_Product
-#     extra = 1
-#     fields = (
-#         "shopify_product_id",
-#         "_active",
-#         "_last_updated",
-#         "_last_updated_by",
-#         "_created",
-#         "_created_by",
-#     )
-#     readonly_fields = (
-#         "_last_updated",
-#         "_last_updated_by",
-#         "_created",
-#         "_created_by",
-#     )
+@admin.register(Amazon_Product)
+class Amazon_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
+    model = Amazon_Product
+    list_display = [
+        "asin",
+        "seller_sku",
+        "product",
+        "sku_description",
+    ]
+    fields = (
+        "asin",
+        "seller_sku",
+        "sku_description",
+        "product",
+    )
+    list_editable = [
+        "product",
+    ]
+    autocomplete_fields = [
+        "product",
+    ]
+
+
+class Amazon_Product_Admin_Inline(admin.TabularInline):
+    model = Amazon_Product
+    extra = 1
+    fields = (
+        "asin",
+        "seller_sku",
+        "sku_description",
+    )
+
+
+@admin.register(Finished_Goods_Proxy)
+class Finished_Goods_Proxy_Admin_Inline(AdminStaticMixin, SimpleHistoryAdmin):
+    model = Finished_Goods_Proxy
+    form = Finished_Goods_Proxy_Form
+    inlines = (Amazon_Product_Admin_Inline,)
+    list_display = [
+        "sku",
+        "description",
+        "_active",
+        "product_type",
+        "product_code",
+        "onhand_quantity",
+        "unit_sales_price",
+        "unit_cost_total",
+        "total_cost",
+    ]
+    history_list_display = [
+        "sku",
+        "description",
+        "_active",
+        "product_type",
+        "product_code",
+        "onhand_quantity",
+        "unit_sales_price",
+        "unit_cost_total",
+        "total_cost",
+    ]
+    fields = (
+        "sku",
+        "description",
+        "product_type",
+        "product_code",
+        "unit_sales_price",
+        "onhand_quantity",
+        ("unit_cost_total", "total_cost"),
+        "_active",
+    )
+    autocomplete_fields = [
+        "product_code",
+    ]
+    search_fields = [
+        "sku",
+        "description",
+        "product_code__category",
+        "product_code__family",
+    ]
+    list_filter = [
+        ("_active", admin.BooleanFieldListFilter),
+        ("product_code", admin.RelatedOnlyFieldListFilter),
+    ]
+    readonly_fields = (
+        "onhand_quantity",
+        "total_cost",
+        "unit_cost_total",
+    )
+
+    def unit_cost_total(self, obj):
+        return (obj.unit_material_cost or 0) + (obj.unit_freight_cost or 0)
+
+    def onhand_quantity(self, obj):
+        return get_sku_quantity(obj.pk)
+
+    def total_cost(self, obj):
+        return ((obj.unit_material_cost or 0) + (obj.unit_freight_cost or 0)) * get_sku_quantity(obj.pk)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request).prefetch_related("product_code")
+        return qs.filter(product_type__in=["Finished Goods"])
+
+    def save_formset(self, request, form, formset, change):
+        # set meta fields
+        inline_formsets = formset.save(commit=False)
+
+        for obj in inline_formsets:
+            obj = set_meta_fields(request, obj, form, change, inline=True)
+            obj.save()
+
+        for obj in formset.deleted_objects:
+            obj.delete()
+
+        formset.save_m2m()

@@ -1,26 +1,43 @@
 import os
 import datetime
 import argparse
-from data_loader import Nexternal_API
+import sys
+from api_shopify import Shopify_API
+from api_amazon import Amazon_API
+
+AMAZON_MARKETPLACE_IDS = "ATVPDKIKX0DER"
 
 def create_parser():
     parser = argparse.ArgumentParser(
         description="Argument parser for Moondance."
     )
     parser.add_argument(
-        "--load-nexternal-orders",
+        "--sync-all",
         action="store_true",
         default=False,
-        help="Load Nexternal Sales Orders",
     )
     parser.add_argument(
-        "--load-nexternal-products",
+        "--sync-shopify-products",
         action="store_true",
         default=False,
-        help="Load Nexternal Products",
     )
     parser.add_argument(
-        "--date-range",
+        "--sync-shopify-sales",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--sync-amazon-sales",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--sync-amazon-sales-lines",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--time-interval",
         type=str,
         help='Date range to pull in for orders using format "YYYY-MM-DD to YYYY-MM-DD"',
     )
@@ -30,52 +47,62 @@ def create_parser():
 def cli():
     parser = create_parser()
     args = parser.parse_args()
+    now = datetime.datetime.utcnow()
+    end_datetime = (now - datetime.timedelta(**{"minutes": 3})).isoformat()
 
-    if not args.date_range:
-        now = datetime.datetime.now()
-        start_date = (now - datetime.timedelta(14))
-        end_date = now
+    if not args.time_interval:
+        start_datetime = (now - datetime.timedelta(**{"days": 3})).isoformat()
     else:
-        dates = args.date_range.split(" to ")
-        start_date = datetime.datetime.strptime(dates[0], "%Y-%m-%d")
-        end_date = datetime.datetime.strptime(dates[1], "%Y-%m-%d")
+        time_interval = args.date_range.split(" ")
+        interval = {time_interval[0].strip().upper(): time_interval[1].strip().upper()}
+        start_datetime = (now - datetime.timedelta(**interval)).isoformat()
 
-    if args.load_nexternal_orders:
-        table_name = "sales_orders_nexternal"
-        print("{}: starting load for date ranges {} to {}".format(table_name, start_date, end_date))
+    if args.sync_all:
+        shopify = Shopify_API(start_datetime)
+        shopify.process_data(command="products")
+        shopify.process_data(command="sales_orders")
 
-        api = Nexternal_API(
-            data_dir="data",
-            table_name=table_name,
-            primary_key_list=[
-                "order_number",
-                "order_line"
-            ],
-            data_type="sales_orders",
-            start_date=start_date,
-            end_date=end_date,
-            load_method="pk_append"
-        )
-        api.get_data()
-        api.parse_order_data()
-        api.load_data()
+        amazon = Amazon_API()
+        amazon.process_data(
+            command="sales_order_lines",
+            request_parameters={
+                "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
+        })
+        amazon.process_data(
+            command="sales_orders",
+            request_parameters={
+                "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
+                "LastUpdatedBefore": end_datetime,
+                "LastUpdatedAfter": start_datetime,
+        })
+        sys.exit()
 
-    if args.load_nexternal_products:
-        table_name = "item_master_nexternal"
-        print("{}: starting load for date ranges {} to {}".format(table_name, start_date, end_date))
+    if args.sync_shopify_products:
+        shopify = Shopify_API(start_datetime)
+        shopify.process_data(command="products")
 
-        api = Nexternal_API(
-            data_dir="data",
-            load_method="product_upsert",
-            table_name=table_name,
-            primary_key_list=["sku"],
-            data_type="products",
-            start_date=start_date,
-            end_date=end_date
-        )
-        # api.get_data()
-        api.parse_product_data()
-        api.load_data()
+    if args.sync_shopify_sales:
+        shopify = Shopify_API(start_datetime)
+        shopify.process_data(command="sales_orders")
+
+    if args.sync_amazon_sales:
+        amazon = Amazon_API()
+        amazon.process_data(
+            command="sales_orders",
+            request_parameters={
+                "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
+                "LastUpdatedBefore": end_datetime,
+                "LastUpdatedAfter": start_datetime,
+        })
+
+    if args.sync_amazon_sales_lines:
+        amazon = Amazon_API()
+        amazon.process_data(
+            command="sales_order_lines",
+            request_parameters={
+                "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
+        })
+
 
 if __name__ == "__main__":
     cli()

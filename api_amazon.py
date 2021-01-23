@@ -22,9 +22,9 @@ class Amazon_API(object):
         self.current_timestamp =  now.strftime("%Y-%m-%d %H%M%S")
 
         self.db_string = os.getenv("DB_STRING")
-        self.amazon_client_id =  os.environ.get("AMAZON_CLIENT_IDENTIFIER2")
-        self.amazon_client_secret =  os.environ.get("AMAZON_CLIENT_SECRET2")
-        self.amazon_refresh_token = os.environ.get("AMAZON_REFRESH_TOKEN2")
+        self.amazon_client_id =  os.environ.get("AMAZON_CLIENT_IDENTIFIER")
+        self.amazon_client_secret =  os.environ.get("AMAZON_CLIENT_SECRET")
+        self.amazon_refresh_token = os.environ.get("AMAZON_REFRESH_TOKEN")
         self.aws_secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
         self.aws_access_key = os.environ.get("AWS_ACCESS_KEY_ID")
 
@@ -48,7 +48,7 @@ class Amazon_API(object):
                 "pk_list": ["id"],
                 "table_name": "amazon_catalog",
                 "json_set": "CatalogItems",
-                "api_url": "/catalog/v0/items/",
+                "api_url": "/catalog/v0/items/B002UD6C16",
                 "request_parameters": request_parameters
             }
         }
@@ -56,32 +56,38 @@ class Amazon_API(object):
         if command in self.object_map:
             self.object_dd = self.object_map[command]
             self.object_dd.update({
-                # "table_columns": get_table_columns(self.db_string, self.object_dd["table_name"]),
+                "table_columns": get_table_columns(self.db_string, self.object_dd["table_name"]),
                 "file_name": "amazon_orders_{}.tsv".format(self.current_timestamp.replace(":", "-")),
                 "api_url_formatted": self.object_dd["api_url"]
             })
         else:
             raise "{} is not a valid command".format(command)
 
-        self.get_access_token()
+        self.refresh_access_token()
 
         if command == "sales_order_lines":
             order_lines = self.get_orders()
 
-            for o in order_lines:
-                self.object_dd["api_url_formatted"] = self.object_dd["api_url"].format(o["AmazonOrderId"])
-                self.build_parameters_string()
-                self.build_headers()
-
+            for i, o in enumerate(order_lines):
                 extra_context = {
                     "AmazonOrderId": o["AmazonOrderId"],
                     "LastUpdateDate": o["LastUpdateDate"],
                 }
-                self.get_data(extra_context)
-                insert_data(self.object_dd, self.db_string, self.row_count)
-                time.sleep(1.5)
-        # else:
-        #     insert_data(self.object_dd, self.db_string, self.row_count)
+
+                self.object_dd["api_url_formatted"] = self.object_dd["api_url"].format(o["AmazonOrderId"])
+                self.sync_data(extra_context)
+
+                if i % 500 == 0:
+                    self.refresh_access_token()
+        else:
+            self.sync_data()
+
+    def sync_data(self, extra_context={}):
+        self.build_parameters_string()
+        self.build_headers()
+        self.get_data(extra_context)
+        insert_data(self.object_dd, self.db_string, self.row_count)
+        time.sleep(1.5)
 
     def get_orders(self):
         with contextlib.closing(psycopg2.connect(self.db_string)) as conn:
@@ -91,7 +97,7 @@ class Amazon_API(object):
                         COALESCE(JSONB_AGG(json), '[]'::JSONB) as order_json
                     FROM (
                         SELECT
-                            (select row_to_json(_) from (select o."AmazonOrderId", o."LastUpdateDate")  as _) as json
+                            (select row_to_json(_) from (SELECT DISTINCT o."AmazonOrderId", o."LastUpdateDate")  as _) as json
                         FROM
                             public.amazon_sales_order o LEFT JOIN
                             public.amazon_sales_order_line ol ON o."AmazonOrderId" = ol."AmazonOrderId"
@@ -99,14 +105,14 @@ class Amazon_API(object):
                             ol."LastUpdateDate" IS NULL OR
                             ol."LastUpdateDate" <> o."LastUpdateDate"
                         LIMIT
-                            1000
+                            10000
                     ) sub 
                     ;
                 """
                 cursor.execute(sql)
                 return cursor.fetchall()[0][0]
 
-    def get_access_token(self):
+    def refresh_access_token(self):
         data = {
             "grant_type": "refresh_token",
             "client_id": self.amazon_client_id,
@@ -183,7 +189,7 @@ class Amazon_API(object):
                 ))
 
                 r = requests.get(url=self.request_url, headers=self.headers)
-                print(r.text)
+                # print(r.text)
                 json_response = r.json()
 
                 payload = json_response["payload"][self.object_dd["json_set"]]
@@ -239,14 +245,14 @@ if __name__ == "__main__":
     #         "LastUpdatedAfter": LastUpdatedAfter,
     # })
 
-    # amazon.process_data(
-    #     command="sales_order_lines",
-    #     request_parameters={
-    #         "MarketplaceIds": MarketplaceIds,
-    # })
-
     amazon.process_data(
-        command="catalog",
+        command="sales_order_lines",
         request_parameters={
             "MarketplaceIds": MarketplaceIds,
     })
+
+    # amazon.process_data(
+    #     command="catalog",
+    #     request_parameters={
+    #         "MarketplaceIds": MarketplaceIds,
+    # })

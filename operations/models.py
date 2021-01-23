@@ -71,12 +71,11 @@ class Recipe_Proxy(Product):
         return "{} ({})".format(self.description, self.sku)
     class Meta:
         proxy = True
-        verbose_name = "Recipe"
-        verbose_name_plural = "Recipes"
+        verbose_name = "Making - Recipe"
+        verbose_name_plural = "Making - Recipes"
         ordering = ("sku",)
 
 class Materials_Management_Proxy(Product):
-    # history = HistoricalRecords()
     class Meta:
         proxy = True
         verbose_name = "Product - Raw Material"
@@ -90,6 +89,14 @@ class Materials_Management_Proxy(Product):
         super(Materials_Management_Proxy, self).__init__(*args, **kwargs)
         self.original_unit_of_measure = self.unit_of_measure
         self.original_unit_material_cost = self.unit_material_cost
+
+
+class Finished_Goods_Proxy(Product):
+    class Meta:
+        proxy = True
+        verbose_name = "Product - Finished Good"
+        verbose_name_plural = "Product - Finished Goods"
+        ordering = ("sku",)
 
 
 class Inventory_Onhand(MetaModel):
@@ -115,26 +122,31 @@ class Inventory_Onhand(MetaModel):
         return "{} ({})".format(self.sku, self.location)
 
     class Meta:
-        verbose_name = "Inventory Onhand"
-        verbose_name_plural = "Inventory Onhand"
+        verbose_name = "Buying - Inventory Onhand"
+        verbose_name_plural = "Buying - Inventory Onhand"
         ordering = ("sku", "location")
 
 
 class Amazon_Product(MetaModel):
-    asin = models.CharField(max_length=200, unique=True)
+    asin = models.CharField(max_length=200)
+    seller_sku = models.CharField(max_length=200, unique=True)
+    sku_description = models.CharField(max_length=200)
     product = models.ForeignKey(
-        Product,
+        Finished_Goods_Proxy,
+        blank=True,
+        null=True,
         on_delete=models.PROTECT,
         related_name="amazon_product_product_fk"
     )
 
+
     def __str__(self):
-        return "{}".format(self.asin)
+        return "{}: {}".format(self.asin, self.seller_sku)
 
     class Meta:
-        verbose_name = "Amazon Product"
-        verbose_name_plural = "Amazon Products"
-        ordering = ("asin",)
+        verbose_name = "Integrations - Amazon"
+        verbose_name_plural = "Integrations - Amazon"
+        ordering = ("product__sku", "seller_sku", "asin",)
 
 
 class Shopify_Product(MetaModel):
@@ -174,8 +186,8 @@ class Supplier(MetaModel):
         return "{}".format(self.name)
 
     class Meta:
-        verbose_name = "Supplier"
-        verbose_name_plural = "Suppliers"
+        verbose_name = "Buying - Supplier"
+        verbose_name_plural = "Buying - Suppliers"
         ordering = ("name",)
 
 
@@ -192,8 +204,8 @@ class Supplier_Product(MetaModel):
         return "{}: {} ({})".format(self.sku, self.supplier, self.supplier_sku)
 
     class Meta:
-        verbose_name = "Supplier Product"
-        verbose_name_plural = "Supplier Products"
+        verbose_name = "Buying - Supplier Product"
+        verbose_name_plural = "Buying - Supplier Products"
         unique_together = (("supplier", "supplier_sku"))
         ordering = ("sku", "supplier_sku")
 
@@ -209,8 +221,8 @@ class Recipe_Line(MetaModel):
         return "{} ({})".format(self.sku, self.sku_parent)
 
     class Meta:
-        verbose_name = "Recipe Line"
-        verbose_name_plural = "Recipe Lines"
+        verbose_name = "Buying - Recipe Line"
+        verbose_name_plural = "Buying - Recipe Lines"
         unique_together = (("sku", "sku_parent",),)
         ordering = ("sku_parent", "sku")
 
@@ -226,8 +238,8 @@ class Invoice(MetaModel):
         return "{} ({})".format(self.invoice, self.supplier)
 
     class Meta:
-        verbose_name = "Invoice"
-        verbose_name_plural = "Invoices"
+        verbose_name = "Buying - Invoice"
+        verbose_name_plural = "Buying - Invoices"
         ordering = ("-date_invoiced", "invoice")
 
 class Invoice_Line(MetaModel):
@@ -243,8 +255,8 @@ class Invoice_Line(MetaModel):
         return "{} ({})".format(self.invoice, self.sku)
 
     class Meta:
-        verbose_name = "Invoice Line"
-        verbose_name_plural = "Invoice Lines"
+        verbose_name = "Buying - Invoice Line"
+        verbose_name_plural = "Buying - Invoice Lines"
         unique_together = (("sku", "invoice",),)
         ordering = ("sku",)
 

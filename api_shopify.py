@@ -12,7 +12,7 @@ from common import get_table_columns, escape_value, insert_data
 load_dotenv()
 
 
-class ShopifyAPI(object):
+class Shopify_API(object):
     def __init__(self, start_datetime):
         self.username = os.getenv("SHOPIFY_USERNAME")
         self.password = os.getenv("SHOPIFY_PASSWORD")
@@ -106,10 +106,10 @@ class ShopifyAPI(object):
 
 
 if __name__ == "__main__":
-    interval = {"days": 1}
+    interval = {"days": 3}
     start_datetime = (datetime.datetime.utcnow() - datetime.timedelta(**interval)).isoformat()
     # end_datetime = (datetime.datetime.utcnow() - datetime.timedelta(**interval)).isoformat()
 
-    shopify = ShopifyAPI(start_datetime)
+    shopify = Shopify_API(start_datetime)
     shopify.process_data(command="products")
     shopify.process_data(command="sales_orders")
