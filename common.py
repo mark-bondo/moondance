@@ -47,10 +47,10 @@ def insert_data(object_dd, db_string, row_count):
 
     with contextlib.closing(psycopg2.connect(db_string)) as conn:
         with contextlib.closing(conn.cursor()) as cursor:
-            print("{}: starting data load for {} order lines".format(object_dd["table_name"], row_count))
-            print(sql)
+            # print("{}: starting data load for {} order lines".format(object_dd["table_name"], row_count))
+            # print(sql)
             cursor.copy_expert(sql, open(object_dd["file_name"], "r", encoding="utf-8"))
 
         conn.commit()
         # os.remove(object_dd["file_name"])
-        print("{}: completed data load".format(object_dd["table_name"]))
+        # print("{}: completed data load".format(object_dd["table_name"]))
