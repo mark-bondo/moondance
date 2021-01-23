@@ -53,8 +53,9 @@ def cli():
     if not args.time_interval:
         start_datetime = (now - datetime.timedelta(**{"days": 3})).isoformat()
     else:
-        time_interval = args.date_range.split(" ")
-        interval = {time_interval[0].strip().upper(): time_interval[1].strip().upper()}
+        time_interval = args.time_interval.split(" ")
+        interval = {time_interval[1].strip(): int(time_interval[0].strip())}
+        print(interval)
         start_datetime = (now - datetime.timedelta(**interval)).isoformat()
 
     if args.sync_all:

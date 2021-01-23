@@ -52,5 +52,5 @@ def insert_data(object_dd, db_string, row_count):
             cursor.copy_expert(sql, open(object_dd["file_name"], "r", encoding="utf-8"))
 
         conn.commit()
-        # os.remove(object_dd["file_name"])
+        os.remove(object_dd["file_name"])
         # print("{}: completed data load".format(object_dd["table_name"]))

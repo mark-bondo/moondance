@@ -692,6 +692,57 @@ class Invocie_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         formset.save_m2m()
 
 
+@admin.register(Shopify_Product)
+class Shopify_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
+    model = Shopify_Product
+    list_display = [
+        "shopify_sku",
+        "product",
+        "status",
+        "title",
+        "inventory_management",
+        "customer_type",
+    ]
+    history_list_display = [
+        "shopify_sku",
+        "product",
+        "status",
+        "title",
+        "inventory_management",
+        "customer_type",
+    ]
+    fields = (
+        "shopify_sku",
+        "product",
+        "status",
+        "title",
+        "inventory_policy",
+        "inventory_management",
+        "grams",
+        "price",
+        "customer_type",
+        "handle",
+    )
+    list_editable = [
+        "product",
+    ]
+    search_fields = [
+        "product__sku",
+        "shopify_sku",
+    ]
+    list_filter = [
+        "status",
+        "inventory_management",
+    ]
+    autocomplete_fields = [
+        "product",
+    ]
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request).prefetch_related("product")
+        return qs
+
+
 @admin.register(Amazon_Product)
 class Amazon_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Amazon_Product
@@ -713,6 +764,10 @@ class Amazon_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     autocomplete_fields = [
         "product",
     ]
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request).prefetch_related("product")
+        return qs
 
 
 class Amazon_Product_Admin_Inline(admin.TabularInline):

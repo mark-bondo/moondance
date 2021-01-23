@@ -150,15 +150,28 @@ class Amazon_Product(MetaModel):
 
 
 class Shopify_Product(MetaModel):
-    shopify_product_id = models.CharField(max_length=200, unique=True)
-    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="shopify_product_sku_fk")
+    shopify_id = models.BigIntegerField()
+    variant_id = models.BigIntegerField(unique=True)
+    shopify_sku = models.CharField(max_length=200)
+    status = models.CharField(max_length=200)
+    title = models.CharField(max_length=200)
+    inventory_policy = models.CharField(max_length=200)
+    inventory_management = models.CharField(max_length=200)
+    grams = models.IntegerField()
+    price = models.DecimalField(max_digits=12, decimal_places=2)
+    inventory_quantity = models.IntegerField(null=True, blank=True)
+    customer_type = models.CharField(max_length=200)
+    barcode = models.CharField(max_length=100, blank=True, null=True)
+    tags = models.CharField(max_length=1000, blank=True, null=True)
+    handle = models.CharField(max_length=200)
+    product = models.ForeignKey(Finished_Goods_Proxy, on_delete=models.PROTECT, null=True, blank=True, related_name="shopify_product_sku_fk")
 
     def __str__(self):
-        return "{}".format(self.shopify_product_id)
+        return "{}".format(self.title)
 
     class Meta:
-        verbose_name = "Shopify Product"
-        verbose_name_plural = "Shopify Products"
+        verbose_name = "Integration - Shopify"
+        verbose_name_plural = "Integrations - Shopify"
 
 
 class Supplier(MetaModel):
