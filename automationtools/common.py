@@ -32,10 +32,10 @@ def escape_value(value):
 
     return value
 
-def insert_data(object_dd, db_string, row_count):
+def insert_data(object_dd, db_string):
     primary_key_list = object_dd["pk_list"]
 
-    with open("templates/sql/{}.sql".format("pk_append"), "r") as f:
+    with open("automationtools/templates/sql/{}.sql".format("pk_append"), "r") as f:
         sql = f.read() % {
             "schema": "public",
             "table_name": object_dd["table_name"],
@@ -47,10 +47,8 @@ def insert_data(object_dd, db_string, row_count):
 
     with contextlib.closing(psycopg2.connect(db_string)) as conn:
         with contextlib.closing(conn.cursor()) as cursor:
-            # print("{}: starting data load for {} order lines".format(object_dd["table_name"], row_count))
             # print(sql)
             cursor.copy_expert(sql, open(object_dd["file_name"], "r", encoding="utf-8"))
 
         conn.commit()
-        os.remove(object_dd["file_name"])
-        # print("{}: completed data load".format(object_dd["table_name"]))
+        # os.remove(object_dd["file_name"])

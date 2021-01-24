@@ -1,11 +1,11 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 import requests
-import datetime
 import json
 import psycopg2
 import os
 import contextlib
+from datetime import datetime
 from dotenv import load_dotenv
 from common import get_table_columns, escape_value, insert_data
 
@@ -13,69 +13,75 @@ load_dotenv()
 
 
 class Shopify_API(object):
-    def __init__(self, start_datetime):
+    def __init__(self, logger):
+        self.logger = logger
+        self.current_timestamp =  datetime.now().strftime("%Y-%m-%d %H%M%S")
         self.username = os.getenv("SHOPIFY_USERNAME")
         self.password = os.getenv("SHOPIFY_PASSWORD")
         self.db_string = os.getenv("DB_STRING")
         self.shopify_url = os.getenv("SHOPIFY_URL")
-        self.start_datetime = start_datetime
+
+    def process_data(self, command, request_parameters):
+        self.command = command
         self.object_map = {
             "sales_orders": {
                 "pk_list": ["id"],
                 "table_name": "shopify_sales_order",
                 "json_set": "orders",
                 "api_url": "2020-10/orders.json",
-                "api_params": {
-                    "updated_at_min": self.start_datetime,
-                    "status": "any"
-                }
+                "request_parameters": request_parameters
             },
             "products": {
                 "pk_list": ["id"],
                 "table_name": "shopify_product",
                 "json_set": "products",
                 "api_url": "2020-10/products.json",
-                "api_params": {
-                    "updated_at_min": self.start_datetime
-                }
+                "request_parameters": request_parameters
             }
         }
 
-    def process_data(self, command):
+        self.logger.info("sync shopify {}: getting table columns".format(self.command))
         if command in self.object_map:
             self.object_dd = self.object_map[command]
             self.object_dd.update({
                 "table_columns": get_table_columns(self.db_string, self.object_dd["table_name"]),
-                "file_name": "{}.tsv".format(self.object_dd["table_name"]),
+                "file_name": "automationtools/data/{}_{}.tsv".format(
+                    self.object_dd["table_name"], 
+                    self.current_timestamp.replace(":", "-")
+                ),
             })
         else:
             raise "{} is not a valid command".format(command)
 
         self.get_data()
-        insert_data(self.object_dd, self.db_string, self.row_count)
+
+        self.logger.info('sync shopify {}: inserting {} rows into" {}"'.format(self.command, self.row_count, self.object_dd["table_name"]))
+        insert_data(self.object_dd, self.db_string)
 
     def get_data(self):
         with open(self.object_dd["file_name"], encoding="utf-8", mode="w") as w:
             self.row_count = 0
-            order_url = "https://{}:{}@{}/admin/api/{}?{}".format(
+            url = "https://{}:{}@{}/admin/api/{}?{}".format(
                 self.username,
                 self.password,
                 self.shopify_url,
                 self.object_dd["api_url"],
-                "&".join(["{}={}".format(k, v) for k, v in self.object_dd["api_params"].items()])
+                "&".join(["{}={}".format(k, v) for k, v in self.object_dd["request_parameters"].items()])
             )
 
             w.write("\t".join(self.object_dd["table_columns"]))
             w.write("\n")
 
             while True:
-                print("fetching order batch starting {}".format(self.row_count))
-                print(order_url)
-                print("x" * 50)
-                response = requests.get(order_url)
-                json_string = response.json()
+                self.logger.info('sync shopify {}: getting data from "https://{}"'.format(self.command, url.split("@")[1]))
 
-                for order in json_string[self.object_dd["json_set"]]:
+                response = requests.get(url)
+                json_string = response.json()
+                json_data = json_string[self.object_dd["json_set"]]
+                self.row_count += len(json_data)
+
+                self.logger.info("sync shopify {}: fetched {} rows".format(self.command, len(json_data)))
+                for order in json_data:
                     row = []
 
                     for field in self.object_dd["table_columns"]:
@@ -94,22 +100,17 @@ class Shopify_API(object):
 
                     line = "{}\n".format("\t".join(row))
                     w.write(line)
-                    self.row_count+=1
 
                 next_page = response.headers["link"] if "link" in response.headers else None
                 
                 if next_page and 'rel="next"' in next_page:
                     next_page = next_page.split(",")[-1]
-                    order_url = next_page.replace("<", "").replace("https://", "https://{}:{}@".format(self.username, self.password)).split(">")[0]
+                    url = next_page.replace("<", "").replace("https://", "https://{}:{}@".format(self.username, self.password)).split(">")[0]
                 else:
                     break
 
+            self.logger.info('sync shopify {}: written {} rows to file "{}"'.format(self.command, self.row_count, self.object_dd["file_name"]))
+
 
 if __name__ == "__main__":
-    interval = {"days": 3}
-    start_datetime = (datetime.datetime.utcnow() - datetime.timedelta(**interval)).isoformat()
-    # end_datetime = (datetime.datetime.utcnow() - datetime.timedelta(**interval)).isoformat()
-
-    shopify = Shopify_API(start_datetime)
-    shopify.process_data(command="products")
-    shopify.process_data(command="sales_orders")
+    pass

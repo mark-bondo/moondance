@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "django_select2",
     'operations',
     "accounting",
+    "automationtools",
     'simple_history',
 ]
 

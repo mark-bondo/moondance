@@ -6,20 +6,22 @@ import time
 import collections
 import contextlib
 import psycopg2
+from datetime import datetime
 from common import get_table_columns, insert_data, escape_value
 from dotenv import load_dotenv
 
 load_dotenv()
 
 class Amazon_API(object):
-    def __init__(self):
+    def __init__(self, logger):
+        self.logger = logger
         self.access_token_url = "https://api.amazon.com/auth/o2/token"
         self.access_token = None
         self.service = "execute-api"
         self.host = "sellingpartnerapi-na.amazon.com"
         self.region = "us-east-1"
         self.user_agent = "MoonDance Reporting Tool/1.0 (Language=Python/3.7.6; Platform=Windows/10)"
-        self.current_timestamp =  now.strftime("%Y-%m-%d %H%M%S")
+        self.current_timestamp =  datetime.now().strftime("%Y-%m-%d %H%M%S")
 
         self.db_string = os.getenv("DB_STRING")
         self.amazon_client_id =  os.environ.get("AMAZON_CLIENT_IDENTIFIER")
@@ -29,6 +31,7 @@ class Amazon_API(object):
         self.aws_access_key = os.environ.get("AWS_ACCESS_KEY_ID")
 
     def process_data(self, command, request_parameters):
+        self.command = command
         self.object_map = {
             "sales_orders": {
                 "pk_list": ["AmazonOrderId"],
@@ -53,41 +56,59 @@ class Amazon_API(object):
             }
         }
 
+        self.logger.info("sync amazon {}: getting table columns".format(self.command))
         if command in self.object_map:
             self.object_dd = self.object_map[command]
             self.object_dd.update({
                 "table_columns": get_table_columns(self.db_string, self.object_dd["table_name"]),
-                "file_name": "amazon_orders_{}.tsv".format(self.current_timestamp.replace(":", "-")),
+                "file_name": "automationtools/data/{}_{}.tsv".format(
+                    self.object_dd["table_name"], 
+                    self.current_timestamp.replace(":", "-")
+                ),
                 "api_url_formatted": self.object_dd["api_url"]
             })
         else:
             raise "{} is not a valid command".format(command)
 
+        self.logger.info("sync amazon {}: getting access token".format(self.command))
         self.refresh_access_token()
 
         if command == "sales_order_lines":
+            self.logger.info("sync amazon {}: getting order lines to sync".format(self.command))
             order_lines = self.get_orders()
+            self.logger.info("sync amazon {}: retrieved {} order lines to sync".format(self.command, len(order_lines)))
 
+            error_count = 0
             for i, o in enumerate(order_lines):
-                extra_context = {
-                    "AmazonOrderId": o["AmazonOrderId"],
-                    "LastUpdateDate": o["LastUpdateDate"],
-                }
+                try:
+                    extra_context = {
+                        "AmazonOrderId": o["AmazonOrderId"],
+                        "LastUpdateDate": o["LastUpdateDate"],
+                    }
 
-                self.object_dd["api_url_formatted"] = self.object_dd["api_url"].format(o["AmazonOrderId"])
-                self.sync_data(extra_context)
+                    self.object_dd["api_url_formatted"] = self.object_dd["api_url"].format(o["AmazonOrderId"])
+                    self.sync_data(extra_context)
+                except Exception:
+                    if error_count <= 1:
+                        self.logger.warning("sync amazon {}: failed getting order lines, getting new refresh token".format(self.command), exc_info=1)
+                        self.refresh_access_token()
+                        self.sync_data(extra_context)
 
-                if i % 500 == 0:
-                    self.refresh_access_token()
+                        error_count+=1
+                    else:
+                        self.logger.error("sync amazon {}: failed getting order lines {} times, exiting program".format(self.command, error_count), exc_info=1)
+                        break
         else:
             self.sync_data()
 
     def sync_data(self, extra_context={}):
+        self.logger.info("sync amazon {}: creating headers".format(self.command))
         self.build_parameters_string()
         self.build_headers()
         self.get_data(extra_context)
-        insert_data(self.object_dd, self.db_string, self.row_count)
-        time.sleep(1.5)
+
+        self.logger.info('sync amazon {}: inserting {} rows into "{}"'.format(self.command, self.row_count, self.object_dd["table_name"]))
+        insert_data(self.object_dd, self.db_string)
 
     def get_orders(self):
         with contextlib.closing(psycopg2.connect(self.db_string)) as conn:
@@ -143,7 +164,7 @@ class Amazon_API(object):
         return kSigning
 
     def build_headers(self):
-        t = datetime.datetime.utcnow()
+        t = datetime.utcnow()
         amzdate = t.strftime('%Y%m%dT%H%M%SZ')
         datestamp = t.strftime('%Y%m%d') # Date w/o time, used in credential scope
 
@@ -152,7 +173,6 @@ class Amazon_API(object):
         signed_headers = 'host;x-amz-date'
         payload_hash = hashlib.sha256(('').encode('utf-8')).hexdigest()
         
-        # canonical_uri = '/orders/v0/orders/' 
         canonical_uri = self.object_dd["api_url_formatted"]
         canonical_headers = 'host:' + self.host + '\n' + 'x-amz-date:' + amzdate + '\n'
         
@@ -182,19 +202,18 @@ class Amazon_API(object):
             w.write("\n")
 
             while True:
-                print("fetching order batch starting {}\n{}\n{}".format(
-                    self.row_count,
-                    self.request_url,
-                    "x" * 50
-                ))
-
+                self.logger.info('sync amazon {}: getting data from "{}"'.format(self.command, self.request_url))
                 r = requests.get(url=self.request_url, headers=self.headers)
-                # print(r.text)
                 json_response = r.json()
 
-                payload = json_response["payload"][self.object_dd["json_set"]]
+                try:
+                    json_data = json_response["payload"][self.object_dd["json_set"]]
+                except KeyError:
+                    print(r.text)
 
-                for p in payload:
+                self.row_count += len(json_data)
+                self.logger.info("sync amazon {}: fetched {} rows".format(self.command, len(json_data)))
+                for p in json_data:
                     row = []
 
                     for field in self.object_dd["table_columns"]:
@@ -215,7 +234,6 @@ class Amazon_API(object):
                     line = "{}\n".format("\t".join(row))
                     w.write(line)
 
-                self.row_count += len(payload)
                 if next_token in json_response["payload"]:
                     # add in next parameter
                     self.object_dd["request_parameters"][next_token] = json_response["payload"][next_token]
@@ -223,36 +241,11 @@ class Amazon_API(object):
                     self.build_headers()
                 else:
                     break
+                
+                time.sleep(1.5)
+
+            self.logger.info('sync amazon {}: written {} rows to file "{}"'.format(self.command, self.row_count, self.object_dd["file_name"]))
 
 
 if __name__ == "__main__":
-    start_interval = {"days": 1}
-    end_interval = {"minutes": 3}
-    now = datetime.datetime.utcnow()
-
-    MarketplaceIds = "ATVPDKIKX0DER"
-    LastUpdatedAfter = (now - datetime.timedelta(**start_interval)).isoformat()
-    LastUpdatedBefore = (now - datetime.timedelta(**end_interval)).isoformat()
-    # LastUpdatedBefore = "2021-01-19T20:58:11.858899"
-    # LastUpdatedAfter = "2019-12-31T20:56:11.858899"
-
-    amazon = Amazon_API()
-    # amazon.process_data(
-    #     command="sales_orders",
-    #     request_parameters={
-    #         "MarketplaceIds": MarketplaceIds,
-    #         "LastUpdatedBefore": LastUpdatedBefore,
-    #         "LastUpdatedAfter": LastUpdatedAfter,
-    # })
-
-    amazon.process_data(
-        command="sales_order_lines",
-        request_parameters={
-            "MarketplaceIds": MarketplaceIds,
-    })
-
-    # amazon.process_data(
-    #     command="catalog",
-    #     request_parameters={
-    #         "MarketplaceIds": MarketplaceIds,
-    # })
+    pass

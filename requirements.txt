@@ -5,6 +5,7 @@ astroid==2.4.2
 certifi==2019.11.28
 chardet==3.0.4
 colorama
+concurrent-log-handler
 django-simple-history
 django-select2
 Django
