@@ -202,6 +202,7 @@ class Amazon_API(object):
             w.write("\n")
 
             while True:
+                time.sleep(2)
                 self.logger.info('sync amazon {}: getting data from "{}"'.format(self.command, self.request_url))
                 r = requests.get(url=self.request_url, headers=self.headers)
                 json_response = r.json()
@@ -241,8 +242,6 @@ class Amazon_API(object):
                     self.build_headers()
                 else:
                     break
-                
-                time.sleep(1.5)
 
             self.logger.info('sync amazon {}: written {} rows to file "{}"'.format(self.command, self.row_count, self.object_dd["file_name"]))
 
