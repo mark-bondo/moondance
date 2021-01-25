@@ -17,7 +17,9 @@ from .models import (
     Materials_Management_Proxy,
     Invoice,
     Invoice_Line,
-    Finished_Goods_Proxy
+    Finished_Goods_Proxy,
+    Product_Bundle_Header,
+    Product_Bundle_Line
 )
 from .forms import (
     Materials_Management_Proxy_Form,
@@ -692,10 +694,64 @@ class Invocie_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         formset.save_m2m()
 
 
+class Product_Bundle_Line_Admin(admin.TabularInline):
+    model = Product_Bundle_Line
+    fields = (
+        "bundle",
+        "product_used",
+        "quantity",
+        "_active",
+        "_last_updated",
+    )
+    history_list_display = [
+        "bundle",
+        "product_used",
+        "quantity",
+        "_active",
+        "_last_updated",
+    ]
+    autocomplete_fields = [
+        "product_used",
+    ]
+    readonly_fields = (
+        "_last_updated",
+    )
+
+
+@admin.register(Product_Bundle_Header)
+class Product_Bundle_Header_Admin(AdminStaticMixin, SimpleHistoryAdmin):
+    model = Product_Bundle_Header
+    inlines = (Product_Bundle_Line_Admin,)
+    search_fields = []
+    list_display = [
+        "product_bundle",
+        "_last_updated",
+        "_active",
+    ]
+    history_list_display = [
+        "id",
+        "product_bundle",
+        "_last_updated",
+        "_active",
+    ]
+    autocomplete_fields = [
+        "product_bundle",
+    ]
+    fields = (
+        "product_bundle",
+        "_active",
+        "_last_updated",
+    )
+    readonly_fields = (
+        "_last_updated",
+    )
+
+
 @admin.register(Shopify_Product)
 class Shopify_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Shopify_Product
     list_display = [
+        "variant_id",
         "shopify_sku",
         "product",
         "status",
@@ -704,6 +760,7 @@ class Shopify_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "customer_type",
     ]
     history_list_display = [
+        "variant_id",
         "shopify_sku",
         "product",
         "status",
@@ -712,6 +769,7 @@ class Shopify_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "customer_type",
     ]
     fields = (
+        "variant_id",
         "shopify_sku",
         "product",
         "status",
@@ -723,12 +781,16 @@ class Shopify_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "customer_type",
         "handle",
     )
+    readonly_fields = (
+        "variant_id",
+    )
     list_editable = [
         "product",
     ]
     search_fields = [
         "product__sku",
         "shopify_sku",
+        "variant_id",
     ]
     list_filter = [
         "status",
@@ -781,10 +843,11 @@ class Amazon_Product_Admin_Inline(admin.TabularInline):
 
 
 @admin.register(Finished_Goods_Proxy)
-class Finished_Goods_Proxy_Admin_Inline(AdminStaticMixin, SimpleHistoryAdmin):
+class Finished_Goods_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Finished_Goods_Proxy
     form = Finished_Goods_Proxy_Form
     inlines = (Amazon_Product_Admin_Inline,)
+    save_as = True
     list_display = [
         "sku",
         "description",
@@ -819,6 +882,9 @@ class Finished_Goods_Proxy_Admin_Inline(AdminStaticMixin, SimpleHistoryAdmin):
     )
     autocomplete_fields = [
         "product_code",
+    ]
+    list_editable = [
+        "product_code"
     ]
     search_fields = [
         "sku",
