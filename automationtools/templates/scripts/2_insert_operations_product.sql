@@ -25,7 +25,7 @@ SELECT DISTINCT ON (shopify_sku)
     1 as _last_updated_by_id,
     'Finished Goods' as product_type
 FROM
-    "public"."operations_shopify_product" shop LEFT JOIN
+    public.integration_shopify_product shop LEFT JOIN
     public.operations_product p ON shop.shopify_sku = p.sku
 WHERE
     p.id isnull

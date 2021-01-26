@@ -1,4 +1,4 @@
-INSERT INTO public.operations_shopify_product (
+INSERT INTO public.integration_shopify_product (
     shopify_id,
     variant_id,
     shopify_sku,
@@ -31,7 +31,7 @@ WITH skus AS (
         images,
         jsonb_array_elements(variants) as v
     FROM
-        public.shopify_product
+        shopify.shopify_product
 )
 
 SELECT

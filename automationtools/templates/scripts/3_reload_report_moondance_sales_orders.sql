@@ -63,7 +63,17 @@ WITH line_items AS (
         fulfillment_status,
         tags
     FROM
-        public.shopify_sales_order
+        shopify.shopify_sales_order
+)
+, bundles AS (
+    SELECT
+        b.bundle_id,
+        SUM(b.quantity::NUMERIC * top.unit_material_cost) as unit_material_cost
+    FROM
+        public.making_product_bundle_line b JOIN
+        public.operations_product top ON b.product_used_id = top.id
+    GROUP BY
+        b.bundle_id
 )
 
 SELECT
@@ -89,20 +99,20 @@ SELECT
         (line_json->>'price')::NUMERIC -
         COALESCE(((line_json->'discount_allocations'->0->>'amount')::NUMERIC/(line_json->>'quantity')::NUMERIC), 0)
     )::NUMERIC(16, 2) as unit_sales_price,
-        p.unit_material_cost as unit_cost,
+    COALESCE(bundles.unit_material_cost, p.unit_material_cost) as unit_material_cost,
     (
         (
             (line_json->>'price')::NUMERIC -
             COALESCE(((line_json->'discount_allocations'->0->>'amount')::NUMERIC/(line_json->>'quantity')::NUMERIC), 0)
         ) * (line_json->>'quantity')::NUMERIC
     )::NUMERIC(16, 2) as total_sales,
-    (p.unit_material_cost * (line_json->>'quantity')::NUMERIC)::NUMERIC(16, 2) as total_cost,
+    (COALESCE(bundles.unit_material_cost, p.unit_material_cost) * (line_json->>'quantity')::NUMERIC)::NUMERIC(16, 2) as total_cost,
     (
         (
             (line_json->>'price')::NUMERIC -
             COALESCE(((line_json->'discount_allocations'->0->>'amount')::NUMERIC/(line_json->>'quantity')::NUMERIC), 0)
         ) * (line_json->>'quantity')::NUMERIC
-    )::NUMERIC(16, 2) - COALESCE((p.unit_material_cost * (line_json->>'quantity')::NUMERIC), 0)::NUMERIC(16, 2) as total_margin,
+    )::NUMERIC(16, 2) - COALESCE((COALESCE(bundles.unit_material_cost, p.unit_material_cost) * (line_json->>'quantity')::NUMERIC), 0)::NUMERIC(16, 2) as total_margin,
     
     discount_applications->0->>'title' as discount_promotion_name,
     COALESCE(line_json->'discount_allocations'->0->>'amount') as total_discounts_given,
@@ -128,13 +138,15 @@ SELECT
     DATE_TRUNC('MONTH', processed_at::TIMESTAMP WITH TIME ZONE)::DATE as processed_period
 FROM
     line_items so LEFT JOIN
-    public.operations_shopify_product sp ON (so.line_json->>'variant_id') = sp.variant_id::TEXT LEFT JOIN
-    public.operations_product_missing_sku missing ON
+    public.integration_shopify_product sp ON (so.line_json->>'variant_id') = sp.variant_id::TEXT LEFT JOIN
+    public.integration_product_missing_sku missing ON
         line_json->>'name' = missing.product_description AND
         missing.source_system = 'Shopify' AND
         sp.id IS NULL LEFT JOIN
     public.operations_product p ON COALESCE(sp.product_id, missing.product_id) = p.id LEFT JOIN
-    public.operations_product_code pcode ON p.product_code_id = pcode.id
+    public.operations_product_code pcode ON p.product_code_id = pcode.id LEFT JOIN
+    bundles ON p.id = bundles.bundle_id
+
 WHERE
     financial_status NOT IN ('voided', 'refunded') AND
     CASE

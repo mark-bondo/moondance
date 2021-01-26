@@ -1,4 +1,4 @@
-INSERT INTO public.operations_amazon_product (
+INSERT INTO public.integration_amazon_product (
     asin,
     product_id,
     seller_sku,
@@ -22,7 +22,7 @@ SELECT
     1 as _created_by_id,
     1 as _last_updated_by_id
 FROM
-    amazon_sales_order_line ol
+    amazon.amazon_sales_order_line ol
 ORDER BY
     "SellerSKU",
     "LastUpdateDate" DESC

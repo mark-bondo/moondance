@@ -26,17 +26,6 @@ class Recipe_Proxy(Product):
         ordering = ("sku",)
 
 
-class Product_Bundle_Proxy(Finished_Goods_Proxy):
-    def __str__(self):
-        return "{} ({})".format(self.description, self.sku)
-
-    class Meta:
-        proxy = True
-        verbose_name = "Product Bundle"
-        verbose_name_plural = "Product Bundles"
-        ordering = ("sku",)
-
-
 class Recipe_Line(MetaModel):
     history = HistoricalRecords()
     sku = models.ForeignKey(Raw_Material_Proxy, on_delete=models.PROTECT, related_name="Recipe_sku_fk")
@@ -64,25 +53,43 @@ class Weight_Conversions(models.Model):
         verbose_name_plural = "Weight Conversions"
 
 
+class Product_Bundle_Header(MetaModel):
+    history = HistoricalRecords()
+
+    bundle = models.OneToOneField(
+        Finished_Goods_Proxy,
+        on_delete=models.PROTECT,
+        related_name="Product_Bundle_product_bundle_fk",
+        primary_key=True
+    )
+
+    def __str__(self):
+        return "{}".format(self.bundle.description)
+
+    class Meta:
+        verbose_name = "Product Bundle"
+        verbose_name_plural = "Product Bundles"
+        ordering = ("bundle__sku",)
+
 class Product_Bundle_Line(MetaModel):
     history = HistoricalRecords()
 
     bundle = models.ForeignKey(
-        Product_Bundle_Proxy,
+        Product_Bundle_Header,
         on_delete=models.PROTECT,
         related_name="Product_Bundle_product_bundle_fk",
     )
     product_used = models.ForeignKey(
-        Product_Bundle_Proxy,
+        Finished_Goods_Proxy,
         on_delete=models.PROTECT,
         related_name="Product_Bundle_product_used_fk"
     )
     quantity = models.IntegerField()
 
     def __str__(self):
-        return self.bundle
+        return "{}".format(self.product_used.description)
 
     class Meta:
         verbose_name = "Bundled Product"
         verbose_name_plural = "Bundled Products"
-        ordering = ("bundle__sku", "product_used__sku",)
+        ordering = ("bundle", "product_used__sku",)

@@ -8,7 +8,7 @@ from operations.admin import convert_weight
 from .models import (
     Recipe_Line,
     Recipe_Proxy,
-    Product_Bundle_Proxy,
+    Product_Bundle_Header,
     Product_Bundle_Line,
 )
 from operations.models import (
@@ -146,6 +146,7 @@ class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
 class Product_Bundle_Line_Admin(admin.TabularInline):
     model = Product_Bundle_Line
+    extra = 1
     fk_name = "bundle"
     fields = (
         "product_used",
@@ -168,35 +169,51 @@ class Product_Bundle_Line_Admin(admin.TabularInline):
     )
 
 
-@admin.register(Product_Bundle_Proxy)
-class Product_Bundle_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
-    model = Product_Bundle_Proxy
+@admin.register(Product_Bundle_Header)
+class Product_Bundle_Header_Admin(AdminStaticMixin, SimpleHistoryAdmin):
+    model = Product_Bundle_Header
     inlines = (Product_Bundle_Line_Admin,)
     search_fields = [
-        "sku",
-        "description",
+        "bundle__sku",
+        "bundle__description",
     ]
     list_display = [
-        "sku",
-        "description",
-        "_last_updated",
+        "bundle",
         "_active",
+        "_last_updated",
+    ]
+    list_filter = [
+        ("bundle__product_code", admin.RelatedOnlyFieldListFilter),
+    ]
+    autocomplete_fields = [
+        "bundle",
     ]
     history_list_display = [
         "id",
-        "product_bundle",
+        "bundle",
         "_last_updated",
         "_active",
     ]
     fields = (
-        "sku",
-        "description",
-        "_last_updated",
+        "bundle",
         "_active",
+
     )
-    readonly_fields = (
-        "sku",
-        "description",
-        "_last_updated",
-        "_active",
-    )
+
+    def save_formset(self, request, form, formset, change):
+        # set meta fields
+        inline_formsets = formset.save(commit=False)
+
+        for obj in inline_formsets:
+            obj = set_meta_fields(request, obj, form, change, inline=True)
+            obj.save()
+
+        for obj in formset.deleted_objects:
+            obj.delete()
+
+        formset.save_m2m()
+
+    # def get_queryset(self, request):
+    #     bundles = Product_Bundle_Line.objects.values("bundle").annotate(n=Count("pk"))
+    #     qs = super().get_queryset(request).filter(pk__in=bundles)
+    #     return qs
