@@ -37,7 +37,7 @@ def insert_data(object_dd, db_string):
 
     with open("automationtools/templates/sql/{}.sql".format("pk_append"), "r") as f:
         sql = f.read() % {
-            "schema": "public",
+            "schema": object_dd["schema"],
             "table_name": object_dd["table_name"],
             "column_select": ",".join(['"{}"'.format(x) for x in object_dd["table_columns"]]),
             "delim": "\t",

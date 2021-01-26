@@ -27,6 +27,7 @@ class Shopify_API(object):
             "sales_orders": {
                 "pk_list": ["id"],
                 "table_name": "shopify_sales_order",
+                "schema": "shopify",
                 "json_set": "orders",
                 "api_url": "2020-10/orders.json",
                 "request_parameters": request_parameters
@@ -34,6 +35,7 @@ class Shopify_API(object):
             "products": {
                 "pk_list": ["id"],
                 "table_name": "shopify_product",
+                "schema": "shopify",
                 "json_set": "products",
                 "api_url": "2020-10/products.json",
                 "request_parameters": request_parameters

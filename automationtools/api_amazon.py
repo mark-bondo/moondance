@@ -35,6 +35,7 @@ class Amazon_API(object):
         self.object_map = {
             "sales_orders": {
                 "pk_list": ["AmazonOrderId"],
+                "schema": "amazon",
                 "table_name": "amazon_sales_order",
                 "json_set": "Orders",
                 "api_url": "/orders/v0/orders",
@@ -42,6 +43,7 @@ class Amazon_API(object):
             },
             "sales_order_lines": {
                 "pk_list": ["OrderItemId"],
+                "schema": "amazon",
                 "table_name": "amazon_sales_order_line",
                 "json_set": "OrderItems",
                 "api_url": "/orders/v0/orders/{}/orderItems",
@@ -49,6 +51,7 @@ class Amazon_API(object):
             },
             "catalog": {
                 "pk_list": ["id"],
+                "schema": "amazon",
                 "table_name": "amazon_catalog",
                 "json_set": "CatalogItems",
                 "api_url": "/catalog/v0/items/B002UD6C16",
@@ -120,8 +123,8 @@ class Amazon_API(object):
                         SELECT
                             (select row_to_json(_) from (SELECT DISTINCT o."AmazonOrderId", o."LastUpdateDate")  as _) as json
                         FROM
-                            public.amazon_sales_order o LEFT JOIN
-                            public.amazon_sales_order_line ol ON o."AmazonOrderId" = ol."AmazonOrderId"
+                            amazon.amazon_sales_order o LEFT JOIN
+                            amazon.amazon_sales_order_line ol ON o."AmazonOrderId" = ol."AmazonOrderId"
                         WHERE
                             ol."LastUpdateDate" IS NULL OR
                             ol."LastUpdateDate" <> o."LastUpdateDate"
