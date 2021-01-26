@@ -1,13 +1,13 @@
 from django import forms
 from django_select2 import forms as s2forms
 from .models import (
-    Materials_Management_Proxy,
+    Raw_Material_Proxy,
     Product,
     Finished_Goods_Proxy
 )
 
-class Materials_Management_Proxy_Form(forms.ModelForm):
-    model = Materials_Management_Proxy
+class Raw_Material_Proxy_Form(forms.ModelForm):
+    model = Raw_Material_Proxy
     product_type_list = (
         ("Raw Materials", "Raw Materials"),
         ("WIP", "WIP"),

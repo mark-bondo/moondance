@@ -1,16 +1,16 @@
-#materials_management_proxy_form select{
+#raw_material_proxy_form select{
     width: 275px;
 }
 
-#materials_management_proxy_form input[type=text]{
+#raw_material_proxy_form input[type=text]{
     width: 260px;
 }
 
-#materials_management_proxy_form input[type=number]{
+#raw_material_proxy_form input[type=number]{
     width: 150px;
 }
 
-#materials_management_proxy_form .readonly{
+#raw_material_proxy_form .readonly{
     width: 165px;
 }
 

@@ -47,10 +47,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "django_select2",
+    'simple_history',
     'operations',
     "accounting",
+    "purchasing",
+    "making",
+    "integration",
     "automationtools",
-    'simple_history',
 ]
 
 MIDDLEWARE = [

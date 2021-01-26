@@ -5,24 +5,20 @@ from django.contrib import admin
 from moondance.meta_models import set_meta_fields, AdminStaticMixin
 from simple_history.admin import SimpleHistoryAdmin
 from .models import (
-    Recipe_Line,
-    Recipe_Proxy,
     Product,
     Product_Code,
-    Inventory_Onhand,
-    Amazon_Product,
-    Shopify_Product,
-    Supplier,
-    Supplier_Product,
-    Materials_Management_Proxy,
-    Invoice,
-    Invoice_Line,
+    Raw_Material_Proxy,
     Finished_Goods_Proxy,
-    Product_Bundle_Header,
-    Product_Bundle_Line
+)
+from purchasing.admin import(
+    Supplier_Product_Admin_Inline,
+    get_sku_quantity
+)
+from purchasing.models import(
+    Inventory_Onhand,
 )
 from .forms import (
-    Materials_Management_Proxy_Form,
+    Raw_Material_Proxy_Form,
     Finished_Goods_Proxy_Form,
 )
 
@@ -47,31 +43,26 @@ def convert_weight(unit_of_measure, weight):
             "oz": weight / decimal.Decimal(28.3495)
         }
 
-def get_sku_quantity(sku_id):
-    total_quantity = 0
-    
-    for q in Inventory_Onhand.objects.filter(sku_id=sku_id):
-        total_quantity += q.quantity_onhand or 0
-    
-    return total_quantity
-
 
 @admin.register(Product_Code)
 class Product_Code_Admin(admin.ModelAdmin):
     model = Product_Code
     list_display = [
         "_active",
+        "type",
         "family",
         "category",
         "freight_factor_percentage",
     ]
     list_editable = [
+        "type",
         "family",
         "category",
         "freight_factor_percentage",
     ]
     list_filter = [
         "_active",
+        "type",
         "family",
     ]
     search_fields = [
@@ -114,179 +105,11 @@ class Product_Code_Admin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
         if obj.original_freight_factor_percentage != obj.freight_factor_percentage:
-            skus = Materials_Management_Proxy.objects.filter(product_code=obj.pk)
+            skus = Raw_Material_Proxy.objects.filter(product_code=obj.pk)
 
             for sku in skus:
                 sku.unit_freight_cost = (sku.unit_material_cost or 0) * ((obj.freight_factor_percentage or 0)  / decimal.Decimal(100))
                 sku.save()
-
-
-class Supplier_Product_Admin_Inline(admin.TabularInline):
-    model = Supplier_Product
-    extra = 1
-    fields = (
-        "supplier",
-        "supplier_sku",
-        "supplier_sku_description",
-        "sku",
-        "supplier_sku_link",
-    )
-    autocomplete_fields = [
-        "sku",
-    ]
-
-
-@admin.register(Supplier)
-class Supplier_Admin(AdminStaticMixin, SimpleHistoryAdmin):
-    model = Supplier
-    inlines = (Supplier_Product_Admin_Inline,)
-    list_display = [
-        "name",
-        "type",
-        "_active",
-        "supplier_website",
-        "contact_name",
-        "contact_email",
-        "phone_number",
-        "city",
-        "state",
-    ]
-    history_list_display = [
-        "name",
-        "type",
-        "_active",
-        "supplier_website",
-        "contact_name",
-        "contact_email",
-        "phone_number",
-        "street_address",
-        "city",
-        "state",
-        "postal_code",
-        "country",
-        "_last_updated",
-        "_last_updated_by",
-        "_created",
-        "_created_by",
-    ]
-    search_fields = [
-        "name",
-        "contact_name",
-        "contact_email",
-    ]
-    list_filter = [
-        "_active",
-        "type",
-        "state",
-    ]
-    fieldsets = (
-        (
-            "Summary",
-            {
-                "fields": [
-                    "type",
-                    "name",
-                    "supplier_website",
-                    "contact_name",
-                    "contact_email",
-                    "phone_number",
-                    "notes",
-                    "_active",
-                ]
-            },
-        ),
-        (
-            "Address",
-            {
-                "fields": [
-                    "street_address",
-                    "city",
-                    "state",
-                    "postal_code",
-                    "country",
-                ]
-            },
-        )
-    )
-
-    def save_model(self, request, obj, form, change):
-        obj = set_meta_fields(request, obj, form, change)
-        super().save_model(request, obj, form, change)
-
-    def save_formset(self, request, form, formset, change):
-        instances = formset.save(commit=False)
-
-        for obj in instances:
-            obj = set_meta_fields(request, obj, form, change, inline=True)
-            obj.save()
-
-        for obj in formset.deleted_objects:
-            obj.delete()
-
-        formset.save_m2m()
-
-@admin.register(Inventory_Onhand)
-class Inventory_Onhand_Admin(AdminStaticMixin, SimpleHistoryAdmin):
-    model = Inventory_Onhand
-    list_display = [
-        "sku",
-        "location",
-        "quantity_onhand",
-        "_last_updated",
-    ]
-    list_editable = [
-        "quantity_onhand",
-    ]
-    list_filter = [
-        "location",
-    ]
-    autocomplete_fields = [
-        "sku",
-    ]
-    history_list_display = [
-        "sku",
-        "location",
-        "quantity_onhand",
-        "_last_updated",
-    ]
-    fields = (
-        "sku",
-        "location",
-        "quantity_onhand",
-    )
-
-    def save_model(self, request, obj, form, change):
-        obj = set_meta_fields(request, obj, form, change)
-        super().save_model(request, obj, form, change)
-
-        # recalculate inventory weights and costs
-        location_inventory = Inventory_Onhand.objects.filter(sku=obj.sku)
-        total_quantity_onhand = 0
-
-        for i in location_inventory:
-            total_quantity_onhand += (i.quantity_onhand or 0)
-
-        parent_obj = Materials_Management_Proxy.objects.get(pk=obj.sku.id)
-        parent_obj.total_quantity_onhand = total_quantity_onhand
-        parent_obj.total_material_cost = total_quantity_onhand * parent_obj.unit_material_cost
-        parent_obj.total_freight_cost = (decimal.Decimal(parent_obj.product_code.freight_factor_percentage or 0) / decimal.Decimal(100)) * parent_obj.total_material_cost
-        parent_obj.total_cost = parent_obj.total_material_cost + (parent_obj.total_freight_cost or 0)
-        parent_obj.save()
-
-
-class Invoice_Line_History_Inline(admin.TabularInline):
-    model = Invoice_Line
-    extra = 1
-    fields = (
-        "unit_of_measure",
-        "quantity",
-        "total_cost",
-    )
-    readonly_fields = (
-        "unit_of_measure",
-        "quantity",
-        "total_cost",
-    )
 
 
 class Inventory_Onhand_Admin_Inline(admin.TabularInline):
@@ -317,13 +140,12 @@ class Inventory_Onhand_Admin_Inline(admin.TabularInline):
     history_link.short_description = "History"
 
 
-@admin.register(Materials_Management_Proxy)
-class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
-    model = Materials_Management_Proxy
-    form = Materials_Management_Proxy_Form
+@admin.register(Raw_Material_Proxy)
+class Raw_Material_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
+    model = Raw_Material_Proxy
+    form = Raw_Material_Proxy_Form
     inlines = (
         Inventory_Onhand_Admin_Inline,
-        Invoice_Line_History_Inline,
         Supplier_Product_Admin_Inline,
     )
     save_as = True
@@ -467,386 +289,10 @@ class Materials_Management_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             parent_obj.save()
 
 
-class Recipe_Line_Inline_Admin(admin.TabularInline):
-    model = Recipe_Line
-    fk_name = "sku_parent"
-    fields = (
-        "sku",
-        "quantity",
-        "unit_of_measure",
-        "cost",
-        "_active",
-    )
-    readonly_fields = (
-        "cost",
-    )
-    history_list_display = [
-        "sku",
-        "quantity",
-        "unit_of_measure",
-        "_active",
-        "_last_updated",
-        "_last_updated_by",
-        "_created",
-        "_created_by",
-    ]
-    autocomplete_fields = [
-        "sku",
-    ]
-
-    def cost(self, obj):
-        # print(obj.sku, obj.quantity, obj.sku.unit_material_cost)
-
-        if obj.pk:
-            if obj.unit_of_measure == 'each':
-                converted_weight = obj.quantity
-            else:
-                new_weight_dict = convert_weight(unit_of_measure=obj.unit_of_measure, weight=obj.quantity)
-                converted_weight = new_weight_dict[obj.sku.unit_of_measure]
-            
-        # print(obj.sku, obj.unit_of_measure, obj.quantity, converted_weight)
-
-            return round(decimal.Decimal(obj.sku.unit_material_cost or 0) * decimal.Decimal(converted_weight or 0), 5)
-
-@admin.register(Recipe_Proxy)
-class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
-    model = Recipe_Proxy
-    inlines = (Recipe_Line_Inline_Admin,)
-    list_display = [
-        "sku",
-        "description",
-        "_active",
-        "product_type",
-        "product_code",
-        "unit_of_measure",
-        "unit_material_cost",
-        "unit_freight_cost",
-    ]
-    search_fields = [
-        "sku",
-        "description",
-        "product_code__category",
-        "product_code__family",
-    ]
-    list_filter = [
-        ("_active", admin.BooleanFieldListFilter),
-        "product_type",
-        "product_code",
-    ]
-    history_list_display = [
-        "sku",
-        "description",
-        "_active",
-        "product_type",
-        "product_code",
-        "unit_of_measure",
-        "unit_material_cost",
-        "unit_freight_cost",
-        "_last_updated",
-        "_last_updated_by",
-        "_created",
-        "_created_by",
-    ]
-    fields = (
-        "sku",
-        "description",
-        "unit_of_measure",
-        "recipe_cost",
-    )
-    readonly_fields = (
-        "sku",
-        "description",
-        "unit_of_measure",
-        "recipe_cost",
-    )
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.filter(product_type__in=["WIP", "Finished Goods"])
-
-    def recipe_cost(self, obj):
-        cost = Recipe_Line.objects.filter(sku_parent=obj.pk).select_related()
-        recipe_cost = 0
-
-        for c in cost:
-            # print(c.sku, c.sku.unit_of_measure, c.sku.unit_material_cost)
-
-            if c.unit_of_measure == 'each':
-                converted_weight = c.quantity
-            else:
-                new_weight_dict = convert_weight(unit_of_measure=c.unit_of_measure, weight=c.quantity)
-                converted_weight = new_weight_dict[c.sku.unit_of_measure]
-            
-            recipe_cost += (c.sku.unit_material_cost or 0) * (converted_weight or 0)
-
-        return round(recipe_cost, 5)
-
-    def save_formset(self, request, form, formset, change):
-        # set meta fields
-        inline_formsets = formset.save(commit=False)
-
-        for obj in inline_formsets:
-            obj = set_meta_fields(request, obj, form, change, inline=True)
-            obj.save()
-
-        for obj in formset.deleted_objects:
-            obj.delete()
-
-        formset.save_m2m()
-
-class Invoice_Line_Inline(admin.TabularInline):
-    model = Invoice_Line
-    fields = (
-        "sku",
-        "unit_of_measure",
-        "quantity",
-        "total_cost",
-        "manufacturer",
-    )
-    history_list_display = [
-        "sku",
-        "unit_of_measure",
-        "quantity",
-        "total_cost",
-        "manufacturer",
-        "_active",
-        "_last_updated",
-        "_last_updated_by",
-        "_created",
-        "_created_by",
-    ]
-    autocomplete_fields = [
-        "sku",
-        "manufacturer",
-    ]
-
-@admin.register(Invoice)
-class Invocie_Admin(AdminStaticMixin, SimpleHistoryAdmin):
-    model = Invoice
-    inlines = (Invoice_Line_Inline,)
-    list_display = [
-        "date_invoiced",
-        "supplier",
-        "invoice",
-        "order",
-        "freight_charges",
-        "total_cost"
-    ]
-    search_fields = [
-        "supplier__name",
-        "invoice",
-        "order",
-    ]
-    list_filter = (
-        ("supplier", admin.RelatedOnlyFieldListFilter),
-        "date_invoiced"
-    )
-    autocomplete_fields = [
-        "supplier",
-    ]
-    history_list_display = [
-        "date_invoiced",
-        "supplier",
-        "invoice",
-        "order",
-        "freight_charges",
-        "total_cost",
-        "_active",
-        "_last_updated",
-        "_last_updated_by",
-        "_created",
-        "_created_by",
-    ]
-    fields = (
-        "supplier",
-        "invoice",
-        "order",
-        "date_invoiced",
-        "freight_charges",
-        "total_cost",
-    )
-    readonly_fields = (
-        "total_cost",
-    )
-
-    def total_cost(self, obj):
-        invoice_lines = Invoice_Line.objects.filter(invoice=obj.pk).select_related()
-        total_cost = 0  + (obj.freight_charges or 0)
-
-        for row in invoice_lines:
-            # print(c.sku, c.sku.unit_of_measure, c.sku.unit_material_cost)
-            
-            total_cost += (row.total_cost or 0)
-
-        return round(total_cost, 2)
-
-    def save_formset(self, request, form, formset, change):
-        # set meta fields
-        inline_formsets = formset.save(commit=False)
-
-        for obj in inline_formsets:
-            obj = set_meta_fields(request, obj, form, change, inline=True)
-            obj.save()
-
-        for obj in formset.deleted_objects:
-            obj.delete()
-
-        formset.save_m2m()
-
-
-class Product_Bundle_Line_Admin(admin.TabularInline):
-    model = Product_Bundle_Line
-    fields = (
-        "bundle",
-        "product_used",
-        "quantity",
-        "_active",
-        "_last_updated",
-    )
-    history_list_display = [
-        "bundle",
-        "product_used",
-        "quantity",
-        "_active",
-        "_last_updated",
-    ]
-    autocomplete_fields = [
-        "product_used",
-    ]
-    readonly_fields = (
-        "_last_updated",
-    )
-
-
-@admin.register(Product_Bundle_Header)
-class Product_Bundle_Header_Admin(AdminStaticMixin, SimpleHistoryAdmin):
-    model = Product_Bundle_Header
-    inlines = (Product_Bundle_Line_Admin,)
-    search_fields = []
-    list_display = [
-        "product_bundle",
-        "_last_updated",
-        "_active",
-    ]
-    history_list_display = [
-        "id",
-        "product_bundle",
-        "_last_updated",
-        "_active",
-    ]
-    autocomplete_fields = [
-        "product_bundle",
-    ]
-    fields = (
-        "product_bundle",
-        "_active",
-        "_last_updated",
-    )
-    readonly_fields = (
-        "_last_updated",
-    )
-
-
-@admin.register(Shopify_Product)
-class Shopify_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
-    model = Shopify_Product
-    list_display = [
-        "variant_id",
-        "shopify_sku",
-        "product",
-        "status",
-        "title",
-        "inventory_management",
-        "customer_type",
-    ]
-    history_list_display = [
-        "variant_id",
-        "shopify_sku",
-        "product",
-        "status",
-        "title",
-        "inventory_management",
-        "customer_type",
-    ]
-    fields = (
-        "variant_id",
-        "shopify_sku",
-        "product",
-        "status",
-        "title",
-        "inventory_policy",
-        "inventory_management",
-        "grams",
-        "price",
-        "customer_type",
-        "handle",
-    )
-    readonly_fields = (
-        "variant_id",
-    )
-    list_editable = [
-        "product",
-    ]
-    search_fields = [
-        "product__sku",
-        "shopify_sku",
-        "variant_id",
-    ]
-    list_filter = [
-        "status",
-        "inventory_management",
-    ]
-    autocomplete_fields = [
-        "product",
-    ]
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request).prefetch_related("product")
-        return qs
-
-
-@admin.register(Amazon_Product)
-class Amazon_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
-    model = Amazon_Product
-    list_display = [
-        "asin",
-        "seller_sku",
-        "product",
-        "sku_description",
-    ]
-    fields = (
-        "asin",
-        "seller_sku",
-        "sku_description",
-        "product",
-    )
-    list_editable = [
-        "product",
-    ]
-    autocomplete_fields = [
-        "product",
-    ]
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request).prefetch_related("product")
-        return qs
-
-
-class Amazon_Product_Admin_Inline(admin.TabularInline):
-    model = Amazon_Product
-    extra = 1
-    fields = (
-        "asin",
-        "seller_sku",
-        "sku_description",
-    )
-
-
 @admin.register(Finished_Goods_Proxy)
 class Finished_Goods_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Finished_Goods_Proxy
     form = Finished_Goods_Proxy_Form
-    inlines = (Amazon_Product_Admin_Inline,)
     save_as = True
     list_display = [
         "sku",

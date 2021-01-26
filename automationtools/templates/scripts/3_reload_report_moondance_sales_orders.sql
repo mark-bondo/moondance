@@ -41,7 +41,7 @@ WITH line_items AS (
         jsonb_array_elements(line_items) as line_json,
         CASE
             WHEN source_name = 'sell-on-amazon' THEN 'Amazon FBM'
-            WHEN source_name IN ('580111', 'web', 'shopify_draft_order') THEN 'Shopify Web'
+            WHEN source_name IN ('580111', 'web', 'shopify_draft_order') or customer->>'tags' LIKE '%wholesaler%' THEN 'Shopify Web'
             WHEN source_name IN ('android', 'pos', 'iphone') THEN 'Farmer''s Market'
             ELSE source_name
         END as sales_channel,
@@ -108,7 +108,7 @@ SELECT
     COALESCE(line_json->'discount_allocations'->0->>'amount') as total_discounts_given,
     (line_json->>'quantity')::INTEGER as quantity,
     CASE
-        WHEN customer->>'tags' LIKE 'wholesaler' THEN 'Wholesale'
+        WHEN customer->>'tags' LIKE '%wholesaler%' THEN 'Wholesale'
         ELSE 'Retail'
     END  as customer_type,
     COALESCE((customer->>'first_name') || ' ' || (customer->>'last_name'), 'Unknown') as customer_name,
@@ -129,7 +129,11 @@ SELECT
 FROM
     line_items so LEFT JOIN
     public.operations_shopify_product sp ON (so.line_json->>'variant_id') = sp.variant_id::TEXT LEFT JOIN
-    public.operations_product p ON sp.product_id = p.id LEFT JOIN
+    public.operations_product_missing_sku missing ON
+        line_json->>'name' = missing.product_description AND
+        missing.source_system = 'Shopify' AND
+        sp.id IS NULL LEFT JOIN
+    public.operations_product p ON COALESCE(sp.product_id, missing.product_id) = p.id LEFT JOIN
     public.operations_product_code pcode ON p.product_code_id = pcode.id
 WHERE
     financial_status NOT IN ('voided', 'refunded') AND
