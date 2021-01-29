@@ -7,6 +7,7 @@ pip-log.txt
 *.csv
 *.tsv
 *.log
+*.log.*
 *.py-merge
 *.py-original
 *.py-baseline
