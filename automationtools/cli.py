@@ -53,12 +53,22 @@ def create_parser():
         default=False,
     )
     parser.add_argument(
+        "--sync-shopify-order-events",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
         "--sync-shopify-sales",
         action="store_true",
         default=False,
     )
     parser.add_argument(
         "--sync-amazon-sales",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--sync-amazon-financial-events",
         action="store_true",
         default=False,
     )
@@ -97,6 +107,12 @@ def cli():
             }
         )
 
+        sync_shopify(
+            command="sync_shopify_order_events",
+            request_parameters={
+            }
+        )
+
         sync_amazon(
             command="sales_orders",
             request_parameters={
@@ -112,6 +128,15 @@ def cli():
                 "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
                 "LastUpdatedBefore": interval["end_datetime"],
                 "LastUpdatedAfter": interval["start_datetime"],
+            }
+        )
+
+        sync_amazon(
+            command="financial_events",
+            request_parameters={
+                "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
+                "PostedBefore": interval["end_datetime"],
+                "PostedAfter": interval["start_datetime"],
             }
         )
 
@@ -133,6 +158,13 @@ def cli():
             }
         )
 
+    if args.sync_shopify_order_events:
+        sync_shopify(
+            command="sync_shopify_order_events",
+            request_parameters={
+            }
+        )
+
     if args.sync_amazon_sales:
         sync_amazon(
             command="sales_orders",
@@ -150,6 +182,16 @@ def cli():
                 "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
                 "LastUpdatedBefore": interval["end_datetime"],
                 "LastUpdatedAfter": interval["start_datetime"],
+            }
+        )
+
+    if args.sync_amazon_financial_events:
+        sync_amazon(
+            command="financial_events",
+            request_parameters={
+                "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
+                "PostedBefore": interval["end_datetime"],
+                "PostedAfter": interval["start_datetime"],
             }
         )
 

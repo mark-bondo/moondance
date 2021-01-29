@@ -22,6 +22,7 @@ class Amazon_API(object):
         self.region = "us-east-1"
         self.user_agent = "MoonDance Reporting Tool/1.0 (Language=Python/3.7.6; Platform=Windows/10)"
         self.current_timestamp =  datetime.now().strftime("%Y-%m-%d %H%M%S")
+        self.extra_context = {}
 
         self.db_string = os.getenv("DB_STRING")
         self.amazon_client_id =  os.environ.get("AMAZON_CLIENT_IDENTIFIER")
@@ -47,6 +48,14 @@ class Amazon_API(object):
                 "table_name": "amazon_sales_order_line",
                 "json_set": "OrderItems",
                 "api_url": "/orders/v0/orders/{}/orderItems",
+                "request_parameters": request_parameters
+            },
+            "financial_events": {
+                "pk_list": ["AmazonOrderId", "PostedDate"],
+                "schema": "amazon",
+                "table_name": "amazon_financial_events",
+                # "json_set": "CatalogItems",
+                "api_url": "/finances/v0/financialEvents",
                 "request_parameters": request_parameters
             },
             "catalog": {
@@ -84,31 +93,32 @@ class Amazon_API(object):
             error_count = 0
             for i, o in enumerate(order_lines):
                 try:
-                    extra_context = {
+                    self.extra_context = {
                         "AmazonOrderId": o["AmazonOrderId"],
                         "LastUpdateDate": o["LastUpdateDate"],
                     }
-
                     self.object_dd["api_url_formatted"] = self.object_dd["api_url"].format(o["AmazonOrderId"])
-                    self.sync_data(extra_context)
+                    self.sync_data()
                 except Exception:
                     if error_count <= 1:
                         self.logger.warning("sync amazon {}: failed getting order lines, getting new refresh token".format(self.command), exc_info=1)
                         self.refresh_access_token()
-                        self.sync_data(extra_context)
+                        self.sync_data()
 
                         error_count+=1
                     else:
                         self.logger.error("sync amazon {}: failed getting order lines {} times, exiting program".format(self.command, error_count), exc_info=1)
                         break
         else:
+            if command == "financial_events":
+                self.extra_context = {"FinancialEvents": "ShipmentEventList"}
             self.sync_data()
 
-    def sync_data(self, extra_context={}):
+    def sync_data(self):
         self.logger.info("sync amazon {}: creating headers".format(self.command))
         self.build_parameters_string()
         self.build_headers()
-        self.get_data(extra_context)
+        self.get_data()
 
         self.logger.info('sync amazon {}: inserting {} rows into "{}"'.format(self.command, self.row_count, self.object_dd["table_name"]))
         insert_data(self.object_dd, self.db_string)
@@ -120,14 +130,16 @@ class Amazon_API(object):
                     SELECT
                         COALESCE(JSONB_AGG(json), '[]'::JSONB) as order_json
                     FROM (
-                        SELECT
-                            (select row_to_json(_) from (SELECT DISTINCT o."AmazonOrderId", o."LastUpdateDate")  as _) as json
+                        SELECT DISTINCT ON (o."AmazonOrderId")
+                            (select row_to_json(_) from (SELECT o."AmazonOrderId", o."LastUpdateDate")  as _) as json
                         FROM
                             amazon.amazon_sales_order o LEFT JOIN
                             amazon.amazon_sales_order_line ol ON o."AmazonOrderId" = ol."AmazonOrderId"
                         WHERE
                             ol."LastUpdateDate" IS NULL OR
                             ol."LastUpdateDate" <> o."LastUpdateDate"
+                        ORDER BY
+                            o."AmazonOrderId"
                         LIMIT
                             10000
                     ) sub 
@@ -196,7 +208,7 @@ class Amazon_API(object):
             'Authorization': authorization_header,
         }
 
-    def get_data(self, extra_context={}):
+    def get_data(self):
         self.row_count = 0
         next_token = "NextToken"
 
@@ -208,12 +220,15 @@ class Amazon_API(object):
                 time.sleep(2)
                 self.logger.info('sync amazon {}: getting data from "{}"'.format(self.command, self.request_url))
                 r = requests.get(url=self.request_url, headers=self.headers)
-                json_response = r.json()
+                json_response = json.loads(r.text.replace("\\", "\\\\"))
 
                 try:
-                    json_data = json_response["payload"][self.object_dd["json_set"]]
+                    if self.command != "financial_events":
+                        json_data = json_response["payload"][self.object_dd["json_set"]]
+                    else:
+                        json_data = json_response["payload"]["FinancialEvents"]["ShipmentEventList"]
                 except KeyError:
-                    print(r.text)
+                    self.logger.error('sync amazon {}: getting data failed {}'.format(self.command, r.text))
 
                 self.row_count += len(json_data)
                 self.logger.info("sync amazon {}: fetched {} rows".format(self.command, len(json_data)))
@@ -230,8 +245,8 @@ class Amazon_API(object):
 
                             v = escape_value(str(v))
                             row.append(v)
-                        elif field in extra_context:
-                            row.append(extra_context[field])
+                        elif field in self.extra_context:
+                            row.append(self.extra_context[field])
                         else:
                             row.append("")
 

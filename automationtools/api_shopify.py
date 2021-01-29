@@ -4,6 +4,7 @@ import requests
 import json
 import psycopg2
 import os
+import time
 import contextlib
 from datetime import datetime
 from dotenv import load_dotenv
@@ -20,6 +21,7 @@ class Shopify_API(object):
         self.password = os.getenv("SHOPIFY_PASSWORD")
         self.db_string = os.getenv("DB_STRING")
         self.shopify_url = os.getenv("SHOPIFY_URL")
+        self.extra_context = {}
 
     def process_data(self, command, request_parameters):
         self.command = command
@@ -39,6 +41,14 @@ class Shopify_API(object):
                 "json_set": "products",
                 "api_url": "2020-10/products.json",
                 "request_parameters": request_parameters
+            },
+            "sync_shopify_order_events": {
+                "pk_list": ["id"],
+                "table_name": "shopify_order_events",
+                "schema": "shopify",
+                "json_set": "events",
+                "api_url": "2021-01/orders/{}/events.json",
+                "request_parameters": request_parameters
             }
         }
 
@@ -51,14 +61,58 @@ class Shopify_API(object):
                     self.object_dd["table_name"], 
                     self.current_timestamp.replace(":", "-")
                 ),
+                "api_url_formatted": self.object_dd["api_url"]
             })
         else:
             raise "{} is not a valid command".format(command)
 
-        self.get_data()
+        if command == "sync_shopify_order_events":
+            self.logger.info("sync shopify {}: getting order events to sync".format(self.command))
+            order_lines = self.get_orders()
+            self.logger.info("sync shopify {}: retrieved {} order events to sync".format(self.command, len(order_lines)))
 
+            for i, o in enumerate(order_lines):
+                try:
+                    self.extra_context = {
+                        "order_id": o["id"],
+                        "order_updated_at": o["updated_at"],
+                    }
+                    self.object_dd["api_url_formatted"] = self.object_dd["api_url"].format(o["id"])
+                    self.sync_data()
+                except Exception:
+                    self.logger.error("sync shopify {}: failed getting order events, exiting program".format(self.command), exc_info=1)
+        else:
+            self.sync_data()
+
+    def sync_data(self):
+        self.get_data()
         self.logger.info('sync shopify {}: inserting {} rows into" {}"'.format(self.command, self.row_count, self.object_dd["table_name"]))
         insert_data(self.object_dd, self.db_string)
+
+    def get_orders(self):
+        with contextlib.closing(psycopg2.connect(self.db_string)) as conn:
+            with contextlib.closing(conn.cursor()) as cursor:
+                sql = """
+                    SELECT
+                        COALESCE(JSONB_AGG(json), '[]'::JSONB) as order_json
+                    FROM (
+                        SELECT DISTINCT ON (o.id)
+                            (select row_to_json(_) from (SELECT DISTINCT o.id, o.updated_at)  as _) as json
+                        FROM
+                            shopify.shopify_sales_order o LEFT JOIN
+                            shopify.shopify_order_events e ON o.id = e.order_id
+                        WHERE
+                            e.order_updated_at IS NULL OR
+                            o.updated_at <> e.order_updated_at
+                        ORDER BY
+                            o.id
+                        LIMIT
+                            1000
+                    ) sub 
+                    ;
+                """
+                cursor.execute(sql)
+                return cursor.fetchall()[0][0]
 
     def get_data(self):
         with open(self.object_dd["file_name"], encoding="utf-8", mode="w") as w:
@@ -67,18 +121,20 @@ class Shopify_API(object):
                 self.username,
                 self.password,
                 self.shopify_url,
-                self.object_dd["api_url"],
+                self.object_dd["api_url_formatted"],
                 "&".join(["{}={}".format(k, v) for k, v in self.object_dd["request_parameters"].items()])
             )
 
-            w.write("\t".join(self.object_dd["table_columns"]))
+            # w.write("\t".join(self.object_dd["table_columns"]))
             w.write("\n")
 
             while True:
                 self.logger.info('sync shopify {}: getting data from "https://{}"'.format(self.command, url.split("@")[1]))
+                time.sleep(1)
 
                 response = requests.get(url)
                 json_string = response.json()
+                # print(response.text)
                 json_data = json_string[self.object_dd["json_set"]]
                 self.row_count += len(json_data)
 
@@ -96,6 +152,8 @@ class Shopify_API(object):
 
                             v = escape_value(str(v))
                             row.append(v)
+                        elif field in self.extra_context:
+                            row.append(str(self.extra_context[field]))
                         else:
                             # print("{} id is missing key {}".format(order["id"], field))
                             row.append("")
