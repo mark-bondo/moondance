@@ -1,82 +1,6 @@
-CREATE TEMP TABLE adder_rates ON COMMIT DROP AS
-    WITH rates AS (
-        SELECT
-            'Shopify Web' as sales_channel,
-            'Shopify Order Prep Labor' as rate_name,
-            'Labor' as rate_type,
-            'Per Order' as rate_application,
-            15.00 as hourly_rate,
-            6::NUMERIC as minutes,
-            NULL::NUMERIC as material_cost
-    
-        UNION ALL
-        
-        SELECT
-            'Shopify Web' as sales_channel,
-            'Shopify Order Line Fulfillment' as rate_name,
-            'Labor' as rate_type,
-            'Per Order Line' as rate_application,
-            15.00 as hourly_rate,
-            2::NUMERIC as minutes,
-            NULL::NUMERIC as material_cost
-    
-        UNION ALL
-    
-        SELECT
-            'Amazon FBM' as sales_channel,
-            'FBM Order Prep Labor' as rate_name,
-            'Labor' as rate_type,
-            'Per Order' as rate_application,
-            15.00 as hourly_rate,
-            6::NUMERIC as minutes,
-            NULL::NUMERIC as material_cost
-    
-        UNION ALL
-        
-        SELECT
-            'Amazon FBM' as sales_channel,
-            'FBM Order Line Fulfillment' as rate_name,
-            'Labor' as rate_type,
-            'Per Order Line' as rate_application,
-            15.00 as hourly_rate,
-            2::NUMERIC as minutes,
-            NULL::NUMERIC as material_cost
-    
-        UNION ALL
-        
-        SELECT
-            'Amazon FBM' as sales_channel,
-            'FBM Order Packaging' as rate_name,
-            'Materials' as rate_type,
-            'Per Order' as rate_application,
-            NULL::NUMERIC as hourly_rate,
-            NULL::NUMERIC as minutes,
-            0.75 as material_cost
-    
-        UNION ALL
-        
-        SELECT
-            'Amazon FBA' as sales_channel,
-            'FBA Order Line Prep' as rate_name,
-            'Labor' as rate_type,
-            'Per Order Line' as rate_application,
-            15.00 as hourly_rate,
-            6::NUMERIC as minutes,
-            NULL::NUMERIC as material_cost
-    )
-        
-    SELECT
-        sales_channel,
-        rate_application,
-        ARRAY_AGG(rate_name::TEXT || ' - ' || minutes::TEXT || ' minutes at ' || hourly_rate || ' per hour') as rate_description,
-        SUM((hourly_rate/60::NUMERIC) * minutes)::NUMERIC(16, 2) as labor_cost,
-        SUM(material_cost) as material_cost
-    FROM
-        rates
-    GROUP BY
-        sales_channel,
-        rate_application
-    ;
+CREATE TEMP TABLE default_costs ON COMMIT DROP AS
+    SELECT 0.30::NUMERIC as percent
+;
 
 
 CREATE TEMP TABLE sales_orders ON COMMIT DROP AS
@@ -85,7 +9,7 @@ WITH shopify_line_items AS (
         jsonb_array_elements(line_items) as line_json,
         CASE
             WHEN source_name = 'sell-on-amazon' THEN 'Amazon FBM'
-            WHEN source_name IN ('580111', 'web', 'shopify_draft_order') or customer->>'tags' LIKE '%wholesaler%' THEN 'Shopify Web'
+            WHEN source_name IN ('580111', 'web', 'shopify_draft_order') or customer->>'tags' LIKE '%wholesaler%' THEN 'Shopify Website'
             WHEN source_name IN ('android', 'pos', 'iphone') THEN 'POS'
             ELSE source_name
         END as sales_channel,
@@ -108,6 +32,7 @@ WITH shopify_line_items AS (
         tags,
         refunds,
         total_weight,
+        reference,
         (total_shipping_price_set->'shop_money'->>'amount')::NUMERIC(16, 2) as shipping_collected
     FROM
         shopify.shopify_sales_order
@@ -179,7 +104,7 @@ WITH shopify_line_items AS (
         (shipping_line.shipping_collected * (line_weight / total_weight))::NUMERIC(16, 2) as shipping_collected,
         (
             COALESCE(shipping_paid.amount, shipping_easy.shipping_fees) * (line_weight / total_weight)
-        )::NUMERIC(16, 2) as shipping_paid
+        )::NUMERIC(16, 2) as shipping_cost
     FROM
         shipping_total JOIN
         shipping_line ON shipping_total.order_id = shipping_line.order_id LEFT JOIN
@@ -200,21 +125,29 @@ WITH shopify_line_items AS (
     WITH lines AS (
         SELECT
             "FinancialEvents" as event,
+            "AmazonOrderId",
             (jsonb_array_elements("ShipmentItemList")->>'OrderItemId')::BIGINT as "OrderItemId",
+            jsonb_array_elements("ShipmentItemList")->>'SellerSKU' as "SellerSKU",
             -(jsonb_array_elements(jsonb_array_elements("ShipmentItemList")->'ItemFeeList')->'FeeAmount'->>'CurrencyAmount')::NUMERIC(16, 2) as fees
         FROM
             amazon.amazon_financial_events
     )
 
     SELECT
+        "AmazonOrderId",
         "OrderItemId",
+        i.product_id,
         SUM(fees) as total_fees
     FROM
-        lines
+        lines LEFT JOIN
+        public.integration_amazon_product i ON lines."SellerSKU" = i.seller_sku
     WHERE
         fees != 0
     GROUP BY
-        "OrderItemId"    
+        "AmazonOrderId",
+        "OrderItemId",
+        i.product_id
+
 )
 
 SELECT
@@ -232,53 +165,56 @@ SELECT
     END as order_status,
     INITCAP(COALESCE((line_json->>'fulfillment_status'), 'unfulfilled')) as fulfillment_status,  
     name as order_number,
-    pcode.family as product_family,
-    pcode.category as product_category,
-    p.sku as product_sku,
-    p.description as product_description,
+    CASE 
+        WHEN sales_channel = 'POS' and p.sku IS NULL THEN 'POS Custom Sales' 
+        WHEN sales_channel = 'Shopify Website' and p.sku IS NULL THEN 'Shopify Custom Sales' 
+        ELSE pcode.family 
+    END as product_family,
+    CASE 
+        WHEN sales_channel = 'POS' and p.sku IS NULL THEN 'POS Custom Sales' 
+        WHEN sales_channel = 'Shopify Website' and p.sku IS NULL THEN 'Shopify Custom Sales' 
+        ELSE pcode.category 
+    END as product_category,
+    CASE 
+        WHEN sales_channel = 'POS' and p.sku IS NULL THEN 'POS Custom Sales' 
+        WHEN sales_channel = 'Shopify Website' and p.sku IS NULL THEN 'Shopify Custom Sales' 
+        ELSE p.sku 
+    END as product_sku,
+    CASE 
+        WHEN sales_channel = 'POS' and p.sku IS NULL THEN 'POS Custom Sales' 
+        WHEN sales_channel = 'Shopify Website' and p.sku IS NULL THEN 'Shopify Custom Sales' 
+        ELSE p.description 
+    END as product_description,
     (line_json->>'variant_id') as source_product_id,
     COALESCE(sp.shopify_sku::TEXT, (line_json->>'sku')) as source_product_sku,
     line_json->>'name' as source_product_name,
-    ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0))::INTEGER as quantity,
-    (
-        (line_json->>'price')::NUMERIC -
-        COALESCE(((line_json->'discount_allocations'->0->>'amount')::NUMERIC/(line_json->>'quantity')::NUMERIC), 0)
-    )::NUMERIC(16, 2) as unit_sales_price,
-    COALESCE(bundles.unit_material_cost, p.unit_material_cost) as unit_material_cost,   
-    NULL::NUMERIC(16, 2) as unit_fulfillment_cost,
-    COALESCE(bundles.unit_material_cost, p.unit_material_cost) as unit_cost, 
+    CASE
+		WHEN ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0))::INTEGER = 0 THEN NULL
+		ELSE ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0))::INTEGER
+	END as quantity,
     (
         (
             (line_json->>'price')::NUMERIC -
             COALESCE(((line_json->'discount_allocations'->0->>'amount')::NUMERIC/(line_json->>'quantity')::NUMERIC), 0)
         ) * ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0))
-    )::NUMERIC(16, 2) as total_sales,
+    ) as total_sales,
     shopify_shipping_allocation.shipping_collected as total_shipping_collected,
-    shopify_shipping_allocation.shipping_paid as total_shipping_paid,
+    shopify_shipping_allocation.shipping_cost as total_shipping_cost,
     (
-        COALESCE(shopify_shipping_allocation.shipping_collected, 0) -
-        COALESCE(shopify_shipping_allocation.shipping_paid, 0)
-    ) as total_shipping_margin,
-    (
-        COALESCE(bundles.unit_material_cost, p.unit_material_cost) *
-        ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0))
-    )::NUMERIC(16, 2) as total_material_cost,
-    NULL::NUMERIC(16, 2) as total_fulfillment_cost,
-    (
-        COALESCE(bundles.unit_material_cost, p.unit_material_cost) *
-        ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0))
-    )::NUMERIC(16, 2) as total_cost,
-    (
+        COALESCE(
+            bundles.unit_material_cost, 
+            p.unit_material_cost,
+            (SELECT percent FROM default_costs) * (line_json->>'price')::NUMERIC
+        ) *
         (
-            (line_json->>'price')::NUMERIC -
-            COALESCE(((line_json->'discount_allocations'->0->>'amount')::NUMERIC/(line_json->>'quantity')::NUMERIC), 0)
-        ) - 
-        (
-            COALESCE(bundles.unit_material_cost, p.unit_material_cost, 0)
+            (line_json->>'quantity')::NUMERIC - 
+            COALESCE(refunds.quantity, 0)
         )
-    ) * ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0)) as total_margin,
+    ) as total_material_cost,
+    NULL::NUMERIC as total_moondance_fulfillment_cost,
+    amazon_fees.total_fees as total_amazon_fees,
     discount_applications->0->>'title' as discount_promotion_name,
-    (line_json->'discount_allocations'->0->>'amount')::NUMERIC(16, 2) as total_discounts_given,
+    (line_json->'discount_allocations'->0->>'amount')::NUMERIC as total_discounts_given,
     CASE
         WHEN customer->>'tags' LIKE '%wholesaler%' THEN 'Wholesale'
         ELSE 'Retail'
@@ -297,7 +233,11 @@ SELECT
     processed_at::TIMESTAMP WITH TIME ZONE as processed_date,
     DATE_PART('YEAR', processed_at::TIMESTAMP WITH TIME ZONE)::INTEGER as processed_year,
     DATE_PART('MONTH', processed_at::TIMESTAMP WITH TIME ZONE)::INTEGER as processed_month,
-    DATE_TRUNC('MONTH', processed_at::TIMESTAMP WITH TIME ZONE)::DATE as processed_period
+    DATE_TRUNC('MONTH', processed_at::TIMESTAMP WITH TIME ZONE)::DATE as processed_period,
+    CASE
+        WHEN COALESCE(bundles.unit_material_cost, p.unit_material_cost) IS NULL THEN 'Product Cost'
+        ELSE 'Average Cost'
+    END as cost_type
 FROM
     shopify_line_items so LEFT JOIN
     public.integration_shopify_product sp ON (so.line_json->>'variant_id') = sp.variant_id::TEXT LEFT JOIN
@@ -309,7 +249,10 @@ FROM
     public.operations_product_code pcode ON p.product_code_id = pcode.id LEFT JOIN
     bundles ON p.id = bundles.bundle_id LEFT JOIN
     shopify_refunds refunds ON (line_json->>'id') = refunds.order_line_id LEFT JOIN
-    shopify_shipping_allocation ON (line_json->>'id') = shopify_shipping_allocation.order_line_id
+    shopify_shipping_allocation ON (line_json->>'id') = shopify_shipping_allocation.order_line_id LEFT JOIN
+    amazon_fees ON 
+        so.reference = amazon_fees."AmazonOrderId" AND
+        p.id = amazon_fees.product_id
     
 UNION ALL
 
@@ -337,32 +280,23 @@ SELECT
     sl."ASIN" as source_product_id,
     sl."SellerSKU" as source_product_sku,
     sl."Title" as source_product_name,
-    sl."QuantityOrdered" as quantity,
-    ((sl."ItemPrice"->>'Amount')::NUMERIC(16, 2) / sl."QuantityOrdered")::NUMERIC(16, 2) as unit_sales_price,
-    COALESCE(bundles.unit_material_cost, product.unit_material_cost)::NUMERIC(16, 2) as unit_material_cost,
-    (amazon_fees.total_fees / sl."QuantityOrdered")::NUMERIC(16, 2) as unit_fulfillment_cost,
+    CASE 
+		WHEN sl."QuantityOrdered" = 0 THEN NULL 
+		ELSE sl."QuantityOrdered" 
+	END as quantity,
+    (sl."ItemPrice"->>'Amount')::NUMERIC as total_sales,
+    NULL::NUMERIC as total_shipping_collected,
+    NULL::NUMERIC as total_shipping_cost,
     (
-        COALESCE(bundles.unit_material_cost, product.unit_material_cost, 0) +
-        COALESCE((amazon_fees.total_fees / sl."QuantityOrdered")::NUMERIC(16, 2), 0)
-    )::NUMERIC(16, 2) as unit_cost,
-    (sl."ItemPrice"->>'Amount')::NUMERIC(16, 2) as total_sales,
-    NULL::NUMERIC(16, 2) as total_shipping_collected,
-    NULL::NUMERIC(16, 2) as total_shipping_paid,
-    NULL::NUMERIC(16, 2) as total_shipping_margin,
-    (COALESCE(bundles.unit_material_cost, product.unit_material_cost) * sl."QuantityOrdered")::NUMERIC(16, 2) as total_material_cost,
-    amazon_fees.total_fees::NUMERIC(16, 2) as total_fulfillment_cost,
-    (
-        (COALESCE(bundles.unit_material_cost, product.unit_material_cost) * sl."QuantityOrdered") +
-        COALESCE(amazon_fees.total_fees, 0)
-    )::NUMERIC(16, 2) as total_cost,
-    (
-        (sl."ItemPrice"->>'Amount')::NUMERIC(16, 2) -
-        (
-            (COALESCE(bundles.unit_material_cost, product.unit_material_cost) * sl."QuantityOrdered") + COALESCE(amazon_fees.total_fees, 0)
+        COALESCE(
+            COALESCE(bundles.unit_material_cost, product.unit_material_cost) * sl."QuantityOrdered",
+            (SELECT percent FROM default_costs) * (sl."ItemPrice"->>'Amount')::NUMERIC
         )
-    )::NUMERIC(16, 2) as total_margin,
+    )::NUMERIC as total_material_cost,
+    NULL::NUMERIC as total_moondance_fulfillment_cost,
+    amazon_fees.total_fees::NUMERIC as total_amazon_fees,
     NULL::TEXT as discount_promotion_name,
-    ((sl."PromotionDiscount"->>'Amount')::NUMERIC(16, 2) / sl."QuantityOrdered")::NUMERIC(16, 2) as total_discounts_given,
+    ((sl."PromotionDiscount"->>'Amount')::NUMERIC(16, 2) / sl."QuantityOrdered")::NUMERIC as total_discounts_given,
     'Retail' as customer_type,
     NULL::TEXT as customer_name,
     NULL::TEXT as company,
@@ -373,7 +307,11 @@ SELECT
     sh."PurchaseDate" as processed_date,
     DATE_PART('YEAR', sh."PurchaseDate")::INTEGER as processed_year,
     DATE_PART('MONTH', sh."PurchaseDate")::INTEGER as processed_month,
-    DATE_TRUNC('MONTH', sh."PurchaseDate")::DATE as processed_period
+    DATE_TRUNC('MONTH', sh."PurchaseDate")::DATE as processed_period,
+    CASE
+        WHEN COALESCE(bundles.unit_material_cost, product.unit_material_cost) IS NULL THEN 'Product Cost'
+        ELSE 'Average Cost'
+    END as cost_type
 FROM
     amazon.amazon_sales_order sh JOIN
     amazon.amazon_sales_order_line sl ON sh."AmazonOrderId" = sl."AmazonOrderId" LEFT JOIN
@@ -388,32 +326,48 @@ WHERE
     shopify.id IS NULL -- don't double count between shopify and amazon
 ;
 
+CREATE TEMP TABLE order_count ON COMMIT DROP AS
+    SELECT
+        order_id,
+        sales_channel,
+        count(*) as order_line_count
+    FROM
+        sales_orders
+    GROUP BY
+        order_id,
+        sales_channel
+
+;
+
+
+CREATE TEMP TABLE adder_rates ON COMMIT DROP AS
+    SELECT
+        sales_channel,
+        apply_to,
+        ARRAY_AGG(name::TEXT || ' - ' || labor_minutes::TEXT || ' minutes at ' || labor_hourly_rate || ' per hour') as overlay_description,
+        SUM((labor_hourly_rate::NUMERIC/60::NUMERIC) * labor_minutes::NUMERIC) as labor_cost,
+        SUM(material_cost) as material_cost
+    FROM
+        public.operations_order_cost_overlay
+    GROUP BY
+        sales_channel,
+        apply_to
+;
+
 
 CREATE TEMP TABLE order_adder ON COMMIT DROP AS
-    WITH order_lines AS (
-        SELECT
-            order_id,
-            sales_channel,
-            count(*) as order_line_count
-        FROM
-            sales_orders
-        GROUP BY
-            order_id,
-            sales_channel
-    )
-    
     SELECT
-        order_lines.order_id,
-        order_lines.sales_channel,
+        order_count.order_id,
+        order_count.sales_channel,
         SUM((COALESCE(labor_cost, 0) + COALESCE(material_cost, 0)) / order_line_count) as cost_per_order
     FROM
-        order_lines JOIN
+        order_count JOIN
         adder_rates ON 
-            order_lines.sales_channel = adder_rates.sales_channel AND
-            adder_rates.rate_application = 'Per Order'
+            order_count.sales_channel = adder_rates.sales_channel AND
+            adder_rates.apply_to = 'Each Order'
     GROUP BY
-        order_lines.order_id,
-        order_lines.sales_channel
+        order_count.order_id,
+        order_count.sales_channel
 ;
 
 
@@ -436,15 +390,18 @@ INSERT INTO report_moondance.sales_orders (
     quantity,
     unit_sales_price,
     unit_material_cost,
-    unit_fulfillment_cost,
+    unit_moondance_fulfillment_cost,
+    unit_amazon_fees,
     unit_cost,
     total_sales,
     total_shipping_collected,
-    total_shipping_paid,
+    total_shipping_cost,
     total_shipping_margin,
     total_material_cost,
-    total_fulfillment_cost,
+    total_moondance_fulfillment_cost,
+    total_amazon_fees,
     total_cost,
+    total_product_margin,
     total_margin,
     discount_promotion_name,
     total_discounts_given,
@@ -458,7 +415,9 @@ INSERT INTO report_moondance.sales_orders (
     processed_date,
     processed_year,
     processed_month,
-    processed_period
+    processed_period,
+    cost_type,
+    order_count
 )
 
 SELECT
@@ -477,43 +436,81 @@ SELECT
     so.source_product_sku,
     so.source_product_name,
     so.quantity,
-    so.unit_sales_price,
-    so.unit_material_cost,
     (
-        COALESCE(unit_fulfillment_cost, 0) + 
+        (COALESCE(total_sales, 0) / quantity)
+    ) as unit_sales_price,
+    (
+        (COALESCE(total_material_cost, 0) / quantity)
+    ) as unit_material_cost,
+    (
+        (COALESCE(total_moondance_fulfillment_cost, 0) / quantity) + 
         COALESCE(adder_line.labor_cost, 0) + 
         COALESCE(adder_line.material_cost, 0) +
         COALESCE(order_adder.cost_per_order, 0)
-        
-    ) as unit_fulfillment_cost,
+    ) as unit_moondance_fulfillment_cost,
     (
-        COALESCE(unit_cost, 0) + 
-        COALESCE(adder_line.labor_cost, 0) + 
-        COALESCE(adder_line.material_cost, 0) +
-        COALESCE(order_adder.cost_per_order, 0)
+        (COALESCE(total_amazon_fees, 0) / quantity)
+    ) as unit_amazon_fees,
+    (
+		(
+			COALESCE(total_material_cost, 0) +
+			COALESCE(total_moondance_fulfillment_cost, 0) +
+			COALESCE(total_amazon_fees, 0) +
+			COALESCE(total_shipping_cost, 0) +
+			COALESCE(adder_line.labor_cost, 0) + 
+			COALESCE(adder_line.material_cost, 0) +
+			COALESCE(order_adder.cost_per_order, 0)
+		) / quantity
     ) as unit_cost,
     total_sales,
     total_shipping_collected,
-    total_shipping_paid,
-    total_shipping_margin,
+    total_shipping_cost,
+    (
+        COALESCE(total_shipping_collected, 0) -
+        COALESCE(total_shipping_cost, 0)
+    ) as total_shipping_margin,
     total_material_cost,
     (
-        COALESCE(total_fulfillment_cost, 0) +
+        COALESCE(total_moondance_fulfillment_cost, 0) +
         COALESCE(adder_line.labor_cost, 0) + 
         COALESCE(adder_line.material_cost, 0) +
         COALESCE(order_adder.cost_per_order, 0)
-    ) as total_fulfillment_cost,
+    ) as total_moondance_fulfillment_cost,
     (
-        COALESCE(total_cost, 0) +
+        COALESCE(total_amazon_fees, 0)
+    ) as total_amazon_fees,
+    (
+        COALESCE(total_material_cost, 0) +
+        COALESCE(total_moondance_fulfillment_cost, 0) +
+        COALESCE(total_amazon_fees, 0) +
+        COALESCE(total_shipping_cost, 0) +
         COALESCE(adder_line.labor_cost, 0) + 
         COALESCE(adder_line.material_cost, 0) +
         COALESCE(order_adder.cost_per_order, 0)
     ) as total_cost,
     (
-        COALESCE(total_margin, 0) -
-        COALESCE(adder_line.labor_cost, 0) -
-        COALESCE(adder_line.material_cost, 0) -
-        COALESCE(order_adder.cost_per_order, 0)
+        COALESCE(total_sales, 0) -
+        (
+            COALESCE(total_material_cost, 0) +
+            COALESCE(total_moondance_fulfillment_cost, 0) +
+            COALESCE(total_amazon_fees, 0) +
+            COALESCE(adder_line.labor_cost, 0) +
+            COALESCE(adder_line.material_cost, 0) +
+            COALESCE(order_adder.cost_per_order, 0)
+        )
+    ) as total_product_margin,
+    (
+        COALESCE(total_sales, 0) +
+        COALESCE(total_shipping_collected, 0) -
+        (
+            COALESCE(total_material_cost, 0) +
+            COALESCE(total_moondance_fulfillment_cost, 0) +
+            COALESCE(total_amazon_fees, 0) +
+            COALESCE(total_shipping_cost, 0) +
+            COALESCE(adder_line.labor_cost, 0) +
+            COALESCE(adder_line.material_cost, 0) +
+            COALESCE(order_adder.cost_per_order, 0)
+        )
     ) as total_margin,
     discount_promotion_name,
     total_discounts_given,
@@ -527,15 +524,20 @@ SELECT
     processed_date,
     processed_year,
     processed_month,
-    processed_period
+    processed_period,
+    cost_type,
+    1::NUMERIC /order_count.order_line_count::NUMERIC as order_count
 FROM
     sales_orders so LEFT JOIN
     adder_rates adder_line ON
         so.sales_channel = adder_line.sales_channel AND
-        adder_line.rate_application = 'Per Order Line' LEFT JOIN
+        adder_line.apply_to = 'Each Order Line' LEFT JOIN
     order_adder ON
         so.sales_channel = order_adder.sales_channel AND
-        so.order_id = order_adder.order_id
+        so.order_id = order_adder.order_id LEFT JOIN
+    order_count ON
+        so.sales_channel = order_count.sales_channel AND
+        so.order_id = order_count.order_id
 ;
 
  

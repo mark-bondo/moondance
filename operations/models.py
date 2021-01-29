@@ -90,3 +90,37 @@ class Finished_Goods_Proxy(Product):
         verbose_name = "Product - Finished Good"
         verbose_name_plural = "Product - Finished Goods"
         ordering = ("sku",)
+
+
+class Order_Cost_Overlay(MetaModel):
+    history = HistoricalRecords()
+    sales_channel_list = (
+        ("Shopify Website", "Shopify Website"),
+        ("Amazon FBA", "Amazon FBA"),
+        ("Amazon FBM", "Amazon FBM"),
+        ("POS", "POS"),
+    )
+    type_list = (
+        ("Fulfillment Labor", "Fulfillment Labor"),
+        ("Shipping Materials", "Shipping Materials"),
+    )
+    apply_to_list = (
+        ("Each Order", "Each Order"),
+        ("Each Order Line", "Each Order Line"),
+    )
+
+    sales_channel = models.CharField(max_length=200, choices=sales_channel_list)
+    name = models.CharField(max_length=200, unique=True)
+    type = models.CharField(max_length=200, choices=type_list)
+    apply_to = models.CharField(max_length=200, choices=apply_to_list)
+    labor_hourly_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    labor_minutes = models.IntegerField(null=True, blank=True)
+    material_cost = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
+
+    def __str__(self):
+        return "{}".format(self.name)
+
+    class Meta:
+        verbose_name = "Order Cost Overlay"
+        verbose_name_plural = "Order Cost Overlays"
+        ordering = ("sales_channel", "name",)

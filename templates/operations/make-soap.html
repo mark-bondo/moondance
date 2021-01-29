@@ -236,8 +236,14 @@ body {
                             </v-text>
                           </template>
                         </v-data-table>
-                      
+                        <v-text-field
+                          v-model="total_batch_cost"
+                          prefix="$"
+                          label="Total Batch Cost"
+                          type="number"
+                        ></v-text-field>
                       </v-card>
+
                       <v-btn
                         color="primary"
                         class="ml-9"
@@ -414,10 +420,11 @@ var vm = new Vue({
         {text: "Product Family", value: "family"},
         {text: "SKU", value: "sku"},
         {text: "Description", value: "description"},
-        {text: "Unit of Measure", value: "unit_of_measure"},
+        // {text: "Unit of Measure", value: "unit_of_measure"},
         {text: "Quantity Needed", value: "quantity_needed", align: "right",},
         {text: "Quantity Onhand", value: "quantity_onhand", align: "right",},
         {text: "Quantity Remaining", value: "quantity_remaining", align: "right",},
+        {text: "Total Cost", value: "total_cost", align: "right",},
       ],
       labor: {
         setup: null,
@@ -425,7 +432,8 @@ var vm = new Vue({
         cleanUp: null,
         design: null,
         formulation: null,
-      }
+      },
+      total_batch_cost: 0
     },
     watch: {
         group () {
@@ -478,10 +486,25 @@ var vm = new Vue({
           batches[value.sku.value] = value.batchSize;
         });
 
+        var total_batch_cost = 0
         $.each(data, function( index, value ) {
-          value.quantity_needed = (parseFloat(value.quantity_needed) * parseFloat(batches[value.product_id])).toFixed(5);
-          value.quantity_remaining = (parseFloat(value.quantity_onhand) - parseFloat(value.quantity_needed)).toFixed(2);
+          value.quantity_needed = (parseFloat(value.quantity_needed) * parseFloat(batches[value.product_id])).toFixed(1) + ' ' + value.unit_of_measure;
+          value.quantity_remaining = (parseFloat(value.quantity_onhand) - parseFloat(value.quantity_needed)).toFixed(0);
+          value.total_cost = (parseFloat(batches[value.product_id]) * parseFloat(value.total_cost)).toFixed(2)
+          total_batch_cost+= parseFloat(value.total_cost)
         });
+
+        this.total_batch_cost = total_batch_cost.toFixed(2);
+        // data.push({
+        //   "wip": "",
+        //   "family": "",
+        //   "sku": "",
+        //   "description": "",
+        //   "quantity_needed": "",
+        //   "quantity_onhand": "",
+        //   "quantity_remaining": "",
+        //   "total_cost": extended_cost,
+        // });
 
         return data;
       },

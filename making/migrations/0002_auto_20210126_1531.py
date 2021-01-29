@@ -77,4 +77,44 @@ class Migration(migrations.Migration):
             name='bundle',
             field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='Product_Bundle_product_bundle_fk', to='making.product_bundle_header'),
         ),
+        migrations.RemoveField(
+            model_name='historicalproduct_bundle_proxy',
+            name='_created_by',
+        ),
+        migrations.RemoveField(
+            model_name='historicalproduct_bundle_proxy',
+            name='_last_updated_by',
+        ),
+        migrations.RemoveField(
+            model_name='historicalproduct_bundle_proxy',
+            name='history_user',
+        ),
+        migrations.RemoveField(
+            model_name='historicalproduct_bundle_proxy',
+            name='product_code',
+        ),
+        migrations.DeleteModel(
+            name='Product_Bundle_Proxy',
+        ),
+        migrations.AlterModelOptions(
+            name='historicalproduct_bundle_header',
+            options={'get_latest_by': 'history_date', 'ordering': ('-history_date', '-history_id'), 'verbose_name': 'historical Product Bundle'},
+        ),
+        migrations.AlterModelOptions(
+            name='product_bundle_header',
+            options={'ordering': ('bundle__sku',), 'verbose_name': 'Product Bundle', 'verbose_name_plural': 'Product Bundles'},
+        ),
+        migrations.AlterField(
+            model_name='historicalproduct_bundle_header',
+            name='bundle',
+            field=models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='operations.finished_goods_proxy'),
+        ),
+        migrations.AlterField(
+            model_name='product_bundle_header',
+            name='bundle',
+            field=models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, primary_key=True, related_name='Product_Bundle_product_bundle_fk', serialize=False, to='operations.finished_goods_proxy'),
+        ),
+        migrations.DeleteModel(
+            name='HistoricalProduct_Bundle_Proxy',
+        ),
     ]

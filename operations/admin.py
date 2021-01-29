@@ -9,6 +9,7 @@ from .models import (
     Product_Code,
     Raw_Material_Proxy,
     Finished_Goods_Proxy,
+    Order_Cost_Overlay,
 )
 from purchasing.admin import(
     Supplier_Product_Admin_Inline,
@@ -360,6 +361,54 @@ class Finished_Goods_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request).prefetch_related("product_code")
         return qs.filter(product_type__in=["Finished Goods"])
+
+    def save_formset(self, request, form, formset, change):
+        # set meta fields
+        inline_formsets = formset.save(commit=False)
+
+        for obj in inline_formsets:
+            obj = set_meta_fields(request, obj, form, change, inline=True)
+            obj.save()
+
+        for obj in formset.deleted_objects:
+            obj.delete()
+
+        formset.save_m2m()
+
+
+@admin.register(Order_Cost_Overlay)
+class Order_Cost_Overlay_Admin(AdminStaticMixin, SimpleHistoryAdmin):
+    model = Order_Cost_Overlay
+    list_display = [
+        "sales_channel",
+        "name",
+        "type",
+        "apply_to",
+        "labor_hourly_rate",
+        "labor_minutes",
+        "material_cost",
+        "_active",
+    ]
+    history_list_display = [
+        "sales_channel",
+        "name",
+        "type",
+        "apply_to",
+        "labor_hourly_rate",
+        "labor_minutes",
+        "material_cost",
+        "_active",
+    ]
+    fields = (
+        "sales_channel",
+        "name",
+        "type",
+        "apply_to",
+        "labor_hourly_rate",
+        "labor_minutes",
+        "material_cost",
+        "_active",
+    )
 
     def save_formset(self, request, form, formset, change):
         # set meta fields
