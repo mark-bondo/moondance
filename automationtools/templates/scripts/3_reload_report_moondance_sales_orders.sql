@@ -1,5 +1,31 @@
+/*
+TODO
+    add order level discounts
+*/
+
 CREATE TEMP TABLE default_costs ON COMMIT DROP AS
     SELECT 0.30::NUMERIC as percent
+;
+
+
+CREATE TEMP TABLE order_line_taxes ON COMMIT DROP AS
+    WITH tax_detail AS (
+        SELECT
+            jsonb_array_elements(line_items)->>'id' as order_line_id,
+            jsonb_array_elements(jsonb_array_elements(line_items)->'tax_lines')->>'title' as tax_types
+        FROM
+            shopify.shopify_sales_order
+    )
+
+    SELECT
+        order_line_id::BIGINT as order_line_id,
+        (ARRAY_REMOVE(ARRAY_AGG(DISTINCT tax_types ORDER BY tax_types), 'North Carolina State Tax'))[1] as county
+    FROM
+        tax_detail
+    WHERE
+        tax_types <> 'Sales tax'
+    GROUP BY
+        order_line_id::BIGINT
 ;
 
 
@@ -216,9 +242,9 @@ SELECT
     discount_applications->0->>'title' as discount_promotion_name,
     (line_json->'discount_allocations'->0->>'amount')::NUMERIC as total_discounts_given,
     CASE
-        WHEN customer->>'tags' LIKE '%wholesaler%' THEN 'Wholesale'
+        WHEN customer->>'tags' ILIKE '%wholesaler%' THEN 'Wholesale'
         ELSE 'Retail'
-    END  as customer_type,
+    END as customer_type,
     COALESCE((customer->>'first_name') || ' ' || (customer->>'last_name'), 'Unknown') as customer_name,
     customer->'default_address'->>'company' as company,
     CASE
@@ -253,7 +279,7 @@ FROM
     amazon_fees ON 
         so.reference = amazon_fees."AmazonOrderId" AND
         p.id = amazon_fees.product_id
-    
+        
 UNION ALL
 
 SELECT
@@ -417,7 +443,15 @@ INSERT INTO report_moondance.sales_orders (
     processed_month,
     processed_period,
     cost_type,
-    order_count
+    order_count,
+    county_tax_name,
+    state_tax_name,
+    county_transit_tax_rate,
+    county_base_tax_rate,
+    state_tax_rate,
+    total_county_transit_tax,
+    total_county_base_tax,
+    total_state_tax  
 )
 
 SELECT
@@ -526,7 +560,18 @@ SELECT
     processed_month,
     processed_period,
     cost_type,
-    1::NUMERIC /order_count.order_line_count::NUMERIC as order_count
+    1::NUMERIC /order_count.order_line_count::NUMERIC as order_count,
+    CASE
+        WHEN so.sales_channel = 'POS' THEN 'Durham County Tax' 
+        ELSE order_line_taxes.county
+    END as county_tax_name,
+    state_tax.state as state_tax_name,
+    county_tax.transit_rate as county_transit_tax_rate,
+    county_tax.base_rate as county_base_tax_rate,
+    state_tax.base_rate as state_tax_rate,
+    (county_tax.transit_rate/100::NUMERIC) * (COALESCE(total_sales, 0) + COALESCE(total_shipping_collected, 0)) as total_county_transit_tax,
+    (county_tax.base_rate/100::NUMERIC)  * (COALESCE(total_sales, 0) + COALESCE(total_shipping_collected, 0)) as total_county_base_tax,
+    (state_tax.base_rate/100::NUMERIC)  * (COALESCE(total_sales, 0) + COALESCE(total_shipping_collected, 0)) as total_state_tax   
 FROM
     sales_orders so LEFT JOIN
     adder_rates adder_line ON
@@ -537,7 +582,17 @@ FROM
         so.order_id = order_adder.order_id LEFT JOIN
     order_count ON
         so.sales_channel = order_count.sales_channel AND
-        so.order_id = order_count.order_id
+        so.order_id = order_count.order_id LEFT JOIN
+    order_line_taxes ON 
+        so.source_system != 'Amazon' AND
+        so.customer_type = 'Retail' AND
+        so.order_line_id = order_line_taxes.order_line_id LEFT JOIN
+    public.accounting_tax_rate_county county_tax ON
+        CASE
+            WHEN so.sales_channel = 'POS' THEN 'Durham County Tax' 
+            ELSE order_line_taxes.county
+        END = county_tax.county LEFT JOIN
+    public.accounting_tax_rate_state state_tax ON county_tax.state_id = state_tax.id
 ;
 
  
