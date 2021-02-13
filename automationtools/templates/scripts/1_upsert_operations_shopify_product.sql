@@ -79,8 +79,8 @@ SELECT
     1 as _created_by_id,
     1 as _last_updated_by_id
 FROM
-    skus
-    LEFT JOIN public.operations_product p ON skus.v->>'sku' = p.sku
+    skus LEFT JOIN 
+    public.operations_product p ON skus.v->>'sku' = p.sku
 ON CONFLICT (variant_id)
 DO UPDATE
     SET 

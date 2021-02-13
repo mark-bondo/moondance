@@ -1,0 +1,14 @@
+{% load static %}
+{% load render_bundle from webpack_loader %}
+{% get_static_prefix as STATIC_URL %}
+{% get_media_prefix as MEDIA_URL %}
+{% block title %}Sensei API Demo{% endblock %}
+{% block extra_style %}
+<link rel="stylesheet" href="https://unpkg.com/ag-grid-community/dist/styles/ag-grid.css">
+<link rel="stylesheet" href="https://unpkg.com/ag-grid-community/dist/styles/ag-theme-alpine.css">
+{% endblock %}
+{% block content %}
+<div id="report-app"></div>
+{% render_bundle 'chunk-vendors' %} {% render_bundle 'vue_api' %}
+
+{% endblock %}

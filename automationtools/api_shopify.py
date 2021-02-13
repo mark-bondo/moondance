@@ -49,7 +49,15 @@ class Shopify_API(object):
                 "json_set": "events",
                 "api_url": "2021-01/orders/{}/events.json",
                 "request_parameters": request_parameters
-            }
+            },
+            "customers": {
+                "pk_list": ["id"],
+                "table_name": "shopify_customer",
+                "schema": "shopify",
+                "json_set": "customers",
+                "api_url": "2021-01/customers.json",
+                "request_parameters": request_parameters
+            },
         }
 
         self.logger.info("sync shopify {}: getting table columns".format(self.command))
@@ -134,7 +142,6 @@ class Shopify_API(object):
 
                 response = requests.get(url)
                 json_string = response.json()
-                # print(response.text)
                 json_data = json_string[self.object_dd["json_set"]]
                 self.row_count += len(json_data)
 

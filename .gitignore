@@ -19,3 +19,9 @@ data/*
 analysis/*
 excel_loaders/*
 media/*
+
+# Vue
+vue_frontend/node_modules/
+vue_frontend/.gitignore
+vue_frontend/README.md
+vue_frontend/public/

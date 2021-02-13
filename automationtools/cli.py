@@ -58,6 +58,11 @@ def create_parser():
         default=False,
     )
     parser.add_argument(
+        "--sync-shopify-customers",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
         "--sync-shopify-sales",
         action="store_true",
         default=False,
@@ -113,6 +118,13 @@ def cli():
             }
         )
 
+        sync_shopify(
+            command="customers",
+            request_parameters={
+                "updated_at_min": interval["start_datetime"],
+            }
+        )
+
         sync_amazon(
             command="sales_orders",
             request_parameters={
@@ -162,6 +174,14 @@ def cli():
         sync_shopify(
             command="sync_shopify_order_events",
             request_parameters={
+            }
+        )
+
+    if args.sync_shopify_customers:
+        sync_shopify(
+            command="customers",
+            request_parameters={
+                "updated_at_min": interval["start_datetime"],
             }
         )
 
