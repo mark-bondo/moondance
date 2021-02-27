@@ -113,32 +113,32 @@ class Product_Code_Admin(admin.ModelAdmin):
                 sku.save()
 
 
-class Inventory_Onhand_Admin_Inline(admin.TabularInline):
-    model = Inventory_Onhand
-    extra = 1
-    fields = (
-        "sku",
-        "location",
-        "quantity_onhand",
-        "unit_of_measure",
-        "history_link",
-    )
-    readonly_fields = (
-        "unit_of_measure",
-        "history_link",
-    )
+# class Inventory_Onhand_Admin_Inline(admin.TabularInline):
+#     model = Inventory_Onhand
+#     extra = 1
+#     fields = (
+#         "sku",
+#         "location",
+#         "quantity_onhand",
+#         "unit_of_measure",
+#         "history_link",
+#     )
+#     readonly_fields = (
+#         "unit_of_measure",
+#         "history_link",
+#     )
 
-    def history_link(self, obj):
-        """
-        Generate a link to the history view for the line item.
-        """
-        app = obj._meta.app_label
-        url_str = "admin:{}_{}_history".format(app, "inventory_onhand")
-        url = urlresolvers.reverse(url_str, args=[obj.id])
-        return mark_safe(u'<a href="{}">Change History Link</a>'.format(url))
+#     def history_link(self, obj):
+#         """
+#         Generate a link to the history view for the line item.
+#         """
+#         app = obj._meta.app_label
+#         url_str = "admin:{}_{}_history".format(app, "inventory_onhand")
+#         url = urlresolvers.reverse(url_str, args=[obj.id])
+#         return mark_safe(u'<a href="{}">Change History Link</a>'.format(url))
 
-    history_link.allow_tags = True
-    history_link.short_description = "History"
+#     history_link.allow_tags = True
+#     history_link.short_description = "History"
 
 
 @admin.register(Raw_Material_Proxy)
@@ -146,7 +146,7 @@ class Raw_Material_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Raw_Material_Proxy
     form = Raw_Material_Proxy_Form
     inlines = (
-        Inventory_Onhand_Admin_Inline,
+        # Inventory_Onhand_Admin_Inline,
         Supplier_Product_Admin_Inline,
     )
     save_as = True

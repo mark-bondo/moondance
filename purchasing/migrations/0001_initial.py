@@ -273,4 +273,28 @@ class Migration(migrations.Migration):
                 'unique_together': {('sku', 'invoice')},
             },
         ),
+        migrations.AddField(
+            model_name='historicalinventory_onhand',
+            name='to_location',
+            field=models.CharField(blank=True, choices=[('Bondo - Garage', 'Bondo - Garage'), ('Bondo - 2nd Floor', 'Bondo - 2nd Floor'), ('MoonDance HQ - Workshop', 'MoonDance HQ - Workshop'), ('MoonDance HQ - Fulfillment Center', 'MoonDance HQ - Fulfillment Center')], max_length=200, null=True, verbose_name='Transfer To Location'),
+        ),
+        migrations.AddField(
+            model_name='historicalinventory_onhand',
+            name='transfer_quantity',
+            field=models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
+        ),
+        migrations.AddField(
+            model_name='inventory_onhand',
+            name='to_location',
+            field=models.CharField(blank=True, choices=[('Bondo - Garage', 'Bondo - Garage'), ('Bondo - 2nd Floor', 'Bondo - 2nd Floor'), ('MoonDance HQ - Workshop', 'MoonDance HQ - Workshop'), ('MoonDance HQ - Fulfillment Center', 'MoonDance HQ - Fulfillment Center')], max_length=200, null=True, verbose_name='Transfer To Location'),
+        ),
+        migrations.AddField(
+            model_name='inventory_onhand',
+            name='transfer_quantity',
+            field=models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
+        ),
+        migrations.AlterUniqueTogether(
+            name='inventory_onhand',
+            unique_together={('sku', 'location')},
+        ),
     ]

@@ -7,6 +7,13 @@ from datetime import datetime
 from django.utils import timezone
 import decimal
 
+LOCATION_LIST = [
+    ("Bondo - Garage", "Bondo - Garage"),
+    ("Bondo - 2nd Floor", "Bondo - 2nd Floor"),
+    ("MoonDance HQ - Workshop",  "MoonDance HQ - Workshop"),
+    ("MoonDance HQ - Fulfillment Center",  "MoonDance HQ - Fulfillment Center"),
+]
+
 
 class Supplier(MetaModel):
     type_choices = (
@@ -60,7 +67,7 @@ class Supplier_Product(MetaModel):
 class Invoice(MetaModel):
     history = HistoricalRecords()
     supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="Invoice_supplier_fk", verbose_name="Invoicing Supplier")
-    invoice = models.CharField(max_length=200)
+    invoice = models.CharField(max_length=200, blank=True, null=True)
     order = models.CharField(max_length=200, blank=True, null=True)
     date_invoiced = models.DateField(default=timezone.now)
     freight_charges = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
@@ -78,7 +85,15 @@ class Invoice_Line(MetaModel):
     history = HistoricalRecords()
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="Invoice_Line_invoice_fk")
     sku = models.ForeignKey(Raw_Material_Proxy, on_delete=models.PROTECT, related_name="Invoice_Line_sku_fk", verbose_name="MoonDance SKU")
-    manufacturer = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="Invoice_Manufacturer_fk", verbose_name="Manufacturer", blank=True, null=True)
+    manufacturer = models.ForeignKey(
+        Supplier, 
+        on_delete=models.PROTECT, 
+        related_name="Invoice_Manufacturer_fk", 
+        verbose_name="Manufacturer", 
+        blank=True, 
+        null=True,
+        help_text="Only needs to be populated if the manufacturer is different than the invoicing supplier."
+    )
     unit_of_measure = models.CharField(max_length=200, choices=unit_of_measure_choices)
     quantity = models.DecimalField(max_digits=12, decimal_places=2)
     total_cost = models.DecimalField(max_digits=12, decimal_places=2)
@@ -96,21 +111,15 @@ class Invoice_Line(MetaModel):
 class Inventory_Onhand(MetaModel):
     history = HistoricalRecords()
 
-    location_list = (
-        ("Bondo - Garage", "Bondo - Garage"),
-        ("Bondo - 2nd Floor", "Bondo - 2nd Floor"),
-        ("MoonDance HQ - Workshop",  "MoonDance HQ - Workshop"),
-        ("MoonDance HQ - Fulfillment Center",  "MoonDance HQ - Fulfillment Center"),
-    )
-
     sku = models.ForeignKey(
         Raw_Material_Proxy,
         on_delete=models.PROTECT,
         related_name="Inventory_Onhand_sku_fk"
     )
-    location = models.CharField(max_length=200, choices=location_list)
+    location = models.CharField(max_length=200, choices=LOCATION_LIST, verbose_name="Current Location")
     quantity_onhand = models.DecimalField(max_digits=12, decimal_places=2)
-    unit_of_measure = models.CharField(max_length=200, choices=unit_of_measure_choices)
+    to_location = models.CharField(max_length=200, null=True, blank=True, choices=LOCATION_LIST, verbose_name="Transfer To Location")
+    transfer_quantity = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
     def __str__(self):
         return "{} ({})".format(self.sku, self.location)
@@ -119,3 +128,4 @@ class Inventory_Onhand(MetaModel):
         verbose_name = "Inventory Onhand"
         verbose_name_plural = "Inventory Onhand"
         ordering = ("sku", "location")
+        unique_together = (("sku", "location",),)
