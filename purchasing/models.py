@@ -122,7 +122,7 @@ class Inventory_Onhand(MetaModel):
     transfer_quantity = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
     def __str__(self):
-        return "{} ({})".format(self.sku, self.location)
+        return "{} ({})".format(self.sku.sku, self.location)
 
     class Meta:
         verbose_name = "Inventory Onhand"

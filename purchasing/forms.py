@@ -22,6 +22,7 @@ class Inventory_Onhand_Form(forms.ModelForm):
         to_location = data.get('to_location')
         transfer_quantity = data.get('transfer_quantity')
         quantity_onhand = data.get('quantity_onhand')
+        sku = data.get('sku')
 
         if transfer_quantity:
             if not to_location:
@@ -36,7 +37,18 @@ class Inventory_Onhand_Form(forms.ModelForm):
             elif transfer_quantity > quantity_onhand:
                 msg = "Transfer quantity cannot exceed inventory onhand"
                 self.add_error('transfer_quantity', msg)
+
+        try:
+            loc = Inventory_Onhand.objects.get(location=location, sku=sku)
+        except Inventory_Onhand.DoesNotExist:
+            pass
+        else:
+            msg = 'SKU already exists at "{}". Change it back to "{}" and use the transfer option instead.'.format(loc.location, self.instance.location)
+            self.add_error('location', msg)
         
+        return data
+
+
     class Meta:
         model = Inventory_Onhand
         fields = (

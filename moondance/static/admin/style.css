@@ -42,3 +42,16 @@ td.original p {
 .inline-group .tabular tr.has_original td {
     padding-top: 5px !important;
  }
+
+
+ #changelist-form .field-quantity_onhand,
+ #changelist-form .column-quantity_onhand,
+ #changelist-form .field-transfer_quantity,
+ #changelist-form .column-transfer_quantity{
+    width: 125px;
+ }
+
+ #changelist-form .field-quantity_onhand input,
+ #changelist-form .field-transfer_quantity input {
+     width: 95px;
+ }

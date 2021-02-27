@@ -36,7 +36,7 @@ class Inventory_Onhand_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "unit_of_measure",
         "to_location",
         "transfer_quantity",
-        "_last_updated",
+        # "_last_updated",
     ]
     list_editable = [
         "quantity_onhand",
