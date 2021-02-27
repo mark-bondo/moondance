@@ -83,6 +83,7 @@ class Inventory_Onhand_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     )
     readonly_fields = (
         "_last_updated",
+        "unit_of_measure",
     )
 
     def unit_of_measure(self, obj):
