@@ -50,7 +50,7 @@ module.exports = {
             .set('__STATIC__', 'static')
 
         config.devServer
-            .public('http://localhost:8080/')
+            .public('http://localhost:8080')
             .host('localhost')
             .port(8080)
             .hotOnly(true)
