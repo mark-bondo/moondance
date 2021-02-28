@@ -16,7 +16,7 @@ module.exports = {
     filenameHashing: false,
     productionSourceMap: false,
     publicPath: process.env.NODE_ENV === 'production' ?
-        '' : 'http://localhost:8080/',
+        '' : 'https://operations.moondancesoaps.com:8080/',
     outputDir: '../moondance/static/vue/',
     devServer: {
         disableHostCheck: true
@@ -50,7 +50,7 @@ module.exports = {
             .set('__STATIC__', 'static')
 
         config.devServer
-            .public('http://localhost:8080')
+            .public('http://localhost:8080/')
             .host('localhost')
             .port(8080)
             .hotOnly(true)
