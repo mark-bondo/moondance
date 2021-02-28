@@ -18,14 +18,16 @@ from django.urls import path, include
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf import settings
 from moondance.views import render_home
-from automationtools.views import report_home
+from automationtools.views import report_home, get_top_sellers
 
 urlpatterns = [
-    path("", render_home),
+    # path("", render_home),
+    path('', admin.site.urls),
     path('admin/', admin.site.urls),
     path("select2/", include("django_select2.urls")),
     path("operations/", include("operations.urls")),
     path("reports/", report_home),
+    path("reports/top-sellers/", get_top_sellers),
 ]
 
 # if settings.DEBUG:

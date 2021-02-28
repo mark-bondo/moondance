@@ -98,11 +98,16 @@ export default {
     watch: {
     },
     mounted(){
-        // this.gridApi = this.gridOptions.api;
-        // this.gridColumnApi = this.gridOptions.columnApi;
-        // this.getApiList();
+        this.$http.post(`/reports/get-top-sellers`,{
+            // data: params
+        }).then(response => {
+            this.series = response.data.series;
+        })
     },
     methods: {
+        parseDates(){
+
+        }
         // onGridReady() {
         //     var vm = this;
         //     var api_id = this.api.value;
