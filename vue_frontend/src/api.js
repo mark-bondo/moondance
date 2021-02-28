@@ -11,7 +11,7 @@ axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = "X-CSRFTOKEN"
 
 Vue.prototype.$http = axios.create({
-    baseURL: "http://localhost:8000/"
+    baseURL: "https://operations.moondancesoaps.com:8000/"
 });
 
 Vue.use(HighchartsVue)
