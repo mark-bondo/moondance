@@ -10,8 +10,8 @@ import decimal
 LOCATION_LIST = [
     ("Bondo - Garage", "Bondo - Garage"),
     ("Bondo - 2nd Floor", "Bondo - 2nd Floor"),
-    ("MoonDance HQ - Workshop",  "MoonDance HQ - Workshop"),
-    ("MoonDance HQ - Fulfillment Center",  "MoonDance HQ - Fulfillment Center"),
+    ("MoonDance - Workshop",  "MoonDance - Workshop"),
+    ("MoonDance - Fulfillment Center",  "MoonDance - Fulfillment Center"),
 ]
 
 
@@ -76,8 +76,8 @@ class Invoice(MetaModel):
         return "{} ({})".format(self.invoice, self.supplier)
 
     class Meta:
-        verbose_name = "Invoice"
-        verbose_name_plural = "Invoices"
+        verbose_name = "Inventory Receipt"
+        verbose_name_plural = "Inventory Receipts"
         ordering = ("-date_invoiced", "invoice")
 
 
@@ -102,8 +102,8 @@ class Invoice_Line(MetaModel):
         return "{} ({})".format(self.invoice, self.sku)
 
     class Meta:
-        verbose_name = "Invoice Line"
-        verbose_name_plural = "Invoice Lines"
+        verbose_name = "Recipt Line"
+        verbose_name_plural = "Recipt Lines"
         unique_together = (("sku", "invoice",),)
         ordering = ("sku",)
 

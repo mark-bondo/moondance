@@ -4,6 +4,8 @@ import axios from 'axios'
 import DataTable from './DataTable.vue'
 import '@mdi/font/css/materialdesignicons.css'
 import HighchartsVue from 'highcharts-vue'
+import "core-js/stable"
+import "regenerator-runtime/runtime"
 
 axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = "X-CSRFTOKEN"
