@@ -15,10 +15,11 @@ pip-log.txt
 *.xlsx
 *.xlsm
 *.env
-data/*
+data/
 analysis/*
 excel_loaders/*
-media/*
+media/
+static/
 
 # Vue
 vue_frontend/node_modules/
