@@ -35,8 +35,9 @@ WITH shopify_line_items AS (
         jsonb_array_elements(line_items) as line_json,
         CASE
             WHEN source_name = 'sell-on-amazon' THEN 'Amazon FBM'
+            WHEN location_id::BIGINT = 61831086229 THEN 'Farmers Market - Wake Forest'
+            WHEN source_name IN ('android', 'pos', 'iphone') OR location_id::BIGINT = 61830463637 THEN 'Farmers Market - Durham'
             WHEN source_name IN ('580111', 'web', 'shopify_draft_order') or customer->>'tags' LIKE '%wholesaler%' THEN 'Shopify Website'
-            WHEN source_name IN ('android', 'pos', 'iphone') THEN 'POS'
             ELSE source_name
         END as sales_channel,
         customer,
@@ -192,22 +193,22 @@ SELECT
     INITCAP(COALESCE((line_json->>'fulfillment_status'), 'unfulfilled')) as fulfillment_status,  
     name as order_number,
     CASE 
-        WHEN sales_channel = 'POS' and p.sku IS NULL THEN 'POS Custom Sales' 
+        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'POS Custom Sales' 
         WHEN sales_channel = 'Shopify Website' and p.sku IS NULL THEN 'Shopify Custom Sales' 
         ELSE pcode.family 
     END as product_family,
     CASE 
-        WHEN sales_channel = 'POS' and p.sku IS NULL THEN 'POS Custom Sales' 
+        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'POS Custom Sales' 
         WHEN sales_channel = 'Shopify Website' and p.sku IS NULL THEN 'Shopify Custom Sales' 
         ELSE pcode.category 
     END as product_category,
     CASE 
-        WHEN sales_channel = 'POS' and p.sku IS NULL THEN 'POS Custom Sales' 
+        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'POS Custom Sales' 
         WHEN sales_channel = 'Shopify Website' and p.sku IS NULL THEN 'Shopify Custom Sales' 
         ELSE p.sku 
     END as product_sku,
     CASE 
-        WHEN sales_channel = 'POS' and p.sku IS NULL THEN 'POS Custom Sales' 
+        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'POS Custom Sales' 
         WHEN sales_channel = 'Shopify Website' and p.sku IS NULL THEN 'Shopify Custom Sales' 
         ELSE p.description 
     END as product_description,
@@ -248,7 +249,7 @@ SELECT
     COALESCE((customer->>'first_name') || ' ' || (customer->>'last_name'), 'Unknown') as customer_name,
     customer->'default_address'->>'company' as company,
     CASE
-        WHEN sales_channel = 'POS' AND shipping_address->>'province' IS NULL THEN 'North Carolina'
+        WHEN sales_channel LIKE 'Farmers Market%' AND shipping_address->>'province' IS NULL THEN 'North Carolina'
         WHEN shipping_address->>'province' IS NULL THEN 'North Carolina' -- pickup
         WHEN shipping_address->>'province' = 'NC' THEN 'North Carolina'
         ELSE shipping_address->>'province'
@@ -562,7 +563,9 @@ SELECT
     cost_type,
     1::NUMERIC /order_count.order_line_count::NUMERIC as order_count,
     CASE
-        WHEN so.sales_channel = 'POS' THEN 'Durham County Tax' 
+        WHEN customer_type = 'Wholesale' THEN NULL
+        WHEN so.sales_channel = 'Farmers Market - Durham' THEN 'Durham County Tax'
+        WHEN so.sales_channel = 'Farmers Market - Wake Forest' THEN 'Wake County Tax' 
         ELSE order_line_taxes.county
     END as county_tax_name,
     state_tax.state as state_tax_name,
@@ -589,7 +592,9 @@ FROM
         so.order_line_id = order_line_taxes.order_line_id LEFT JOIN
     public.accounting_tax_rate_county county_tax ON
         CASE
-            WHEN so.sales_channel = 'POS' THEN 'Durham County Tax' 
+            WHEN customer_type = 'Wholesale' THEN NULL
+            WHEN so.sales_channel = 'Farmers Market - Durham' THEN 'Durham County Tax'
+            WHEN so.sales_channel = 'Farmers Market - Wake Forest' THEN 'Wake County Tax' 
             ELSE order_line_taxes.county
         END = county_tax.county LEFT JOIN
     public.accounting_tax_rate_state state_tax ON county_tax.state_id = state_tax.id
