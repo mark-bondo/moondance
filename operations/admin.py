@@ -323,8 +323,8 @@ class Finished_Goods_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "product_type",
         "product_code",
         "unit_sales_price",
-        "onhand_quantity",
         ("unit_material_cost", "unit_labor_cost", "unit_freight_cost",),
+        "onhand_quantity",
         ("unit_cost_total", "total_cost",),
         "_active",
     )
