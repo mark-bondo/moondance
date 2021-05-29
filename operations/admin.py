@@ -324,7 +324,8 @@ class Finished_Goods_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "product_code",
         "unit_sales_price",
         "onhand_quantity",
-        ("unit_cost_total", "total_cost"),
+        ("unit_material_cost", "unit_labor_cost", "unit_freight_cost",),
+        ("unit_cost_total", "total_cost",),
         "_active",
     )
     autocomplete_fields = [
@@ -350,13 +351,13 @@ class Finished_Goods_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     )
 
     def unit_cost_total(self, obj):
-        return (obj.unit_material_cost or 0) + (obj.unit_freight_cost or 0)
+        return (obj.unit_material_cost or 0) + (obj.unit_labor_cost or 0) + (obj.unit_freight_cost or 0)
 
     def onhand_quantity(self, obj):
         return get_sku_quantity(obj.pk)
 
     def total_cost(self, obj):
-        return ((obj.unit_material_cost or 0) + (obj.unit_freight_cost or 0)) * get_sku_quantity(obj.pk)
+        return ((obj.unit_material_cost or 0) + (obj.unit_labor_cost or 0) + (obj.unit_freight_cost or 0)) * get_sku_quantity(obj.pk)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request).prefetch_related("product_code")

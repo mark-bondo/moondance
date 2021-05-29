@@ -56,6 +56,7 @@ class Product(MetaModel):
     unit_weight = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     unit_sales_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     unit_material_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
+    unit_labor_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
     unit_freight_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
     product_notes = models.TextField(null=True, blank=True, verbose_name="Product Notes")
 
