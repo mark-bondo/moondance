@@ -35,9 +35,9 @@ WITH shopify_line_items AS (
         jsonb_array_elements(line_items) as line_json,
         CASE
             WHEN source_name = 'sell-on-amazon' THEN 'Amazon FBM'
+            WHEN source_name IN ('279941', '580111', 'web', 'shopify_draft_order') or customer->>'tags' LIKE '%wholesaler%' THEN 'Shopify Website'
             WHEN location_id::BIGINT = 61831086229 THEN 'Farmers Market - Wake Forest'
             WHEN source_name IN ('android', 'pos', 'iphone') OR location_id::BIGINT = 61830463637 THEN 'Farmers Market - Durham'
-            WHEN source_name IN ('580111', 'web', 'shopify_draft_order') or customer->>'tags' LIKE '%wholesaler%' THEN 'Shopify Website'
             ELSE source_name
         END as sales_channel,
         customer,
@@ -556,7 +556,7 @@ SELECT
     is_tax_exempt,
     date_created,
     date_last_updated,
-    processed_date,
+    processed_date::DATE as processed_date,
     processed_year,
     processed_month,
     processed_period,

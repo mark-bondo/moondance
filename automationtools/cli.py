@@ -3,6 +3,9 @@ import datetime
 import argparse
 import sys
 import logging
+import contextlib
+import psycopg2
+from dotenv import load_dotenv
 from logging.config import dictConfig
 from api_shopify import Shopify_API
 from api_amazon import Amazon_API
@@ -37,6 +40,7 @@ dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger("cli_logger")
 
 AMAZON_MARKETPLACE_IDS = "ATVPDKIKX0DER"
+DB_STRING = os.getenv("DB_STRING")
 
 def create_parser():
     parser = argparse.ArgumentParser(
@@ -86,6 +90,11 @@ def create_parser():
         "--time-interval",
         type=str,
         help='Date range to pull in for orders using format "YYYY-MM-DD to YYYY-MM-DD"',
+    )
+    parser.add_argument(
+        "--rebuild-sales-orders",
+        action="store_true",
+        default=False,
     )
 
     return parser
@@ -152,6 +161,8 @@ def cli():
             }
         )
 
+        rebuild_sales_orders()
+
         sys.exit()
 
     if args.sync_shopify_products:
@@ -215,6 +226,9 @@ def cli():
             }
         )
 
+    if args.rebuild_sales_orders:
+        rebuild_sales_orders()
+
 def set_interval(time_interval):
     try:
         log = "set time interval:  starting"
@@ -266,6 +280,27 @@ def sync_amazon(command, request_parameters):
     except Exception:
         logger.error(f"sync amazon {command}: failed program", exc_info=1)
 
+def rebuild_sales_orders():
+    try:
+        logger.info("rebuilding sales orders: starting program")
+        script_path = "automationtools/templates/scripts/"
+
+        with contextlib.closing(psycopg2.connect(DB_STRING)) as conn:
+            with contextlib.closing(conn.cursor()) as cursor:
+                for file_name in os.listdir(script_path):
+                    try:
+                        logger.info(f"rebuilding sales orders script {file_name}: starting execution")
+                        with open(f"{script_path}/{file_name}", "r") as f:
+                            sql = f.read()
+                            cursor.execute(sql)
+                            conn.commit()
+                        logger.info(f"rebuilding sales orders script {file_name}: completed execution")
+                    except Exception:
+                        logger.error(f"rebuilding sales orders script {file_name}: failed execution", exc_info=1)
+
+        logger.info("rebuilding sales orders: completed program")
+    except Exception:
+        logger.error("rebuilding sales orders: failed program", exc_info=1)
 
 if __name__ == "__main__":
     cli()
