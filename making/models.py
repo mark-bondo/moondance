@@ -3,7 +3,7 @@ from moondance.meta_models import MetaModel
 from simple_history.models import HistoricalRecords
 from operations.models import (
     Finished_Goods_Proxy,
-    Raw_Materials_Proxy,
+    Raw_Material_Proxy,
     Product,
 )
 from purchasing.models import (
@@ -25,7 +25,7 @@ class Recipe_Proxy(Product):
 class Recipe_Line(MetaModel):
     history = HistoricalRecords()
     sku = models.ForeignKey(
-        Raw_Materials_Proxy,
+        Raw_Material_Proxy,
         on_delete=models.PROTECT,
         related_name="Recipe_sku_fk",
         limit_choices_to=~models.Q(product_type__in=["Finished Goods"]),

@@ -11,29 +11,26 @@ from api_shopify import Shopify_API
 from api_amazon import Amazon_API
 
 LOGGING_CONFIG = {
-    'version': 1,
-    'formatters': {
-        'simple': {
-            'format': '%(levelname)s\t%(name)s\t%(asctime)s\t%(module)s@%(lineno)s\t%(message)s'
+    "version": 1,
+    "formatters": {
+        "simple": {
+            "format": "%(levelname)s\t%(name)s\t%(asctime)s\t%(module)s@%(lineno)s\t%(message)s"
         },
     },
-    'handlers': {
-        'cli_handler': {
-            'level': 'INFO',
-            'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
-            'formatter': 'simple',
-            'filename': 'automationtools/logs/cli.log',
-            'maxBytes': 1000000,
-            'backupCount': 10,
-            'encoding': 'utf8'
+    "handlers": {
+        "cli_handler": {
+            "level": "INFO",
+            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
+            "formatter": "simple",
+            "filename": "automationtools/logs/cli.log",
+            "maxBytes": 1000000,
+            "backupCount": 10,
+            "encoding": "utf8",
         }
     },
-    'loggers': {
-        'cli_logger': {
-            'level': 'INFO',
-            'handlers': ['cli_handler']
-        },
-    }
+    "loggers": {
+        "cli_logger": {"level": "INFO", "handlers": ["cli_handler"]},
+    },
 }
 
 dictConfig(LOGGING_CONFIG)
@@ -42,10 +39,9 @@ logger = logging.getLogger("cli_logger")
 AMAZON_MARKETPLACE_IDS = "ATVPDKIKX0DER"
 DB_STRING = os.getenv("DB_STRING")
 
+
 def create_parser():
-    parser = argparse.ArgumentParser(
-        description="Argument parser for Moondance."
-    )
+    parser = argparse.ArgumentParser(description="Argument parser for Moondance.")
     parser.add_argument(
         "--sync-all",
         action="store_true",
@@ -99,6 +95,7 @@ def create_parser():
 
     return parser
 
+
 def cli():
     parser = create_parser()
     args = parser.parse_args()
@@ -110,7 +107,7 @@ def cli():
             command="products",
             request_parameters={
                 "updated_at_min": interval["start_datetime"],
-            }
+            },
         )
 
         sync_shopify(
@@ -118,20 +115,16 @@ def cli():
             request_parameters={
                 "updated_at_min": interval["start_datetime"],
                 "status": "any",
-            }
+            },
         )
 
-        sync_shopify(
-            command="sync_shopify_order_events",
-            request_parameters={
-            }
-        )
+        sync_shopify(command="sync_shopify_order_events", request_parameters={})
 
         sync_shopify(
             command="customers",
             request_parameters={
                 "updated_at_min": interval["start_datetime"],
-            }
+            },
         )
 
         sync_amazon(
@@ -140,7 +133,7 @@ def cli():
                 "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
                 "LastUpdatedBefore": interval["end_datetime"],
                 "LastUpdatedAfter": interval["start_datetime"],
-            }
+            },
         )
 
         sync_amazon(
@@ -149,7 +142,7 @@ def cli():
                 "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
                 "LastUpdatedBefore": interval["end_datetime"],
                 "LastUpdatedAfter": interval["start_datetime"],
-            }
+            },
         )
 
         sync_amazon(
@@ -158,7 +151,7 @@ def cli():
                 "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
                 "PostedBefore": interval["end_datetime"],
                 "PostedAfter": interval["start_datetime"],
-            }
+            },
         )
 
         rebuild_sales_orders()
@@ -170,7 +163,7 @@ def cli():
             command="products",
             request_parameters={
                 "updated_at_min": interval["start_datetime"],
-            }
+            },
         )
 
     if args.sync_shopify_sales:
@@ -178,22 +171,18 @@ def cli():
             command="sales_orders",
             request_parameters={
                 "updated_at_min": interval["start_datetime"],
-            }
+            },
         )
 
     if args.sync_shopify_order_events:
-        sync_shopify(
-            command="sync_shopify_order_events",
-            request_parameters={
-            }
-        )
+        sync_shopify(command="sync_shopify_order_events", request_parameters={})
 
     if args.sync_shopify_customers:
         sync_shopify(
             command="customers",
             request_parameters={
                 "updated_at_min": interval["start_datetime"],
-            }
+            },
         )
 
     if args.sync_amazon_sales:
@@ -203,7 +192,7 @@ def cli():
                 "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
                 "LastUpdatedBefore": interval["end_datetime"],
                 "LastUpdatedAfter": interval["start_datetime"],
-            }
+            },
         )
 
     if args.sync_amazon_sales_lines:
@@ -213,7 +202,7 @@ def cli():
                 "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
                 "LastUpdatedBefore": interval["end_datetime"],
                 "LastUpdatedAfter": interval["start_datetime"],
-            }
+            },
         )
 
     if args.sync_amazon_financial_events:
@@ -223,11 +212,12 @@ def cli():
                 "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
                 "PostedBefore": interval["end_datetime"],
                 "PostedAfter": interval["start_datetime"],
-            }
+            },
         )
 
     if args.rebuild_sales_orders:
         rebuild_sales_orders()
+
 
 def set_interval(time_interval):
     try:
@@ -256,29 +246,26 @@ def set_interval(time_interval):
         log = f"set time interval:  completed using range of {start_datetime} to {end_datetime}"
         logger.info(log)
 
+
 def sync_shopify(command, request_parameters):
     try:
         logger.info(f"sync shopify {command}: starting program")
         shopify = Shopify_API(logger=logger)
-        shopify.process_data(
-            command=command,
-            request_parameters=request_parameters
-        )
+        shopify.process_data(command=command, request_parameters=request_parameters)
         logger.info(f"sync shopify {command}: completed program")
     except Exception:
         logger.error(f"sync shopify {command}: failed program", exc_info=1)
+
 
 def sync_amazon(command, request_parameters):
     try:
         logger.info(f"sync amazon {command}: starting program")
         amazon = Amazon_API(logger=logger)
-        amazon.process_data(
-            command=command,
-            request_parameters=request_parameters
-        )
+        amazon.process_data(command=command, request_parameters=request_parameters)
         logger.info(f"sync amazon {command}: completed program")
     except Exception:
         logger.error(f"sync amazon {command}: failed program", exc_info=1)
+
 
 def rebuild_sales_orders():
     try:
@@ -289,18 +276,26 @@ def rebuild_sales_orders():
             with contextlib.closing(conn.cursor()) as cursor:
                 for file_name in os.listdir(script_path):
                     try:
-                        logger.info(f"rebuilding sales orders script {file_name}: starting execution")
+                        logger.info(
+                            f"rebuilding sales orders script {file_name}: starting execution"
+                        )
                         with open(f"{script_path}/{file_name}", "r") as f:
                             sql = f.read()
                             cursor.execute(sql)
                             conn.commit()
-                        logger.info(f"rebuilding sales orders script {file_name}: completed execution")
+                        logger.info(
+                            f"rebuilding sales orders script {file_name}: completed execution"
+                        )
                     except Exception:
-                        logger.error(f"rebuilding sales orders script {file_name}: failed execution", exc_info=1)
+                        logger.error(
+                            f"rebuilding sales orders script {file_name}: failed execution",
+                            exc_info=1,
+                        )
 
         logger.info("rebuilding sales orders: completed program")
     except Exception:
         logger.error("rebuilding sales orders: failed program", exc_info=1)
+
 
 if __name__ == "__main__":
     cli()
