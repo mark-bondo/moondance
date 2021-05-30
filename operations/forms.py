@@ -11,9 +11,16 @@ from .models import (
 )
 
 unit_of_measure_choices = (
-    ("each", "each"),
-    ("minutes", "minutes",)
+    (
+        "each",
+        "each",
+    ),
+    (
+        "minutes",
+        "minutes",
+    ),
 )
+
 
 class Raw_Material_Proxy_Form(forms.ModelForm):
     model = Raw_Material_Proxy
@@ -29,6 +36,7 @@ class Labor_Proxy_Form(forms.ModelForm):
     model = Labor_Proxy
     product_type_list = (
         ("Labor", "Labor"),
+        ("WIP - Labor", "WIP - Labor"),
     )
     product_type = forms.ChoiceField(choices=product_type_list, initial="Labor")
     unit_of_measure = forms.ChoiceField(choices=unit_of_measure_choices)
@@ -36,13 +44,15 @@ class Labor_Proxy_Form(forms.ModelForm):
 
 class Finished_Goods_Proxy_Form(forms.ModelForm):
     model = Finished_Goods_Proxy
-    product_type_list = (
-        ("Finished Goods", "Finished Goods"),
+    product_type_list = (("Finished Goods", "Finished Goods"),)
+    product_type = forms.ChoiceField(
+        choices=product_type_list, initial="Finished Goods"
     )
-    product_type = forms.ChoiceField(choices=product_type_list, initial="Finished Goods")
 
 
 class Labor_Rates_Form(forms.ModelForm):
     model = Labor_Rates
     labor_type = forms.ChoiceField(choices=LABOR_TYPES, required=True)
-    sales_channel_type = forms.ChoiceField(choices=SALES_CHANNEL_TYPES, required=True, initial="All")
+    sales_channel_type = forms.ChoiceField(
+        choices=SALES_CHANNEL_TYPES, required=True, initial="All"
+    )

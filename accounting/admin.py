@@ -16,9 +16,7 @@ class Tax_Rate_County_Admin_Inline(admin.TabularInline):
         "transit_rate",
         "_last_updated",
     )
-    readonly_fields = (
-        "_last_updated",
-    )
+    readonly_fields = ("_last_updated",)
 
 
 @admin.register(Tax_Rate_State)
@@ -41,9 +39,7 @@ class Tax_Rate_State_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "base_rate",
         "_last_updated",
     )
-    readonly_fields = (
-        "_last_updated",
-    )
+    readonly_fields = ("_last_updated",)
 
     def save_model(self, request, obj, form, change):
         obj = set_meta_fields(request, obj, form, change)

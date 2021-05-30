@@ -1,10 +1,7 @@
-import decimal
-import django.urls as urlresolvers
-from django.utils.safestring import mark_safe
 from django.contrib import admin
 from moondance.meta_models import set_meta_fields, AdminStaticMixin
 from simple_history.admin import SimpleHistoryAdmin
-from .models import(
+from .models import (
     Shopify_Product,
     Amazon_Product,
     Product_Missing_SKU,
@@ -45,9 +42,7 @@ class Shopify_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "customer_type",
         "handle",
     )
-    readonly_fields = (
-        "variant_id",
-    )
+    readonly_fields = ("variant_id",)
     list_editable = [
         "product",
     ]
@@ -106,7 +101,7 @@ class Product_Missing_SKU_Admin(AdminStaticMixin):
         "product_description",
         "product",
     ]
-    list_editable =[
+    list_editable = [
         "source_system",
         "product_description",
         "product",

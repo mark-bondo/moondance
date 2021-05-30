@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class OperationsConfig(AppConfig):
-    name = 'operations'
+    name = "operations"
 
     def ready(self):
         import operations.signals  # noqa

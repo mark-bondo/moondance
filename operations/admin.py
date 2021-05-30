@@ -437,6 +437,7 @@ class Labor_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         return qs.filter(
             product_type__in=[
                 "Labor",
+                "WIP - Labor"
             ]
         )
 

@@ -3,10 +3,11 @@ from django.http import HttpResponse
 from django.db import connection
 from django.contrib.auth.decorators import login_required
 
+
 # Create your views here.
 def report_home(request):
-
     return render(request, "report_home.html", context={"test": "hello world"})
+
 
 @login_required
 def get_top_sellers(request):
@@ -60,4 +61,4 @@ def get_top_sellers(request):
         cursor.execute(sql)
         json_data = cursor.fetchall()[0]
 
-    return HttpResponse(json_data , content_type="application/json")
+    return HttpResponse(json_data, content_type="application/json")

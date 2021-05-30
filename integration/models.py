@@ -1,13 +1,7 @@
-import sys
 from django.db import models
 from moondance.meta_models import MetaModel
 from simple_history.models import HistoricalRecords
-from datetime import datetime
-from django.utils import timezone
-import decimal
-from operations.models import(
-    Finished_Goods_Proxy
-)
+from operations.models import Finished_Goods_Proxy
 
 
 class Amazon_Product(MetaModel):
@@ -21,9 +15,8 @@ class Amazon_Product(MetaModel):
         blank=True,
         null=True,
         on_delete=models.PROTECT,
-        related_name="amazon_product_product_fk"
+        related_name="amazon_product_product_fk",
     )
-
 
     def __str__(self):
         return "{}: {}".format(self.asin, self.seller_sku)
@@ -31,7 +24,11 @@ class Amazon_Product(MetaModel):
     class Meta:
         verbose_name = "Amazon Product"
         verbose_name_plural = "Amazon Products"
-        ordering = ("product__sku", "seller_sku", "asin",)
+        ordering = (
+            "product__sku",
+            "seller_sku",
+            "asin",
+        )
 
 
 class Shopify_Product(MetaModel):
@@ -56,7 +53,7 @@ class Shopify_Product(MetaModel):
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        related_name="shopify_product_sku_fk"
+        related_name="shopify_product_sku_fk",
     )
 
     def __str__(self):
@@ -65,7 +62,10 @@ class Shopify_Product(MetaModel):
     class Meta:
         verbose_name = "Shopify Product"
         verbose_name_plural = "Shopify Products"
-        ordering = ("product__sku", "variant_id",)
+        ordering = (
+            "product__sku",
+            "variant_id",
+        )
 
 
 class Product_Missing_SKU(MetaModel):
@@ -78,12 +78,16 @@ class Product_Missing_SKU(MetaModel):
     product = models.ForeignKey(
         Finished_Goods_Proxy,
         on_delete=models.PROTECT,
-        related_name="Product_Missing_SKU_product_fk"
+        related_name="Product_Missing_SKU_product_fk",
     )
 
     def __str__(self):
         return "{} ({})".format(self.source_system, self.product_description)
+
     class Meta:
         verbose_name = "Product Description Mapping"
         verbose_name_plural = "Product Description Mappings"
-        unique_together = (("source_system", "product_description",))
+        unique_together = (
+            "source_system",
+            "product_description",
+        )

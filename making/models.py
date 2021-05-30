@@ -1,16 +1,12 @@
-import sys
 from django.db import models
 from moondance.meta_models import MetaModel
 from simple_history.models import HistoricalRecords
-from datetime import datetime
-from django.utils import timezone
-import decimal
-from operations.models import(
+from operations.models import (
     Finished_Goods_Proxy,
-    Raw_Material_Proxy,
+    Raw_Materials_Proxy,
     Product,
 )
-from purchasing.models import(
+from purchasing.models import (
     unit_of_measure_choices,
 )
 
@@ -28,10 +24,19 @@ class Recipe_Proxy(Product):
 
 class Recipe_Line(MetaModel):
     history = HistoricalRecords()
-    sku = models.ForeignKey(Raw_Material_Proxy, on_delete=models.PROTECT, related_name="Recipe_sku_fk")
-    sku_parent = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="Recipe_sku_parent_fk")
+    sku = models.ForeignKey(
+        Raw_Materials_Proxy,
+        on_delete=models.PROTECT,
+        related_name="Recipe_sku_fk",
+        limit_choices_to=~models.Q(product_type__in=["Finished Goods"]),
+    )
+    sku_parent = models.ForeignKey(
+        Product, on_delete=models.PROTECT, related_name="Recipe_sku_parent_fk"
+    )
     quantity = models.DecimalField(max_digits=12, decimal_places=5)
-    unit_of_measure = models.CharField(max_length=200, choices=unit_of_measure_choices, default="grams")
+    unit_of_measure = models.CharField(
+        max_length=200, choices=unit_of_measure_choices, default="grams"
+    )
 
     def __str__(self):
         return "{} ({})".format(self.sku, self.sku_parent)
@@ -39,7 +44,12 @@ class Recipe_Line(MetaModel):
     class Meta:
         verbose_name = "Recipe Line"
         verbose_name_plural = "Recipe Lines"
-        unique_together = (("sku", "sku_parent",),)
+        unique_together = (
+            (
+                "sku",
+                "sku_parent",
+            ),
+        )
         ordering = ("sku_parent", "sku")
 
 
@@ -60,7 +70,7 @@ class Product_Bundle_Header(MetaModel):
         Finished_Goods_Proxy,
         on_delete=models.PROTECT,
         related_name="Product_Bundle_product_bundle_fk",
-        primary_key=True
+        primary_key=True,
     )
 
     def __str__(self):
@@ -70,6 +80,7 @@ class Product_Bundle_Header(MetaModel):
         verbose_name = "Product Bundle"
         verbose_name_plural = "Product Bundles"
         ordering = ("bundle__sku",)
+
 
 class Product_Bundle_Line(MetaModel):
     history = HistoricalRecords()
@@ -82,7 +93,7 @@ class Product_Bundle_Line(MetaModel):
     product_used = models.ForeignKey(
         Finished_Goods_Proxy,
         on_delete=models.PROTECT,
-        related_name="Product_Bundle_product_used_fk"
+        related_name="Product_Bundle_product_used_fk",
     )
     quantity = models.IntegerField()
 
@@ -92,4 +103,7 @@ class Product_Bundle_Line(MetaModel):
     class Meta:
         verbose_name = "Bundled Product"
         verbose_name_plural = "Bundled Products"
-        ordering = ("bundle", "product_used__sku",)
+        ordering = (
+            "bundle",
+            "product_used__sku",
+        )

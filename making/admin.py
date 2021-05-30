@@ -1,6 +1,4 @@
 import decimal
-import django.urls as urlresolvers
-from django.utils.safestring import mark_safe
 from django.contrib import admin
 from moondance.meta_models import set_meta_fields, AdminStaticMixin
 from simple_history.admin import SimpleHistoryAdmin
@@ -10,9 +8,6 @@ from .models import (
     Recipe_Proxy,
     Product_Bundle_Header,
     Product_Bundle_Line,
-)
-from operations.models import (
-    Finished_Goods_Proxy,
 )
 
 
@@ -26,9 +21,7 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
         "cost",
         "_active",
     )
-    readonly_fields = (
-        "cost",
-    )
+    readonly_fields = ("cost",)
     history_list_display = [
         "sku",
         "quantity",
@@ -47,15 +40,22 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
         # print(obj.sku, obj.quantity, obj.sku.unit_material_cost)
 
         if obj.pk:
-            if obj.unit_of_measure == 'each':
+            if obj.unit_of_measure == "each":
                 converted_weight = obj.quantity
             else:
-                new_weight_dict = convert_weight(unit_of_measure=obj.unit_of_measure, weight=obj.quantity)
+                new_weight_dict = convert_weight(
+                    unit_of_measure=obj.unit_of_measure, weight=obj.quantity
+                )
                 converted_weight = new_weight_dict[obj.sku.unit_of_measure]
-            
-        # print(obj.sku, obj.unit_of_measure, obj.quantity, converted_weight)
 
-            return round(decimal.Decimal(obj.sku.unit_material_cost or 0) * decimal.Decimal(converted_weight or 0), 5)
+            # print(obj.sku, obj.unit_of_measure, obj.quantity, converted_weight)
+
+            return round(
+                decimal.Decimal(obj.sku.unit_material_cost or 0)
+                * decimal.Decimal(converted_weight or 0),
+                5,
+            )
+
 
 @admin.register(Recipe_Proxy)
 class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
@@ -111,7 +111,7 @@ class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.filter(product_type__in=["WIP", "Finished Goods"])
+        return qs.filter(product_type__in=["WIP", "WIP - Labor", "Finished Goods"])
 
     def recipe_cost(self, obj):
         cost = Recipe_Line.objects.filter(sku_parent=obj.pk).select_related()
@@ -120,15 +120,23 @@ class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         for c in cost:
             # print(c.sku, c.sku.unit_of_measure, c.sku.unit_material_cost)
 
-            if c.unit_of_measure == 'each':
+            if c.unit_of_measure == "each":
                 converted_weight = c.quantity
             else:
-                new_weight_dict = convert_weight(unit_of_measure=c.unit_of_measure, weight=c.quantity)
+                new_weight_dict = convert_weight(
+                    unit_of_measure=c.unit_of_measure, weight=c.quantity
+                )
                 converted_weight = new_weight_dict[c.sku.unit_of_measure]
-            
+
             recipe_cost += (c.sku.unit_material_cost or 0) * (converted_weight or 0)
 
         return round(recipe_cost, 5)
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def save_formset(self, request, form, formset, change):
         # set meta fields
@@ -164,9 +172,7 @@ class Product_Bundle_Line_Admin(admin.TabularInline):
     autocomplete_fields = [
         "product_used",
     ]
-    readonly_fields = (
-        "_last_updated",
-    )
+    readonly_fields = ("_last_updated",)
 
 
 @admin.register(Product_Bundle_Header)
@@ -197,7 +203,6 @@ class Product_Bundle_Header_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     fields = (
         "bundle",
         "_active",
-
     )
 
     def save_formset(self, request, form, formset, change):
