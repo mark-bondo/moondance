@@ -18,6 +18,10 @@
     width: 400px !important;
 }
 
+#recipe_proxy_form .select2-container{
+    width: 350px !important;
+}
+
 
 #inventory_onhand_form .select2-container{
     width: 350px !important;

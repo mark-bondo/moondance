@@ -1,6 +1,7 @@
 import decimal
 import django.urls as urlresolvers
 from django.utils.safestring import mark_safe
+from django.utils.timezone import datetime
 from django.contrib import admin
 from moondance.meta_models import set_meta_fields, AdminStaticMixin
 from simple_history.admin import SimpleHistoryAdmin
@@ -9,6 +10,8 @@ from .models import (
     Product_Code,
     Raw_Material_Proxy,
     Finished_Goods_Proxy,
+    Labor_Proxy,
+    Labor_Rates,
     Order_Cost_Overlay,
 )
 from purchasing.admin import(
@@ -21,6 +24,8 @@ from purchasing.models import(
 from .forms import (
     Raw_Material_Proxy_Form,
     Finished_Goods_Proxy_Form,
+    Labor_Proxy_Form,
+    Labor_Rates_Form,
 )
 
 
@@ -43,6 +48,71 @@ def convert_weight(unit_of_measure, weight):
             "lbs": weight * decimal.Decimal(453.592),
             "oz": weight / decimal.Decimal(28.3495)
         }
+
+
+@admin.register(Labor_Rates)
+class Labor_Rates_Admin(admin.ModelAdmin):
+    model = Labor_Rates
+    form = Labor_Rates_Form
+    save_as = True
+
+    list_display = [
+        "sales_channel_type",
+        "labor_type",
+        "labor_rate",
+        "start_date",
+        "end_date",
+        "_active",
+    ]
+    history_list_display = [
+        "sales_channel_type",
+        "labor_type",
+        "labor_rate",
+        "start_date",
+        "end_date",
+        "_last_updated",
+        "_last_updated_by",
+        "_created",
+        "_created_by",
+        "_active",
+    ]
+
+    fieldsets = (
+        (
+            "Summary",
+            {
+                "fields": [
+                    "sales_channel_type",
+                    "labor_type",
+                    "labor_rate",
+                    "start_date",
+                    "end_date",
+                    "_active",
+                ]
+            },
+        ),
+        (
+            "Change History",
+            {
+                "fields": (
+                    "_last_updated",
+                    "_last_updated_by",
+                    "_created",
+                    "_created_by",
+                )
+            },
+        ),
+    )
+    readonly_fields = (
+        "_last_updated",
+        "_last_updated_by",
+        "_created",
+        "_created_by",
+    )
+
+    def save_model(self, request, obj, form, change):
+        obj = set_meta_fields(request, obj, form, change)
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Product_Code)
@@ -241,7 +311,7 @@ class Raw_Material_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request).prefetch_related("product_code")
-        return qs.filter(product_type__in=["WIP", "Raw Materials"])
+        return qs.filter(product_type__in=["WIP", "Raw Materials",])
 
     def save_formset(self, request, form, formset, change):
         # set meta fields
@@ -288,6 +358,98 @@ class Raw_Material_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             parent_obj.total_freight_cost = (decimal.Decimal(parent_obj.product_code.freight_factor_percentage or 0) / decimal.Decimal(100)) * parent_obj.total_material_cost
             parent_obj.total_cost = parent_obj.total_material_cost + (parent_obj.total_freight_cost or 0)
             parent_obj.save()
+
+
+@admin.register(Labor_Proxy)
+class Labor_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
+    model = Labor_Proxy
+    form = Labor_Proxy_Form
+    save_as = True
+
+    list_display = [
+        "sku",
+        "description",
+        "_active",
+        "product_type",
+        "product_code",
+        "unit_of_measure",
+        "labor_type",
+        "labor_amount",
+        "unit_labor_cost",
+    ]
+    history_list_display = [
+        "sku",
+        "description",
+        "_active",
+        "product_type",
+        "product_code",
+        "unit_of_measure",
+        "labor_type",
+        "labor_amount",
+        "unit_labor_cost",
+        "_last_updated",
+        "_last_updated_by",
+        "_created",
+        "_created_by",
+    ]
+    autocomplete_fields = [
+        "product_code",
+    ]
+    search_fields = [
+        "sku",
+        "description",
+        "product_code__category",
+        "product_code__family",
+    ]
+    list_filter = [
+        ("_active", admin.BooleanFieldListFilter),
+        "product_type",
+        ("product_code", admin.RelatedOnlyFieldListFilter),
+    ]
+    fieldsets = (
+        (
+            "Summary",
+            {
+                "fields": [
+                    "sku",
+                    "description",
+                    "product_type",
+                    "product_code",
+                    "unit_of_measure",
+                    "labor_type",
+                    "labor_amount",
+                    "unit_labor_cost",
+                    "_active",
+                ]
+            },
+        ),
+    )
+    readonly_fields = (
+        "unit_labor_cost",
+        "_last_updated",
+        "_created",
+        "_created_by",
+    )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request).prefetch_related("product_code")
+        return qs.filter(product_type__in=["Labor",])
+
+    def save_model(self, request, obj, form, change):
+        today = datetime.today()
+        obj = set_meta_fields(request, obj, form, change)
+
+        if obj.unit_of_measure == "minutes":
+            labor = Labor_Rates.objects.filter(
+                labor_type=obj.labor_type,
+                start_date__gte=today,
+                end_date__lte=today
+            )
+            obj.unit_labor_cost = (obj.labor_amount or 0) * (labor.labor_rate or 0)
+        elif obj.unit_of_measure == "each":
+            obj.unit_labor_cost = (obj.labor_amount or 0)
+
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Finished_Goods_Proxy)
@@ -380,6 +542,8 @@ class Finished_Goods_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 @admin.register(Order_Cost_Overlay)
 class Order_Cost_Overlay_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Order_Cost_Overlay
+    save_as = True
+
     list_display = [
         "sales_channel",
         "name",
