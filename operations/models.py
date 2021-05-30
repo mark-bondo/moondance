@@ -60,6 +60,7 @@ class Labor_Rates(MetaModel):
     start_date = models.DateField()
     end_date = models.DateField()
     date_span = DateRangeField()
+    notes = models.TextField(null=True, blank=True)
 
     def full_clean(self, *args, **kwargs):
         super(Labor_Rates, self).full_clean(*args, **kwargs)
@@ -101,8 +102,9 @@ class Product(MetaModel):
     unit_labor_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
     unit_freight_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
     product_notes = models.TextField(null=True, blank=True, verbose_name="Product Notes")
-    labor_amount = models.IntegerField(null=True, blank=True)
+    labor_amount = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     labor_type = models.CharField(max_length=100, choices=LABOR_TYPES, null=True, blank=True)
+    notes = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return "{} ({})".format(self.description, self.sku)
