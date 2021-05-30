@@ -53,18 +53,22 @@ class Product_Code(MetaModel):
         blank=True,
         help_text="Percentage adder to material cost. Use whole numbers with 2 decimals maximum.",
     )
+    sales_channel_type = models.CharField(
+        max_length=100, choices=SALES_CHANNEL_TYPES, null=True, blank=True
+    )
+
     original_freight_factor_percentage = None
 
     def __str__(self):
-        return "{}".format(self.category)
+        return "{} - {}".format(self.family, self.category)
 
     def __init__(self, *args, **kwargs):
         super(Product_Code, self).__init__(*args, **kwargs)
         self.original_freight_factor_percentage = self.freight_factor_percentage
 
     class Meta:
-        verbose_name = "Product - Category"
-        verbose_name_plural = "Product - Categories"
+        verbose_name = "Product Category"
+        verbose_name_plural = "Product Categories"
         ordering = (
             "type",
             "family",
@@ -72,21 +76,32 @@ class Product_Code(MetaModel):
         )
 
 
-class Labor_Rates(MetaModel):
+class Labor_Code(Product_Code):
+    class Meta:
+        proxy = True
+        verbose_name = "Labor Category"
+        verbose_name_plural = "Labor Categories"
+
+
+class Labor_Rate(MetaModel):
     history = HistoricalRecords(inherit=True)
-    sales_channel_type = models.CharField(max_length=100, choices=SALES_CHANNEL_TYPES)
-    labor_type = models.CharField(max_length=100, choices=LABOR_TYPES)
+    labor_code = models.ForeignKey(
+        Labor_Code,
+        blank=True,
+        null=True,
+        on_delete=models.CASCADE,
+        related_name="labor_rates_labor_code_fk",
+    )
     labor_rate = models.DecimalField(max_digits=6, decimal_places=2)
     start_date = models.DateField()
     end_date = models.DateField()
     date_span = DateRangeField()
-    notes = models.TextField(null=True, blank=True)
 
     def full_clean(self, *args, **kwargs):
-        super(Labor_Rates, self).full_clean(*args, **kwargs)
+        super(Labor_Rate, self).full_clean(*args, **kwargs)
         self.date_span = (self.start_date, self.end_date)
         o = (
-            Labor_Rates.objects.filter(labor_type=self.labor_type)
+            Labor_Rate.objects.filter(labor_code=self.labor_code)
             .filter(date_span__overlap=self.date_span)
             .exclude(pk=self.pk)
             .first()
@@ -95,19 +110,19 @@ class Labor_Rates(MetaModel):
             raise ValidationError("Date Range overlaps with another record")
 
     def __str__(self):
-        return "{} ({})".format(self.sales_channel_type, self.labor_type)
+        return "{}".format(self.labor_code)
 
     class Meta:
         verbose_name = "Labor Rate"
         verbose_name_plural = "Labor Rates"
         ordering = (
-            "labor_type",
+            "labor_code",
             "start_date",
             "end_date",
         )
         unique_together = (
             (
-                "labor_type",
+                "labor_code",
                 "start_date",
                 "end_date",
             ),
@@ -117,7 +132,6 @@ class Labor_Rates(MetaModel):
 class Product(MetaModel):
     history = HistoricalRecords(inherit=True)
 
-    product_type = models.CharField(max_length=200, choices=TYPE_LIST)
     product_code = models.ForeignKey(
         Product_Code,
         on_delete=models.PROTECT,
@@ -149,12 +163,6 @@ class Product(MetaModel):
     product_notes = models.TextField(
         null=True, blank=True, verbose_name="Product Notes"
     )
-    labor_amount = models.DecimalField(
-        max_digits=6, decimal_places=2, null=True, blank=True
-    )
-    labor_type = models.CharField(
-        max_length=100, choices=LABOR_TYPES, null=True, blank=True
-    )
     notes = models.TextField(null=True, blank=True)
 
     def __str__(self):
@@ -169,8 +177,8 @@ class Product(MetaModel):
 class Raw_Material_Proxy(Product):
     class Meta:
         proxy = True
-        verbose_name = "Product - Raw Material"
-        verbose_name_plural = "Product - Raw Materials"
+        verbose_name = "Product Raw Material"
+        verbose_name_plural = "Product Raw Materials"
         ordering = ("sku",)
 
     original_unit_of_measure = None
@@ -185,8 +193,8 @@ class Raw_Material_Proxy(Product):
 class Labor_Proxy(Product):
     class Meta:
         proxy = True
-        verbose_name = "Product - Labor"
-        verbose_name_plural = "Product - Labor"
+        verbose_name = "Labor Items"
+        verbose_name_plural = "Labor Items"
         ordering = ("sku",)
 
     original_unit_of_measure = None
@@ -201,8 +209,8 @@ class Labor_Proxy(Product):
 class Finished_Goods_Proxy(Product):
     class Meta:
         proxy = True
-        verbose_name = "Product - Finished Good"
-        verbose_name_plural = "Product - Finished Goods"
+        verbose_name = "Product Finished Good"
+        verbose_name_plural = "Product Finished Goods"
         ordering = ("sku",)
 
 

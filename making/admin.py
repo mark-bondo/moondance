@@ -1,5 +1,6 @@
 import decimal
 from django.contrib import admin
+from django.utils.timezone import datetime
 from moondance.meta_models import set_meta_fields, AdminStaticMixin
 from simple_history.admin import SimpleHistoryAdmin
 from operations.admin import convert_weight
@@ -9,6 +10,37 @@ from .models import (
     Product_Bundle_Header,
     Product_Bundle_Line,
 )
+from operations.models import Labor_Rate
+
+
+def calculate_cost(obj):
+    if obj.sku.product_code.type in (
+        "Labor",
+        "WIP - Labor",
+    ):
+        today = datetime.today()
+        labor = Labor_Rate.objects.get(
+            labor_code=obj.sku.product_code,
+            start_date__lte=today,
+            end_date__gte=today,
+        )
+        cost = (obj.quantity or 0) * ((labor.labor_rate or 0) / decimal.Decimal(60))
+    elif obj.unit_of_measure == "each":
+        cost = (obj.sku.unit_material_cost * obj.quantity) or 0
+    else:
+        converted_weight = convert_weight(
+            from_measure=obj.unit_of_measure,
+            to_measure=obj.sku.unit_of_measure,
+            weight=obj.quantity,
+        )
+
+        cost = (
+            decimal.Decimal(obj.sku.unit_material_cost or 0)
+            * obj.quantity
+            * decimal.Decimal(converted_weight or 0)
+        )
+
+    return round(cost, 5)
 
 
 class Recipe_Line_Inline_Admin(admin.TabularInline):
@@ -37,24 +69,8 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
     ]
 
     def cost(self, obj):
-        # print(obj.sku, obj.quantity, obj.sku.unit_material_cost)
-
         if obj.pk:
-            if obj.unit_of_measure == "each":
-                converted_weight = obj.quantity
-            else:
-                new_weight_dict = convert_weight(
-                    unit_of_measure=obj.unit_of_measure, weight=obj.quantity
-                )
-                converted_weight = new_weight_dict[obj.sku.unit_of_measure]
-
-            # print(obj.sku, obj.unit_of_measure, obj.quantity, converted_weight)
-
-            return round(
-                decimal.Decimal(obj.sku.unit_material_cost or 0)
-                * decimal.Decimal(converted_weight or 0),
-                5,
-            )
+            return calculate_cost(obj)
 
 
 @admin.register(Recipe_Proxy)
@@ -65,7 +81,6 @@ class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "sku",
         "description",
         "_active",
-        "product_type",
         "product_code",
         "unit_of_measure",
         "unit_material_cost",
@@ -79,14 +94,12 @@ class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     ]
     list_filter = [
         ("_active", admin.BooleanFieldListFilter),
-        "product_type",
         "product_code",
     ]
     history_list_display = [
         "sku",
         "description",
         "_active",
-        "product_type",
         "product_code",
         "unit_of_measure",
         "unit_material_cost",
@@ -111,26 +124,18 @@ class Product_Recipe_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.filter(product_type__in=["WIP", "WIP - Labor", "Finished Goods"])
+        return qs.filter(
+            product_code__type__in=["WIP", "WIP - Labor", "Finished Goods"]
+        )
 
     def recipe_cost(self, obj):
         cost = Recipe_Line.objects.filter(sku_parent=obj.pk).select_related()
         recipe_cost = 0
 
         for c in cost:
-            # print(c.sku, c.sku.unit_of_measure, c.sku.unit_material_cost)
+            recipe_cost += calculate_cost(c)
 
-            if c.unit_of_measure == "each":
-                converted_weight = c.quantity
-            else:
-                new_weight_dict = convert_weight(
-                    unit_of_measure=c.unit_of_measure, weight=c.quantity
-                )
-                converted_weight = new_weight_dict[c.sku.unit_of_measure]
-
-            recipe_cost += (c.sku.unit_material_cost or 0) * (converted_weight or 0)
-
-        return round(recipe_cost, 5)
+        return recipe_cost
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -217,8 +222,3 @@ class Product_Bundle_Header_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             obj.delete()
 
         formset.save_m2m()
-
-    # def get_queryset(self, request):
-    #     bundles = Product_Bundle_Line.objects.values("bundle").annotate(n=Count("pk"))
-    #     qs = super().get_queryset(request).filter(pk__in=bundles)
-    #     return qs

@@ -1,58 +1,60 @@
 from django import forms
-from django_select2 import forms as s2forms
 from .models import (
     Raw_Material_Proxy,
-    Product,
+    Product_Code,
+    Labor_Code,
     Labor_Proxy,
     Finished_Goods_Proxy,
-    Labor_Rates,
-    LABOR_TYPES,
     SALES_CHANNEL_TYPES,
 )
-
-unit_of_measure_choices = (
-    (
-        "each",
-        "each",
-    ),
-    (
-        "minutes",
-        "minutes",
-    ),
-)
-
-
-class Raw_Material_Proxy_Form(forms.ModelForm):
-    model = Raw_Material_Proxy
-    product_type_list = (
-        ("Raw Materials", "Raw Materials"),
-        ("WIP", "WIP"),
-        ("Labor", "Labor"),
-    )
-    product_type = forms.ChoiceField(choices=product_type_list, initial="Raw Materials")
 
 
 class Labor_Proxy_Form(forms.ModelForm):
     model = Labor_Proxy
-    product_type_list = (
-        ("Labor", "Labor"),
-        ("WIP - Labor", "WIP - Labor"),
+
+    unit_of_measure_choices = (
+        (
+            "each",
+            "each",
+        ),
+        (
+            "minutes",
+            "minutes",
+        ),
     )
-    product_type = forms.ChoiceField(choices=product_type_list, initial="Labor")
     unit_of_measure = forms.ChoiceField(choices=unit_of_measure_choices)
+
+
+class Raw_Material_Proxy_Form(forms.ModelForm):
+    model = Raw_Material_Proxy
 
 
 class Finished_Goods_Proxy_Form(forms.ModelForm):
     model = Finished_Goods_Proxy
-    product_type_list = (("Finished Goods", "Finished Goods"),)
-    product_type = forms.ChoiceField(
-        choices=product_type_list, initial="Finished Goods"
+
+
+class Product_Code_Form(forms.ModelForm):
+    model = Product_Code
+
+    type_list = (
+        ("Finished Goods", "Finished Goods"),
+        ("Raw Materials", "Raw Materials"),
+        ("WIP", "WIP"),
     )
+    type = forms.ChoiceField(choices=type_list, required=True)
 
 
-class Labor_Rates_Form(forms.ModelForm):
-    model = Labor_Rates
-    labor_type = forms.ChoiceField(choices=LABOR_TYPES, required=True)
+class Labor_Code_Form(forms.ModelForm):
+    model = Labor_Code
+
+    type_list = (
+        ("Labor", "Labor"),
+        (
+            "WIP - Labor",
+            "WIP - Labor",
+        ),
+    )
+    type = forms.ChoiceField(choices=type_list, initial="Labor", required=True)
     sales_channel_type = forms.ChoiceField(
         choices=SALES_CHANNEL_TYPES, required=True, initial="All"
     )

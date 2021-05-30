@@ -1,17 +1,16 @@
 import decimal
-import django.urls as urlresolvers
-from django.utils.safestring import mark_safe
-from django.utils.timezone import datetime
+from django.db import models
+from django.db import connection
 from django.contrib import admin
 from moondance.meta_models import set_meta_fields, AdminStaticMixin
 from simple_history.admin import SimpleHistoryAdmin
 from .models import (
-    Product,
     Product_Code,
     Raw_Material_Proxy,
     Finished_Goods_Proxy,
     Labor_Proxy,
-    Labor_Rates,
+    Labor_Rate,
+    Labor_Code,
     Order_Cost_Overlay,
 )
 from purchasing.admin import Supplier_Product_Admin_Inline, get_sku_quantity
@@ -21,70 +20,145 @@ from purchasing.models import (
 from .forms import (
     Raw_Material_Proxy_Form,
     Finished_Goods_Proxy_Form,
+    Labor_Code_Form,
     Labor_Proxy_Form,
-    Labor_Rates_Form,
+    Product_Code_Form,
 )
 
 
-def convert_weight(unit_of_measure, weight):
-    if unit_of_measure == "oz":
-        return {
-            "grams": weight * decimal.Decimal(28.3495),
-            "lbs": weight / decimal.Decimal(16),
-            "oz": weight,
-        }
-    elif unit_of_measure == "lbs":
-        return {
-            "grams": weight * decimal.Decimal(453.592),
-            "lbs": weight,
-            "oz": weight * decimal.Decimal(16),
-        }
-    elif unit_of_measure == "grams":
-        return {
-            "grams": weight,
-            "lbs": weight * decimal.Decimal(453.592),
-            "oz": weight / decimal.Decimal(28.3495),
-        }
+def convert_weight(to_measure, from_measure, weight):
+
+    with connection.cursor() as cursor:
+        sql = f"""
+            SELECT
+                (conversion_rate * {weight})::NUMERIC(16, 5) as converted_weight
+            FROM
+                public.making_weight_conversions
+            WHERE
+                from_measure = '{from_measure}' AND
+                to_measure = '{to_measure}'
+        """
+        cursor.execute(sql)
+        return cursor.fetchall()[0][0]
 
 
-@admin.register(Labor_Rates)
-class Labor_Rates_Admin(admin.ModelAdmin):
-    model = Labor_Rates
-    form = Labor_Rates_Form
+@admin.register(Labor_Proxy)
+class Labor_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
+    model = Labor_Proxy
+    form = Labor_Proxy_Form
     save_as = True
 
     list_display = [
-        "sales_channel_type",
-        "labor_type",
-        "labor_rate",
-        "start_date",
-        "end_date",
+        "sku",
+        "description",
         "_active",
+        "product_code",
+        "unit_of_measure",
     ]
     history_list_display = [
-        "sales_channel_type",
-        "labor_type",
-        "labor_rate",
-        "start_date",
-        "end_date",
+        "sku",
+        "description",
+        "_active",
+        "product_code",
+        "unit_of_measure",
         "_last_updated",
         "_last_updated_by",
         "_created",
         "_created_by",
-        "_active",
     ]
-
+    autocomplete_fields = [
+        "product_code",
+    ]
+    search_fields = [
+        "sku",
+        "description",
+        "product_code__category",
+        "product_code__family",
+    ]
+    list_filter = [
+        ("_active", admin.BooleanFieldListFilter),
+        ("product_code", admin.RelatedOnlyFieldListFilter),
+    ]
     fieldsets = (
         (
             "Summary",
             {
                 "fields": [
+                    "sku",
+                    "description",
+                    "product_code",
+                    "unit_of_measure",
+                    "_active",
+                ]
+            },
+        ),
+    )
+    readonly_fields = (
+        "unit_labor_cost",
+        "_last_updated",
+        "_created",
+        "_created_by",
+    )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request).prefetch_related("product_code")
+        return qs.filter(product_code__type__in=["Labor", "WIP - Labor"])
+
+    def save_model(self, request, obj, form, change):
+        obj.save()
+        super().save_model(request, obj, form, change)
+
+
+class Labor_Rate_Inline_Admin(admin.TabularInline):
+    model = Labor_Rate
+    extra = 1
+
+    fields = (
+        "labor_rate",
+        "start_date",
+        "end_date",
+        "_active",
+    )
+    readonly_fields = (
+        "_last_updated",
+        "_last_updated_by",
+        "_created",
+        "_created_by",
+    )
+
+
+@admin.register(Labor_Code)
+class Labor_Code_Admin(admin.ModelAdmin):
+    model = Labor_Code
+    form = Labor_Code_Form
+    save_as = True
+    inlines = (Labor_Rate_Inline_Admin,)
+
+    list_display = [
+        "type",
+        "family",
+        "category",
+        "sales_channel_type",
+        "_active",
+    ]
+    list_filter = [
+        "_active",
+        "type",
+        "family",
+    ]
+    search_fields = [
+        "family",
+        "category",
+    ]
+    fieldsets = (
+        (
+            "Summary",
+            {
+                "fields": [
+                    "type",
+                    "family",
+                    "category",
                     "sales_channel_type",
-                    "labor_type",
-                    "labor_rate",
-                    "start_date",
-                    "end_date",
-                    "notes",
                     "_active",
                 ]
             },
@@ -108,6 +182,15 @@ class Labor_Rates_Admin(admin.ModelAdmin):
         "_created_by",
     )
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(
+            type__in=[
+                "Labor",
+                "WIP - Labor",
+            ]
+        )
+
     def save_model(self, request, obj, form, change):
         obj = set_meta_fields(request, obj, form, change)
         super().save_model(request, obj, form, change)
@@ -116,18 +199,15 @@ class Labor_Rates_Admin(admin.ModelAdmin):
 @admin.register(Product_Code)
 class Product_Code_Admin(admin.ModelAdmin):
     model = Product_Code
+    form = Product_Code_Form
+    save_as = True
+
     list_display = [
+        "type",
+        "family",
+        "category",
+        "freight_factor_percentage",
         "_active",
-        "type",
-        "family",
-        "category",
-        "freight_factor_percentage",
-    ]
-    list_editable = [
-        "type",
-        "family",
-        "category",
-        "freight_factor_percentage",
     ]
     list_filter = [
         "_active",
@@ -143,6 +223,7 @@ class Product_Code_Admin(admin.ModelAdmin):
             "Summary",
             {
                 "fields": [
+                    "type",
                     "family",
                     "category",
                     "freight_factor_percentage",
@@ -169,6 +250,16 @@ class Product_Code_Admin(admin.ModelAdmin):
         "_created_by",
     )
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(
+            type__in=[
+                "Finished Goods",
+                "Raw Materials",
+                "WIP",
+            ]
+        )
+
     def save_model(self, request, obj, form, change):
         obj = set_meta_fields(request, obj, form, change)
         super().save_model(request, obj, form, change)
@@ -187,17 +278,13 @@ class Product_Code_Admin(admin.ModelAdmin):
 class Raw_Material_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Raw_Material_Proxy
     form = Raw_Material_Proxy_Form
-    inlines = (
-        # Inventory_Onhand_Admin_Inline,
-        Supplier_Product_Admin_Inline,
-    )
+    inlines = (Supplier_Product_Admin_Inline,)
     save_as = True
 
     list_display = [
         "sku",
         "description",
         "_active",
-        "product_type",
         "product_code",
         "unit_of_measure",
         "onhand_quantity",
@@ -208,7 +295,6 @@ class Raw_Material_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "sku",
         "description",
         "_active",
-        "product_type",
         "product_code",
         "unit_of_measure",
         "onhand_quantity",
@@ -231,7 +317,6 @@ class Raw_Material_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     ]
     list_filter = [
         ("_active", admin.BooleanFieldListFilter),
-        "product_type",
         ("product_code", admin.RelatedOnlyFieldListFilter),
     ]
     fieldsets = (
@@ -241,7 +326,6 @@ class Raw_Material_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                 "fields": [
                     "sku",
                     "description",
-                    "product_type",
                     "product_code",
                     "unit_of_measure",
                     "onhand_quantity",
@@ -285,12 +369,7 @@ class Raw_Material_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request).prefetch_related("product_code")
-        return qs.filter(
-            product_type__in=[
-                "WIP",
-                "Raw Materials",
-            ]
-        )
+        return qs.filter(~models.Q(product_code__type__in=["Finished Goods"]))
 
     def save_formset(self, request, form, formset, change):
         # set meta fields
@@ -318,11 +397,12 @@ class Raw_Material_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                 )
 
                 if parent_obj.original_unit_of_measure != parent_obj.unit_of_measure:
-                    new_weight_dict = convert_weight(
-                        unit_of_measure=parent_obj.original_unit_of_measure,
+                    converted_weight = convert_weight(
+                        from_measure=parent_obj.original_unit_of_measure,
+                        to_measure=parent_obj.unit_of_measure,
                         weight=i.quantity_onhand,
                     )
-                    i.quantity_onhand = new_weight_dict[parent_obj.unit_of_measure]
+                    i.quantity_onhand = converted_weight
 
                 i.unit_of_measure = parent_obj.unit_of_measure
                 i.save()
@@ -338,13 +418,12 @@ class Raw_Material_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                         total_cost_previous_unit_of_measure / total_quantity_onhand
                     )
                 else:
-                    new_weight_dict = convert_weight(
-                        unit_of_measure=parent_obj.unit_of_measure,
+                    converted_weight = convert_weight(
+                        from_measure=parent_obj.unit_of_measure,
+                        to_measure=parent_obj.original_unit_of_measure,
                         weight=parent_obj.unit_material_cost,
                     )
-                    parent_obj.unit_material_cost = new_weight_dict[
-                        parent_obj.original_unit_of_measure
-                    ]
+                    parent_obj.unit_material_cost = converted_weight
 
             parent_obj.total_quantity_onhand = total_quantity_onhand
             parent_obj.total_material_cost = (
@@ -360,105 +439,6 @@ class Raw_Material_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             parent_obj.save()
 
 
-@admin.register(Labor_Proxy)
-class Labor_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
-    model = Labor_Proxy
-    form = Labor_Proxy_Form
-    save_as = True
-
-    list_display = [
-        "sku",
-        "description",
-        "_active",
-        "product_type",
-        "product_code",
-        "unit_of_measure",
-        "labor_type",
-        "labor_amount",
-        "unit_labor_cost",
-    ]
-    history_list_display = [
-        "sku",
-        "description",
-        "_active",
-        "product_type",
-        "product_code",
-        "unit_of_measure",
-        "labor_type",
-        "labor_amount",
-        "unit_labor_cost",
-        "_last_updated",
-        "_last_updated_by",
-        "_created",
-        "_created_by",
-    ]
-    autocomplete_fields = [
-        "product_code",
-    ]
-    search_fields = [
-        "sku",
-        "description",
-        "product_code__category",
-        "product_code__family",
-    ]
-    list_filter = [
-        ("_active", admin.BooleanFieldListFilter),
-        "product_type",
-        ("product_code", admin.RelatedOnlyFieldListFilter),
-    ]
-    fieldsets = (
-        (
-            "Summary",
-            {
-                "fields": [
-                    "sku",
-                    "description",
-                    "product_type",
-                    "product_code",
-                    "unit_of_measure",
-                    "labor_type",
-                    "labor_amount",
-                    "unit_labor_cost",
-                    "notes",
-                    "_active",
-                ]
-            },
-        ),
-    )
-    readonly_fields = (
-        "unit_labor_cost",
-        "_last_updated",
-        "_created",
-        "_created_by",
-    )
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request).prefetch_related("product_code")
-        return qs.filter(
-            product_type__in=[
-                "Labor",
-                "WIP - Labor"
-            ]
-        )
-
-    def save_model(self, request, obj, form, change):
-        today = datetime.today()
-        obj = set_meta_fields(request, obj, form, change)
-
-        if obj.unit_of_measure == "minutes":
-            labor = Labor_Rates.objects.get(
-                labor_type=obj.labor_type, start_date__lte=today, end_date__gte=today
-            )
-            obj.unit_labor_cost = (obj.labor_amount or 0) * (
-                (labor.labor_rate or 0) / decimal.Decimal(60)
-            )
-        elif obj.unit_of_measure == "each":
-            obj.unit_labor_cost = obj.labor_amount or 0
-
-        obj.save()
-        super().save_model(request, obj, form, change)
-
-
 @admin.register(Finished_Goods_Proxy)
 class Finished_Goods_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Finished_Goods_Proxy
@@ -468,7 +448,6 @@ class Finished_Goods_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "sku",
         "description",
         "_active",
-        "product_type",
         "product_code",
         "onhand_quantity",
         "unit_sales_price",
@@ -479,7 +458,6 @@ class Finished_Goods_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "sku",
         "description",
         "_active",
-        "product_type",
         "product_code",
         "onhand_quantity",
         "unit_sales_price",
@@ -489,7 +467,6 @@ class Finished_Goods_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     fields = (
         "sku",
         "description",
-        "product_type",
         "product_code",
         "unit_sales_price",
         (
@@ -543,7 +520,7 @@ class Finished_Goods_Proxy_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request).prefetch_related("product_code")
-        return qs.filter(product_type__in=["Finished Goods"])
+        return qs.filter(product_code__type__in=["Finished Goods"])
 
     def save_formset(self, request, form, formset, change):
         # set meta fields

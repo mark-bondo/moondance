@@ -14,11 +14,12 @@ def get_products(request):
     with connection.cursor() as cursor:
         sql = """
             SELECT
-                JSON_AGG(jsonb_build_object('value', id, 'text', description || ' (' || sku || ')'))::TEXT as json_data
+                JSON_AGG(jsonb_build_object('value', p.id, 'text', p.description || ' (' || p.sku || ')'))::TEXT as json_data
             FROM
                 public.operations_product p
+                JOIN public.operations_product_code pcode ON p.product_code_id = pcode.id
             WHERE
-                product_type IN ('Finished Goods', 'WIP') AND
+                pcode.type IN ('Finished Goods', 'WIP') AND
                 _active = TRUE
             ;
         """
@@ -94,13 +95,13 @@ def get_materials(request):
                     JOIN public.operations_product_code pcode ON child.product_code_id = pcode.id
                     JOIN public.making_weight_conversions weight ON
                         child.unit_of_measure = weight.to_measure AND
-                        recipe.unit_of_measure = weight.from_measure  
+                        recipe.unit_of_measure = weight.from_measure
                     LEFT JOIN public.purchasing_inventory_onhand inventory ON child.id = inventory.sku_id 
                     JOIN public.making_weight_conversions weight_inventory ON
                         child.unit_of_measure = weight_inventory.from_measure AND
                         recipe.unit_of_measure = weight_inventory.to_measure
                 WHERE
-                    child.product_type != 'WIP'
+                    pcode.type != 'WIP'
                 GROUP BY
                     recipe.sku_top_level,
                     parent.description,
