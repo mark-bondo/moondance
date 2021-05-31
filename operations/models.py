@@ -1,39 +1,27 @@
 from django.db import models
-from django.contrib.postgres.fields.ranges import DateRangeField
 from moondance.meta_models import MetaModel
 from simple_history.models import HistoricalRecords
 
 
-unit_of_measure_choices = (
+UNIT_OF_MEASURES = (
     ("grams", "grams"),
     ("oz", "oz"),
     ("lbs", "lbs"),
     ("each", "each"),
     (
+        "hours",
+        "hours",
+    ),
+    (
         "minutes",
         "minutes",
     ),
 )
-TYPE_LIST = (
+PRODUCT_TYPES = (
     ("Finished Goods", "Finished Goods"),
-    ("WIP", "WIP"),
-    ("WIP - Labor", "WIP - Labor"),
     ("Raw Materials", "Raw Materials"),
     ("Labor", "Labor"),
-)
-LABOR_TYPES = (
-    (
-        "Soap Making",
-        "Soap Making",
-    ),
-    (
-        "Soap Wrapping",
-        "Soap Wrapping",
-    ),
-    (
-        "Soap Boxing",
-        "Soap Boxing",
-    ),
+    ("WIP", "WIP"),
 )
 SALES_CHANNEL_TYPES = (
     ("All", "All"),
@@ -43,28 +31,19 @@ SALES_CHANNEL_TYPES = (
 
 
 class Product_Code(MetaModel):
-    type = models.CharField(max_length=200, choices=TYPE_LIST)
+    type = models.CharField(max_length=200, choices=PRODUCT_TYPES)
     family = models.CharField(max_length=200)
     category = models.CharField(max_length=200, unique=True)
     freight_factor_percentage = models.DecimalField(
-        max_digits=12,
+        max_digits=5,
         decimal_places=2,
         null=True,
         blank=True,
         help_text="Percentage adder to material cost. Use whole numbers with 2 decimals maximum.",
     )
-    sales_channel_type = models.CharField(
-        max_length=100, choices=SALES_CHANNEL_TYPES, null=True, blank=True
-    )
-
-    original_freight_factor_percentage = None
 
     def __str__(self):
-        return "{} - {}".format(self.family, self.category)
-
-    def __init__(self, *args, **kwargs):
-        super(Product_Code, self).__init__(*args, **kwargs)
-        self.original_freight_factor_percentage = self.freight_factor_percentage
+        return "{}".format(self.category)
 
     class Meta:
         verbose_name = "Product Category"
@@ -89,8 +68,11 @@ class Product(MetaModel):
     sku = models.CharField(max_length=200, unique=True, verbose_name="SKU")
     description = models.CharField(max_length=200)
     upc = models.CharField(max_length=200, null=True, blank=True, verbose_name="UPC")
+    sales_channel_type = models.CharField(
+        max_length=100, choices=SALES_CHANNEL_TYPES, default="All"
+    )
     unit_of_measure = models.CharField(
-        max_length=200, choices=unit_of_measure_choices, default="lbs"
+        max_length=200, choices=UNIT_OF_MEASURES, default="lbs"
     )
     unit_weight = models.DecimalField(
         max_digits=12, decimal_places=2, null=True, blank=True
@@ -104,13 +86,20 @@ class Product(MetaModel):
     unit_labor_cost = models.DecimalField(
         max_digits=12, decimal_places=5, null=True, blank=True
     )
-    product_notes = models.TextField(
-        null=True, blank=True, verbose_name="Product Notes"
-    )
     notes = models.TextField(null=True, blank=True)
+
+    original_unit_of_measure = None
+    original_unit_material_cost = None
+    original_unit_labor_cost = None
 
     def __str__(self):
         return "{} ({})".format(self.description, self.sku)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.original_unit_of_measure = self.unit_of_measure
+        self.original_unit_material_cost = self.original_unit_material_cost
+        self.original_unit_labor_cost = self.original_unit_labor_cost
 
     class Meta:
         verbose_name = "Product"
@@ -131,15 +120,15 @@ class Recipe_Line(MetaModel):
     )
     quantity = models.DecimalField(max_digits=12, decimal_places=5)
     unit_of_measure = models.CharField(
-        max_length=200, choices=unit_of_measure_choices, default="grams"
+        max_length=200, choices=UNIT_OF_MEASURES, default="grams"
     )
 
     def __str__(self):
         return "{} ({})".format(self.sku, self.sku_parent)
 
     class Meta:
-        verbose_name = "Recipe Line"
-        verbose_name_plural = "Recipe Lines"
+        verbose_name = "Recipe"
+        verbose_name_plural = "Recipe"
         unique_together = (
             (
                 "sku",

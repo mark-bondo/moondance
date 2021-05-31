@@ -11,104 +11,397 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('operations', '0001_initial'),
+        ("operations", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Product_Bundle_Header',
+            name="Product_Bundle_Header",
             fields=[
-                ('_active', models.BooleanField(default=True, verbose_name='Is Active')),
-                ('_created', models.DateTimeField(auto_now_add=True, verbose_name='Datetime Created')),
-                ('_last_updated', models.DateTimeField(auto_now=True, verbose_name='Datetime Updated')),
-                ('bundle', models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, primary_key=True, related_name='Product_Bundle_product_bundle_fk', serialize=False, to='operations.product')),
-                ('_created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='product_bundle_header_created_by', to=settings.AUTH_USER_MODEL, verbose_name='Created By')),
-                ('_last_updated_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='product_bundle_header_last_updated_by', to=settings.AUTH_USER_MODEL, verbose_name='Last Updated By')),
+                (
+                    "_active",
+                    models.BooleanField(default=True, verbose_name="Is Active"),
+                ),
+                (
+                    "_created",
+                    models.DateTimeField(
+                        auto_now_add=True, verbose_name="Datetime Created"
+                    ),
+                ),
+                (
+                    "_last_updated",
+                    models.DateTimeField(
+                        auto_now=True, verbose_name="Datetime Updated"
+                    ),
+                ),
+                (
+                    "bundle",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        primary_key=True,
+                        related_name="Product_Bundle_product_bundle_fk",
+                        serialize=False,
+                        to="operations.product",
+                    ),
+                ),
+                (
+                    "_created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="product_bundle_header_created_by",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Created By",
+                    ),
+                ),
+                (
+                    "_last_updated_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="product_bundle_header_last_updated_by",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Last Updated By",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Product Bundle',
-                'verbose_name_plural': 'Product Bundles',
-                'ordering': ('bundle__sku',),
+                "verbose_name": "Product Bundle",
+                "verbose_name_plural": "Product Bundles",
+                "ordering": ("bundle__sku",),
             },
         ),
         migrations.CreateModel(
-            name='Weight_Conversions',
+            name="Weight_Conversions",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('from_measure', models.CharField(choices=[('grams', 'grams'), ('oz', 'oz'), ('lbs', 'lbs'), ('each', 'each'), ('minutes', 'minutes')], max_length=200)),
-                ('to_measure', models.CharField(choices=[('grams', 'grams'), ('oz', 'oz'), ('lbs', 'lbs'), ('each', 'each'), ('minutes', 'minutes')], max_length=200)),
-                ('conversion_rate', models.DecimalField(decimal_places=6, max_digits=16)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "from_measure",
+                    models.CharField(
+                        choices=[
+                            ("grams", "grams"),
+                            ("oz", "oz"),
+                            ("lbs", "lbs"),
+                            ("each", "each"),
+                            ("minutes", "minutes"),
+                        ],
+                        max_length=200,
+                    ),
+                ),
+                (
+                    "to_measure",
+                    models.CharField(
+                        choices=[
+                            ("grams", "grams"),
+                            ("oz", "oz"),
+                            ("lbs", "lbs"),
+                            ("each", "each"),
+                            ("minutes", "minutes"),
+                        ],
+                        max_length=200,
+                    ),
+                ),
+                (
+                    "conversion_rate",
+                    models.DecimalField(decimal_places=6, max_digits=16),
+                ),
             ],
             options={
-                'verbose_name': 'Weight Conversion',
-                'verbose_name_plural': 'Weight Conversions',
+                "verbose_name": "Weight Conversion",
+                "verbose_name_plural": "Weight Conversions",
             },
         ),
         migrations.CreateModel(
-            name='Product_Bundle_Line',
+            name="Product_Bundle_Line",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('_active', models.BooleanField(default=True, verbose_name='Is Active')),
-                ('_created', models.DateTimeField(auto_now_add=True, verbose_name='Datetime Created')),
-                ('_last_updated', models.DateTimeField(auto_now=True, verbose_name='Datetime Updated')),
-                ('quantity', models.IntegerField()),
-                ('_created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='product_bundle_line_created_by', to=settings.AUTH_USER_MODEL, verbose_name='Created By')),
-                ('_last_updated_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='product_bundle_line_last_updated_by', to=settings.AUTH_USER_MODEL, verbose_name='Last Updated By')),
-                ('bundle', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='Product_Bundle_product_bundle_fk', to='making.product_bundle_header')),
-                ('product_used', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='Product_Bundle_product_used_fk', to='operations.product')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "_active",
+                    models.BooleanField(default=True, verbose_name="Is Active"),
+                ),
+                (
+                    "_created",
+                    models.DateTimeField(
+                        auto_now_add=True, verbose_name="Datetime Created"
+                    ),
+                ),
+                (
+                    "_last_updated",
+                    models.DateTimeField(
+                        auto_now=True, verbose_name="Datetime Updated"
+                    ),
+                ),
+                ("quantity", models.IntegerField()),
+                (
+                    "_created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="product_bundle_line_created_by",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Created By",
+                    ),
+                ),
+                (
+                    "_last_updated_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="product_bundle_line_last_updated_by",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Last Updated By",
+                    ),
+                ),
+                (
+                    "bundle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="Product_Bundle_product_bundle_fk",
+                        to="making.product_bundle_header",
+                    ),
+                ),
+                (
+                    "product_used",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="Product_Bundle_product_used_fk",
+                        to="operations.product",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Bundled Product',
-                'verbose_name_plural': 'Bundled Products',
-                'ordering': ('bundle', 'product_used__sku'),
+                "verbose_name": "Bundled Product",
+                "verbose_name_plural": "Bundled Products",
+                "ordering": ("bundle", "product_used__sku"),
             },
         ),
         migrations.CreateModel(
-            name='HistoricalProduct_Bundle_Line',
+            name="HistoricalProduct_Bundle_Line",
             fields=[
-                ('id', models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name='ID')),
-                ('_active', models.BooleanField(default=True, verbose_name='Is Active')),
-                ('_created', models.DateTimeField(blank=True, editable=False, verbose_name='Datetime Created')),
-                ('_last_updated', models.DateTimeField(blank=True, editable=False, verbose_name='Datetime Updated')),
-                ('quantity', models.IntegerField()),
-                ('history_id', models.AutoField(primary_key=True, serialize=False)),
-                ('history_date', models.DateTimeField()),
-                ('history_change_reason', models.CharField(max_length=100, null=True)),
-                ('history_type', models.CharField(choices=[('+', 'Created'), ('~', 'Changed'), ('-', 'Deleted')], max_length=1)),
-                ('_created_by', models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='Created By')),
-                ('_last_updated_by', models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='Last Updated By')),
-                ('bundle', models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='making.product_bundle_header')),
-                ('history_user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL)),
-                ('product_used', models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='operations.product')),
+                (
+                    "id",
+                    models.IntegerField(
+                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
+                    ),
+                ),
+                (
+                    "_active",
+                    models.BooleanField(default=True, verbose_name="Is Active"),
+                ),
+                (
+                    "_created",
+                    models.DateTimeField(
+                        blank=True, editable=False, verbose_name="Datetime Created"
+                    ),
+                ),
+                (
+                    "_last_updated",
+                    models.DateTimeField(
+                        blank=True, editable=False, verbose_name="Datetime Updated"
+                    ),
+                ),
+                ("quantity", models.IntegerField()),
+                ("history_id", models.AutoField(primary_key=True, serialize=False)),
+                ("history_date", models.DateTimeField()),
+                ("history_change_reason", models.CharField(max_length=100, null=True)),
+                (
+                    "history_type",
+                    models.CharField(
+                        choices=[("+", "Created"), ("~", "Changed"), ("-", "Deleted")],
+                        max_length=1,
+                    ),
+                ),
+                (
+                    "_created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Created By",
+                    ),
+                ),
+                (
+                    "_last_updated_by",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Last Updated By",
+                    ),
+                ),
+                (
+                    "bundle",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to="making.product_bundle_header",
+                    ),
+                ),
+                (
+                    "history_user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "product_used",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to="operations.product",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'historical Bundled Product',
-                'ordering': ('-history_date', '-history_id'),
-                'get_latest_by': 'history_date',
+                "verbose_name": "historical Bundled Product",
+                "ordering": ("-history_date", "-history_id"),
+                "get_latest_by": "history_date",
             },
             bases=(simple_history.models.HistoricalChanges, models.Model),
         ),
         migrations.CreateModel(
-            name='HistoricalProduct_Bundle_Header',
+            name="HistoricalProduct_Bundle_Header",
             fields=[
-                ('_active', models.BooleanField(default=True, verbose_name='Is Active')),
-                ('_created', models.DateTimeField(blank=True, editable=False, verbose_name='Datetime Created')),
-                ('_last_updated', models.DateTimeField(blank=True, editable=False, verbose_name='Datetime Updated')),
-                ('history_id', models.AutoField(primary_key=True, serialize=False)),
-                ('history_date', models.DateTimeField()),
-                ('history_change_reason', models.CharField(max_length=100, null=True)),
-                ('history_type', models.CharField(choices=[('+', 'Created'), ('~', 'Changed'), ('-', 'Deleted')], max_length=1)),
-                ('_created_by', models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='Created By')),
-                ('_last_updated_by', models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='Last Updated By')),
-                ('bundle', models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='operations.product')),
-                ('history_user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL)),
+                (
+                    "_active",
+                    models.BooleanField(default=True, verbose_name="Is Active"),
+                ),
+                (
+                    "_created",
+                    models.DateTimeField(
+                        blank=True, editable=False, verbose_name="Datetime Created"
+                    ),
+                ),
+                (
+                    "_last_updated",
+                    models.DateTimeField(
+                        blank=True, editable=False, verbose_name="Datetime Updated"
+                    ),
+                ),
+                ("history_id", models.AutoField(primary_key=True, serialize=False)),
+                ("history_date", models.DateTimeField()),
+                ("history_change_reason", models.CharField(max_length=100, null=True)),
+                (
+                    "history_type",
+                    models.CharField(
+                        choices=[("+", "Created"), ("~", "Changed"), ("-", "Deleted")],
+                        max_length=1,
+                    ),
+                ),
+                (
+                    "_created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Created By",
+                    ),
+                ),
+                (
+                    "_last_updated_by",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Last Updated By",
+                    ),
+                ),
+                (
+                    "bundle",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to="operations.product",
+                    ),
+                ),
+                (
+                    "history_user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'historical Product Bundle',
-                'ordering': ('-history_date', '-history_id'),
-                'get_latest_by': 'history_date',
+                "verbose_name": "historical Product Bundle",
+                "ordering": ("-history_date", "-history_id"),
+                "get_latest_by": "history_date",
             },
             bases=(simple_history.models.HistoricalChanges, models.Model),
+        ),
+        migrations.AlterField(
+            model_name="weight_conversions",
+            name="from_measure",
+            field=models.CharField(
+                choices=[
+                    ("grams", "grams"),
+                    ("oz", "oz"),
+                    ("lbs", "lbs"),
+                    ("each", "each"),
+                    ("hourly", "hourly"),
+                ],
+                max_length=200,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="weight_conversions",
+            name="to_measure",
+            field=models.CharField(
+                choices=[
+                    ("grams", "grams"),
+                    ("oz", "oz"),
+                    ("lbs", "lbs"),
+                    ("each", "each"),
+                    ("hourly", "hourly"),
+                ],
+                max_length=200,
+            ),
         ),
     ]

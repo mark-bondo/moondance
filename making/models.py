@@ -3,13 +3,13 @@ from moondance.meta_models import MetaModel
 from simple_history.models import HistoricalRecords
 from operations.models import Product
 from purchasing.models import (
-    unit_of_measure_choices,
+    UNIT_OF_MEASURES,
 )
 
 
 class Weight_Conversions(models.Model):
-    from_measure = models.CharField(max_length=200, choices=unit_of_measure_choices)
-    to_measure = models.CharField(max_length=200, choices=unit_of_measure_choices)
+    from_measure = models.CharField(max_length=200, choices=UNIT_OF_MEASURES)
+    to_measure = models.CharField(max_length=200, choices=UNIT_OF_MEASURES)
     conversion_rate = models.DecimalField(max_digits=16, decimal_places=6)
 
     class Meta:

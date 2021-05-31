@@ -1,6 +1,6 @@
 from django.db import models
 from moondance.meta_models import MetaModel
-from operations.models import Product, unit_of_measure_choices
+from operations.models import Product, UNIT_OF_MEASURES
 from simple_history.models import HistoricalRecords
 from django.utils import timezone
 
@@ -116,7 +116,7 @@ class Invoice_Line(MetaModel):
         null=True,
         help_text="Only needs to be populated if the manufacturer is different than the invoicing supplier.",
     )
-    unit_of_measure = models.CharField(max_length=200, choices=unit_of_measure_choices)
+    unit_of_measure = models.CharField(max_length=200, choices=UNIT_OF_MEASURES)
     quantity = models.DecimalField(max_digits=12, decimal_places=2)
     total_cost = models.DecimalField(max_digits=12, decimal_places=2)
 

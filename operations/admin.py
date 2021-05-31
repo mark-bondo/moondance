@@ -84,28 +84,9 @@ class Product_Code_Admin(admin.ModelAdmin):
         "_created_by",
     )
 
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.filter(
-            type__in=[
-                "Finished Goods",
-                "Raw Materials",
-                "WIP",
-            ]
-        )
-
     def save_model(self, request, obj, form, change):
         obj = set_meta_fields(request, obj, form, change)
         super().save_model(request, obj, form, change)
-
-        if obj.original_freight_factor_percentage != obj.freight_factor_percentage:
-            skus = Product.objects.filter(product_code=obj.pk)
-
-            for sku in skus:
-                sku.unit_freight_cost = (sku.unit_material_cost or 0) * (
-                    (obj.freight_factor_percentage or 0) / decimal.Decimal(100)
-                )
-                sku.save()
 
 
 class Recipe_Line_Inline_Admin(admin.TabularInline):
@@ -115,6 +96,8 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
         "sku",
         "quantity",
         "unit_of_measure",
+        "unit_cost",
+        "extended_cost",
         "_active",
     )
     history_list_display = [
@@ -130,6 +113,48 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
     autocomplete_fields = [
         "sku",
     ]
+    readonly_fields = (
+        "unit_cost",
+        "extended_cost",
+    )
+
+    def unit_cost(self, obj):
+        converted_weight = convert_weight(
+            from_measure=obj.unit_of_measure,
+            to_measure=obj.sku.unit_of_measure,
+            weight=1,
+        )
+        cost = (
+            (obj.sku.unit_material_cost or 0)
+            + (obj.sku.unit_labor_cost or 0)
+            + (
+                (obj.sku.unit_material_cost or 0)
+                * (
+                    (obj.sku.product_code.freight_factor_percentage or 0)
+                    / decimal.Decimal(100)
+                )
+            )
+        ) * (converted_weight or 0)
+        return round(cost, 5)
+
+    def extended_cost(self, obj):
+        converted_weight = convert_weight(
+            from_measure=obj.unit_of_measure,
+            to_measure=obj.sku.unit_of_measure,
+            weight=obj.quantity,
+        )
+        cost = (
+            (obj.sku.unit_material_cost or 0)
+            + (obj.sku.unit_labor_cost or 0)
+            + (
+                (obj.sku.unit_material_cost or 0)
+                * (
+                    (obj.sku.product_code.freight_factor_percentage or 0)
+                    / decimal.Decimal(100)
+                )
+            )
+        ) * (converted_weight or 0)
+        return round(cost, 5)
 
 
 @admin.register(Product)
@@ -144,24 +169,30 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     list_display = [
         "sku",
         "description",
-        "_active",
         "product_code",
-        "unit_of_measure",
         "onhand_quantity",
-        "unit_cost_total",
-        "total_cost",
+        "sales_channel_type",
+        "unit_of_measure",
+        "unit_material_cost",
+        "unit_labor_cost",
+        "_active",
+    ]
+    list_editable = [
+        "sales_channel_type",
+        "unit_of_measure",
+        "unit_material_cost",
+        "unit_labor_cost",
     ]
     history_list_display = [
         "sku",
         "description",
+        "sales_channel_type",
         "_active",
         "product_code",
         "unit_of_measure",
         "onhand_quantity",
         "unit_material_cost",
         "unit_labor_cost",
-        "unit_freight_cost",
-        "unit_cost_total",
         "_last_updated",
         "_last_updated_by",
         "_created",
@@ -178,7 +209,8 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     ]
     list_filter = [
         ("_active", admin.BooleanFieldListFilter),
-        ("product_code", admin.RelatedOnlyFieldListFilter),
+        "product_code__type",
+        "product_code__family",
     ]
     fieldsets = (
         (
@@ -187,6 +219,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                 "fields": [
                     "sku",
                     "description",
+                    "sales_channel_type",
                     "unit_of_measure",
                     "product_code",
                     "onhand_quantity",
@@ -261,7 +294,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def save_formset(self, request, form, formset, change):
         # set meta fields
-        parent_obj = set_meta_fields(request, form.instance, form, change)
+        parent = set_meta_fields(request, form.instance, form, change)
         inline_formsets = formset.save(commit=False)
 
         for obj in inline_formsets:
@@ -273,58 +306,18 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
         formset.save_m2m()
 
-        # recalculate inventory weights and costs
-        if formset.model == Inventory_Onhand:
+        # recalculate inventory weights
+        if parent.original_unit_of_measure != parent.unit_of_measure:
             location_inventory = Inventory_Onhand.objects.filter(sku=form.instance)
-            total_quantity_onhand = 0
-            total_cost_previous_unit_of_measure = 0
 
             for i in location_inventory:
-                total_cost_previous_unit_of_measure += (
-                    i.quantity_onhand * parent_obj.original_unit_material_cost
+                converted_weight = convert_weight(
+                    from_measure=parent.original_unit_of_measure,
+                    to_measure=parent.unit_of_measure,
+                    weight=i.quantity_onhand,
                 )
-
-                if parent_obj.original_unit_of_measure != parent_obj.unit_of_measure:
-                    converted_weight = convert_weight(
-                        from_measure=parent_obj.original_unit_of_measure,
-                        to_measure=parent_obj.unit_of_measure,
-                        weight=i.quantity_onhand,
-                    )
-                    i.quantity_onhand = converted_weight
-
-                i.unit_of_measure = parent_obj.unit_of_measure
+                i.quantity_onhand = converted_weight
                 i.save()
-
-                total_quantity_onhand += i.quantity_onhand or 0
-
-            if (
-                parent_obj.original_unit_of_measure != parent_obj.unit_of_measure
-                and parent_obj.unit_of_measure != "each"
-            ):
-                if location_inventory:
-                    parent_obj.unit_material_cost = (
-                        total_cost_previous_unit_of_measure / total_quantity_onhand
-                    )
-                else:
-                    converted_weight = convert_weight(
-                        from_measure=parent_obj.unit_of_measure,
-                        to_measure=parent_obj.original_unit_of_measure,
-                        weight=parent_obj.unit_material_cost,
-                    )
-                    parent_obj.unit_material_cost = converted_weight
-
-            parent_obj.total_quantity_onhand = total_quantity_onhand
-            parent_obj.total_material_cost = (
-                total_quantity_onhand * parent_obj.unit_material_cost
-            )
-            parent_obj.total_freight_cost = (
-                decimal.Decimal(parent_obj.product_code.freight_factor_percentage or 0)
-                / decimal.Decimal(100)
-            ) * parent_obj.total_material_cost
-            parent_obj.total_cost = parent_obj.total_material_cost + (
-                parent_obj.total_freight_cost or 0
-            )
-            parent_obj.save()
 
 
 @admin.register(Order_Cost_Overlay)
