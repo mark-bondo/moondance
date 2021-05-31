@@ -241,16 +241,29 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             },
         ),
     )
-    readonly_fields = (
-        "unit_freight_cost",
-        "unit_cost_total",
-        "onhand_quantity",
-        "unit_freight_cost",
-        "_last_updated",
-        "total_cost",
-        "_created",
-        "_created_by",
-    )
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = (
+            "unit_freight_cost",
+            "unit_cost_total",
+            "onhand_quantity",
+            "unit_freight_cost",
+            "_last_updated",
+            "total_cost",
+            "_created",
+            "_created_by",
+        )
+
+        if obj and obj.product_code.type in ("WIP",):
+            readonly_fields += (
+                "unit_material_cost",
+                "unit_labor_cost",
+            )
+        elif obj and obj.product_code.type == "Labor":
+            readonly_fields += ("unit_material_cost",)
+        elif obj and obj.product_code.type == "Raw Materials":
+            readonly_fields += ("unit_labor_cost",)
+        return readonly_fields
 
     def unit_freight_cost(self, obj):
         cost = (obj.unit_material_cost or 0) * (
