@@ -1,7 +1,7 @@
 from django.db import models
 from moondance.meta_models import MetaModel
 from simple_history.models import HistoricalRecords
-from operations.models import Finished_Goods_Proxy
+from operations.models import Product
 
 
 class Amazon_Product(MetaModel):
@@ -11,7 +11,7 @@ class Amazon_Product(MetaModel):
     seller_sku = models.CharField(max_length=200, unique=True)
     sku_description = models.CharField(max_length=200)
     product = models.ForeignKey(
-        Finished_Goods_Proxy,
+        Product,
         blank=True,
         null=True,
         on_delete=models.PROTECT,
@@ -49,7 +49,7 @@ class Shopify_Product(MetaModel):
     tags = models.CharField(max_length=1000, blank=True, null=True)
     handle = models.CharField(max_length=200, blank=True, null=True)
     product = models.ForeignKey(
-        Finished_Goods_Proxy,
+        Product,
         on_delete=models.PROTECT,
         null=True,
         blank=True,
@@ -76,7 +76,7 @@ class Product_Missing_SKU(MetaModel):
     source_system = models.CharField(max_length=200, choices=source_system_choices)
     product_description = models.CharField(max_length=200)
     product = models.ForeignKey(
-        Finished_Goods_Proxy,
+        Product,
         on_delete=models.PROTECT,
         related_name="Product_Missing_SKU_product_fk",
     )

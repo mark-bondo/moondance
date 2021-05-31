@@ -1,56 +1,10 @@
 from django.db import models
 from moondance.meta_models import MetaModel
 from simple_history.models import HistoricalRecords
-from operations.models import (
-    Finished_Goods_Proxy,
-    Raw_Material_Proxy,
-    Product,
-)
+from operations.models import Product
 from purchasing.models import (
     unit_of_measure_choices,
 )
-
-
-class Recipe_Proxy(Product):
-    def __str__(self):
-        return "{} ({})".format(self.description, self.sku)
-
-    class Meta:
-        proxy = True
-        verbose_name = "Recipe"
-        verbose_name_plural = "Recipes"
-        ordering = ("sku",)
-
-
-class Recipe_Line(MetaModel):
-    history = HistoricalRecords()
-    sku = models.ForeignKey(
-        Raw_Material_Proxy,
-        on_delete=models.PROTECT,
-        related_name="Recipe_sku_fk",
-        limit_choices_to=~models.Q(product_code__type__in=["Finished Goods"]),
-    )
-    sku_parent = models.ForeignKey(
-        Product, on_delete=models.PROTECT, related_name="Recipe_sku_parent_fk"
-    )
-    quantity = models.DecimalField(max_digits=12, decimal_places=5)
-    unit_of_measure = models.CharField(
-        max_length=200, choices=unit_of_measure_choices, default="grams"
-    )
-
-    def __str__(self):
-        return "{} ({})".format(self.sku, self.sku_parent)
-
-    class Meta:
-        verbose_name = "Recipe Line"
-        verbose_name_plural = "Recipe Lines"
-        unique_together = (
-            (
-                "sku",
-                "sku_parent",
-            ),
-        )
-        ordering = ("sku_parent", "sku")
 
 
 class Weight_Conversions(models.Model):
@@ -67,7 +21,7 @@ class Product_Bundle_Header(MetaModel):
     history = HistoricalRecords()
 
     bundle = models.OneToOneField(
-        Finished_Goods_Proxy,
+        Product,
         on_delete=models.PROTECT,
         related_name="Product_Bundle_product_bundle_fk",
         primary_key=True,
@@ -91,7 +45,7 @@ class Product_Bundle_Line(MetaModel):
         related_name="Product_Bundle_product_bundle_fk",
     )
     product_used = models.ForeignKey(
-        Finished_Goods_Proxy,
+        Product,
         on_delete=models.PROTECT,
         related_name="Product_Bundle_product_used_fk",
     )

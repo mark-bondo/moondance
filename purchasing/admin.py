@@ -6,7 +6,7 @@ from .models import (
     Inventory_Onhand,
     Supplier,
     Supplier_Product,
-    Raw_Material_Proxy,
+    Product,
     Invoice,
     Invoice_Line,
 )
@@ -98,7 +98,7 @@ class Inventory_Onhand_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         for i in location_inventory:
             total_quantity_onhand += i.quantity_onhand or 0
 
-        parent_obj = Raw_Material_Proxy.objects.get(pk=obj.sku.id)
+        parent_obj = Product.objects.get(pk=obj.sku.id)
         parent_obj.total_quantity_onhand = total_quantity_onhand
         parent_obj.total_material_cost = (
             total_quantity_onhand * parent_obj.unit_material_cost

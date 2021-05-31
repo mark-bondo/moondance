@@ -1,6 +1,6 @@
 from django.db import models
 from moondance.meta_models import MetaModel
-from operations.models import Raw_Material_Proxy, unit_of_measure_choices
+from operations.models import Product, unit_of_measure_choices
 from simple_history.models import HistoricalRecords
 from django.utils import timezone
 
@@ -51,7 +51,7 @@ class Supplier_Product(MetaModel):
     history = HistoricalRecords()
 
     sku = models.ForeignKey(
-        Raw_Material_Proxy,
+        Product,
         on_delete=models.PROTECT,
         related_name="Supplier_Product_product_fk",
     )
@@ -102,7 +102,7 @@ class Invoice_Line(MetaModel):
         Invoice, on_delete=models.CASCADE, related_name="Invoice_Line_invoice_fk"
     )
     sku = models.ForeignKey(
-        Raw_Material_Proxy,
+        Product,
         on_delete=models.PROTECT,
         related_name="Invoice_Line_sku_fk",
         verbose_name="MoonDance SKU",
@@ -139,7 +139,7 @@ class Inventory_Onhand(MetaModel):
     history = HistoricalRecords()
 
     sku = models.ForeignKey(
-        Raw_Material_Proxy,
+        Product,
         on_delete=models.PROTECT,
         related_name="Inventory_Onhand_sku_fk",
     )

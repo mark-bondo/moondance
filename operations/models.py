@@ -76,59 +76,6 @@ class Product_Code(MetaModel):
         )
 
 
-class Labor_Code(Product_Code):
-    class Meta:
-        proxy = True
-        verbose_name = "Labor Category"
-        verbose_name_plural = "Labor Categories"
-
-
-class Labor_Rate(MetaModel):
-    history = HistoricalRecords(inherit=True)
-    labor_code = models.ForeignKey(
-        Labor_Code,
-        blank=True,
-        null=True,
-        on_delete=models.CASCADE,
-        related_name="labor_rates_labor_code_fk",
-    )
-    labor_rate = models.DecimalField(max_digits=6, decimal_places=2)
-    start_date = models.DateField()
-    end_date = models.DateField()
-    date_span = DateRangeField()
-
-    def full_clean(self, *args, **kwargs):
-        super(Labor_Rate, self).full_clean(*args, **kwargs)
-        self.date_span = (self.start_date, self.end_date)
-        o = (
-            Labor_Rate.objects.filter(labor_code=self.labor_code)
-            .filter(date_span__overlap=self.date_span)
-            .exclude(pk=self.pk)
-            .first()
-        )
-        if o:
-            raise ValidationError("Date Range overlaps with another record")
-
-    def __str__(self):
-        return "{}".format(self.labor_code)
-
-    class Meta:
-        verbose_name = "Labor Rate"
-        verbose_name_plural = "Labor Rates"
-        ordering = (
-            "labor_code",
-            "start_date",
-            "end_date",
-        )
-        unique_together = (
-            (
-                "labor_code",
-                "start_date",
-                "end_date",
-            ),
-        )
-
-
 class Product(MetaModel):
     history = HistoricalRecords(inherit=True)
 
@@ -157,9 +104,6 @@ class Product(MetaModel):
     unit_labor_cost = models.DecimalField(
         max_digits=12, decimal_places=5, null=True, blank=True
     )
-    unit_freight_cost = models.DecimalField(
-        max_digits=12, decimal_places=5, null=True, blank=True
-    )
     product_notes = models.TextField(
         null=True, blank=True, verbose_name="Product Notes"
     )
@@ -170,48 +114,39 @@ class Product(MetaModel):
 
     class Meta:
         verbose_name = "Product"
-        verbose_name_plural = "Products"
+        verbose_name_plural = "Product List"
         ordering = ("sku",)
 
 
-class Raw_Material_Proxy(Product):
+class Recipe_Line(MetaModel):
+    history = HistoricalRecords()
+    sku = models.ForeignKey(
+        Product,
+        on_delete=models.PROTECT,
+        related_name="Recipe_sku_fk",
+        limit_choices_to=~models.Q(product_code__type__in=["Finished Goods"]),
+    )
+    sku_parent = models.ForeignKey(
+        Product, on_delete=models.PROTECT, related_name="Recipe_sku_parent_fk"
+    )
+    quantity = models.DecimalField(max_digits=12, decimal_places=5)
+    unit_of_measure = models.CharField(
+        max_length=200, choices=unit_of_measure_choices, default="grams"
+    )
+
+    def __str__(self):
+        return "{} ({})".format(self.sku, self.sku_parent)
+
     class Meta:
-        proxy = True
-        verbose_name = "Product Raw Material"
-        verbose_name_plural = "Product Raw Materials"
-        ordering = ("sku",)
-
-    original_unit_of_measure = None
-    original_unit_material_cost = None
-
-    def __init__(self, *args, **kwargs):
-        super(Raw_Material_Proxy, self).__init__(*args, **kwargs)
-        self.original_unit_of_measure = self.unit_of_measure
-        self.original_unit_material_cost = self.unit_material_cost
-
-
-class Labor_Proxy(Product):
-    class Meta:
-        proxy = True
-        verbose_name = "Labor Items"
-        verbose_name_plural = "Labor Items"
-        ordering = ("sku",)
-
-    original_unit_of_measure = None
-    original_unit_material_cost = None
-
-    def __init__(self, *args, **kwargs):
-        super(Labor_Proxy, self).__init__(*args, **kwargs)
-        self.original_unit_of_measure = self.unit_of_measure
-        self.original_unit_material_cost = self.unit_material_cost
-
-
-class Finished_Goods_Proxy(Product):
-    class Meta:
-        proxy = True
-        verbose_name = "Product Finished Good"
-        verbose_name_plural = "Product Finished Goods"
-        ordering = ("sku",)
+        verbose_name = "Recipe Line"
+        verbose_name_plural = "Recipe Lines"
+        unique_together = (
+            (
+                "sku",
+                "sku_parent",
+            ),
+        )
+        ordering = ("sku_parent", "sku")
 
 
 class Order_Cost_Overlay(MetaModel):
