@@ -1,3 +1,3 @@
 # moondance
 
-An attempt to normalize and consolidate sales orders and inventory onhand from various e-commerce platforms (Nexternal, Amazon) into a Postgres Database.
+An ERP lite system using Django.  Normalizes and consolidates sales orders and inventory onhand from e-commerce platforms (Shopify, Amazon) into a Postgres Database.
