@@ -28,7 +28,8 @@ FROM
     public.integration_shopify_product shop LEFT JOIN
     public.operations_product p ON shop.shopify_sku = p.sku
 WHERE
-    p.id isnull
+    p.id IS NULL AND
+    shop.product_id IS NULL
 ORDER BY
     shopify_sku,
     shop._last_updated DESC NULLS LAST

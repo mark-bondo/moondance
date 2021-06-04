@@ -1,5 +1,7 @@
 import decimal
 from django.db import connection
+import django.urls as urlresolvers
+from django.utils.safestring import mark_safe
 from django.contrib import admin
 from moondance.meta_models import set_meta_fields, AdminStaticMixin
 from simple_history.admin import SimpleHistoryAdmin
@@ -94,6 +96,7 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
     fk_name = "sku_parent"
     fields = (
         "sku",
+        "modify_link",
         "quantity",
         "unit_of_measure",
         "unit_cost",
@@ -102,6 +105,7 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
     )
     history_list_display = [
         "sku",
+        "modify_link",
         "quantity",
         "unit_of_measure",
         "_active",
@@ -116,7 +120,18 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
     readonly_fields = (
         "unit_cost",
         "extended_cost",
+        "modify_link",
     )
+
+    def modify_link(self, obj):
+        """Generate a link to the history view for the line item."""
+        app = obj._meta.app_label
+        url_str = "admin:{}_{}_change".format(app, "product")
+        url = urlresolvers.reverse(url_str, args=[obj.sku_id])
+        return mark_safe('<a href="{}">Modify</a>'.format(url))
+
+    modify_link.allow_tags = True
+    modify_link.short_description = "Modify Link"
 
     def unit_cost(self, obj):
         converted_weight = convert_weight(
