@@ -5,11 +5,11 @@ INSERT INTO public.operations_product (
     sku,
     description,
     upc,
+    sales_channel_type,
     unit_of_measure,
     unit_sales_price,
     _created_by_id,
-    _last_updated_by_id,
-    product_type
+    _last_updated_by_id
 )
 
 SELECT DISTINCT ON (shopify_sku)
@@ -19,11 +19,11 @@ SELECT DISTINCT ON (shopify_sku)
     "shopify_sku" as sku,
     "title" as description,
     "barcode" as upc,
+    'All' as sales_channel_type,
     'each' as unit_of_measure,
     "price" as unit_sales_price,
     1 as _created_by_id,
-    1 as _last_updated_by_id,
-    'Finished Goods' as product_type
+    1 as _last_updated_by_id
 FROM
     public.integration_shopify_product shop LEFT JOIN
     public.operations_product p ON shop.shopify_sku = p.sku

@@ -41,10 +41,7 @@ def post_save(sender, instance, created, **kwargs):
     if created:
         return
 
-        print(instance.unit_material_cost, instance.original_unit_material_cost)
-        print(instance.unit_labor_cost, instance.original_unit_labor_cost)
-
-    # recalculate rolled BOM costs formset.model == Product and
+    # recalculate rolled BOM costs
     if (
         instance.original_unit_material_cost != instance.unit_material_cost
         or instance.original_unit_labor_cost != instance.unit_labor_cost
@@ -55,18 +52,22 @@ def post_save(sender, instance, created, **kwargs):
             .distinct("sku_parent_id")
             .values_list("sku_parent_id", flat=True)
         )
+    else:
+        parents = []
 
-        while parents:
-            p = parents[0]
-            current_level_parent = recalculate_bom_cost(p)
-            next_level_parent = (
-                Recipe_Line.objects.filter(sku_id=current_level_parent)
-                .order_by("sku_parent_id")
-                .distinct("sku_parent_id")
-                .values_list("sku_parent_id", flat=True)
-            )
+    parents.append(instance.id)
 
-            for n in next_level_parent:
-                parents.append(n)
+    while parents:
+        p = parents[0]
+        current_level_parent = recalculate_bom_cost(p)
+        next_level_parent = (
+            Recipe_Line.objects.filter(sku_id=current_level_parent)
+            .order_by("sku_parent_id")
+            .distinct("sku_parent_id")
+            .values_list("sku_parent_id", flat=True)
+        )
 
-            parents.remove(p)
+        for n in next_level_parent:
+            parents.append(n)
+
+        parents.remove(p)
