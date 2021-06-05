@@ -1,4 +1,6 @@
+from django.db import connection
 from django.db import models
+from django.apps import apps
 from moondance.meta_models import MetaModel
 from simple_history.models import HistoricalRecords
 
@@ -21,6 +23,8 @@ PRODUCT_TYPES = (
     ("Finished Goods", "Finished Goods"),
     ("Raw Materials", "Raw Materials"),
     ("Labor", "Labor"),
+    ("Labor Groups", "Labor Groups"),
+    ("Services", "Services"),
     ("WIP", "WIP"),
 )
 SALES_CHANNEL_TYPES = (
@@ -28,6 +32,82 @@ SALES_CHANNEL_TYPES = (
     ("FBA", "FBA"),
     ("MoonDance", "MoonDance"),
 )
+
+
+def get_sku_quantity(sku_id):
+    total_quantity = 0
+    Inventory_Onhand = apps.get_model("purchasing", "Inventory_Onhand")
+
+    for q in Inventory_Onhand.objects.filter(sku_id=sku_id):
+        total_quantity += q.quantity_onhand or 0
+
+    return total_quantity
+
+
+def convert_weight(to_measure, from_measure, weight):
+    with connection.cursor() as cursor:
+        sql = f"""
+            SELECT
+                (conversion_rate * {weight})::NUMERIC(16, 5) as converted_weight
+            FROM
+                public.making_weight_conversions
+            WHERE
+                from_measure = '{from_measure}' AND
+                to_measure = '{to_measure}'
+        """
+        cursor.execute(sql)
+        return cursor.fetchall()[0][0]
+
+
+def calculate_unit_cost(obj, weight):
+    converted_weight = convert_weight(
+        from_measure=obj.unit_of_measure,
+        to_measure=obj.sku.unit_of_measure,
+        weight=weight,
+    )
+    cost = (
+        (obj.sku.unit_material_cost or 0)
+        + (obj.sku.unit_labor_cost or 0)
+        + (obj.sku.unit_freight_cost or 0)
+    ) * (converted_weight or 0)
+    return round(cost, 5)
+
+
+def recalculate_bom_cost(p):
+    bom = (
+        Recipe_Line.objects.filter(sku_parent_id=p)
+        .select_related("sku")
+        .only(
+            "quantity",
+            "sku__unit_material_cost",
+            "sku__unit_labor_cost",
+            "sku__unit_freight_cost",
+            "sku__unit_of_measure",
+        )
+    )
+
+    unit_material_cost = 0
+    unit_labor_cost = 0
+    unit_freight_cost = 0
+
+    for b in bom:
+        converted_weight = convert_weight(
+            to_measure=b.sku.unit_of_measure,
+            from_measure=b.unit_of_measure,
+            weight=(b.quantity or 0),
+        )
+
+        unit_material_cost += (b.sku.unit_material_cost or 0) * converted_weight
+        unit_labor_cost += (b.sku.unit_labor_cost or 0) * converted_weight
+        unit_freight_cost += (b.sku.unit_freight_cost or 0) * converted_weight
+
+    Product.objects.filter(id=p).update(
+        unit_material_cost=unit_material_cost,
+        unit_labor_cost=unit_labor_cost,
+        unit_freight_cost=unit_freight_cost,
+    )
+
+    return p
 
 
 class Product_Code(MetaModel):
@@ -86,11 +166,36 @@ class Product(MetaModel):
     unit_labor_cost = models.DecimalField(
         max_digits=12, decimal_places=5, null=True, blank=True
     )
+    unit_freight_cost = models.DecimalField(
+        max_digits=12, decimal_places=5, null=True, blank=True
+    )
     notes = models.TextField(null=True, blank=True)
 
     original_unit_of_measure = None
     original_unit_material_cost = None
     original_unit_labor_cost = None
+
+    @property
+    def total_cost(self):
+        cost = (
+            (self.unit_material_cost or 0)
+            + (self.unit_labor_cost or 0)
+            + (self.unit_freight_cost or 0)
+        ) * get_sku_quantity(self.pk)
+        return round(cost, 5)
+
+    @property
+    def onhand_quantity(self):
+        return get_sku_quantity(self.pk)
+
+    @property
+    def unit_cost_total(self):
+        cost = (
+            (self.unit_material_cost or 0)
+            + (self.unit_labor_cost or 0)
+            + (self.unit_freight_cost or 0)
+        )
+        return round(cost, 5)
 
     def __str__(self):
         return "{} ({})".format(self.description, self.sku)
@@ -123,6 +228,14 @@ class Recipe_Line(MetaModel):
         max_length=200, choices=UNIT_OF_MEASURES, default="grams"
     )
 
+    @property
+    def unit_cost(self):
+        return calculate_unit_cost(self, 1)
+
+    @property
+    def extended_cost(self):
+        return calculate_unit_cost(self, self.quantity)
+
     def __str__(self):
         return "{} ({})".format(self.sku, self.sku_parent)
 
@@ -135,7 +248,10 @@ class Recipe_Line(MetaModel):
                 "sku_parent",
             ),
         )
-        ordering = ("sku_parent", "sku")
+        ordering = (
+            "sku__product_code__family",
+            "sku__sku",
+        )
 
 
 class Order_Cost_Overlay(MetaModel):

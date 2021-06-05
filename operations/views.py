@@ -19,7 +19,7 @@ def get_products(request):
                 public.operations_product p
                 JOIN public.operations_product_code pcode ON p.product_code_id = pcode.id
             WHERE
-                pcode.type IN ('Finished Goods', 'WIP') AND
+                pcode.type IN ('Finished Goods', 'WIP', 'Labor Groups') AND
                 p._active = TRUE
             ;
         """

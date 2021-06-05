@@ -6,20 +6,11 @@ from .models import (
     Inventory_Onhand,
     Supplier,
     Supplier_Product,
-    Product,
     Invoice,
     Invoice_Line,
 )
+from operations.models import Product
 from .forms import Inventory_Onhand_Form
-
-
-def get_sku_quantity(sku_id):
-    total_quantity = 0
-
-    for q in Inventory_Onhand.objects.filter(sku_id=sku_id):
-        total_quantity += q.quantity_onhand or 0
-
-    return total_quantity
 
 
 @admin.register(Inventory_Onhand)
@@ -98,19 +89,12 @@ class Inventory_Onhand_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         for i in location_inventory:
             total_quantity_onhand += i.quantity_onhand or 0
 
-        parent_obj = Product.objects.get(pk=obj.sku.id)
-        parent_obj.total_quantity_onhand = total_quantity_onhand
-        parent_obj.total_material_cost = (
-            total_quantity_onhand * parent_obj.unit_material_cost
-        )
-        parent_obj.total_freight_cost = (
-            decimal.Decimal(parent_obj.product_code.freight_factor_percentage or 0)
-            / decimal.Decimal(100)
-        ) * parent_obj.total_material_cost
-        parent_obj.total_cost = parent_obj.total_material_cost + (
-            parent_obj.total_freight_cost or 0
-        )
-        parent_obj.save()
+        p = Product.objects.get(pk=obj.sku.id)
+        p.total_quantity_onhand = total_quantity_onhand
+        p.total_material_cost = total_quantity_onhand * (p.unit_material_cost or 0)
+        p.total_freight_cost = total_quantity_onhand * (p.unit_freight_cost or 0)
+        p.total_cost = p.total_material_cost + p.total_freight_cost
+        p.save()
 
         # move inventory
         if obj.to_location:

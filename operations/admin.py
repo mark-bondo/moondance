@@ -1,5 +1,4 @@
 import decimal
-from django.db import connection
 import django.urls as urlresolvers
 from django.utils.safestring import mark_safe
 from django.contrib import admin
@@ -10,27 +9,14 @@ from .models import (
     Product,
     Recipe_Line,
     Order_Cost_Overlay,
+    convert_weight,
+    get_sku_quantity,
+    recalculate_bom_cost,
 )
-from purchasing.admin import Supplier_Product_Admin_Inline, get_sku_quantity
+from purchasing.admin import Supplier_Product_Admin_Inline
 from purchasing.models import (
     Inventory_Onhand,
 )
-
-
-def convert_weight(to_measure, from_measure, weight):
-
-    with connection.cursor() as cursor:
-        sql = f"""
-            SELECT
-                (conversion_rate * {weight})::NUMERIC(16, 5) as converted_weight
-            FROM
-                public.making_weight_conversions
-            WHERE
-                from_measure = '{from_measure}' AND
-                to_measure = '{to_measure}'
-        """
-        cursor.execute(sql)
-        return cursor.fetchall()[0][0]
 
 
 @admin.register(Product_Code)
@@ -95,6 +81,7 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
     model = Recipe_Line
     fk_name = "sku_parent"
     fields = (
+        "product_code",
         "sku",
         "modify_link",
         "quantity",
@@ -121,7 +108,11 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
         "unit_cost",
         "extended_cost",
         "modify_link",
+        "product_code",
     )
+
+    def product_code(self, obj):
+        return obj.sku.product_code.family
 
     def modify_link(self, obj):
         """Generate a link to the history view for the line item."""
@@ -132,44 +123,6 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
 
     modify_link.allow_tags = True
     modify_link.short_description = "Modify Link"
-
-    def unit_cost(self, obj):
-        converted_weight = convert_weight(
-            from_measure=obj.unit_of_measure,
-            to_measure=obj.sku.unit_of_measure,
-            weight=1,
-        )
-        cost = (
-            (obj.sku.unit_material_cost or 0)
-            + (obj.sku.unit_labor_cost or 0)
-            + (
-                (obj.sku.unit_material_cost or 0)
-                * (
-                    (obj.sku.product_code.freight_factor_percentage or 0)
-                    / decimal.Decimal(100)
-                )
-            )
-        ) * (converted_weight or 0)
-        return round(cost, 5)
-
-    def extended_cost(self, obj):
-        converted_weight = convert_weight(
-            from_measure=obj.unit_of_measure,
-            to_measure=obj.sku.unit_of_measure,
-            weight=obj.quantity,
-        )
-        cost = (
-            (obj.sku.unit_material_cost or 0)
-            + (obj.sku.unit_labor_cost or 0)
-            + (
-                (obj.sku.unit_material_cost or 0)
-                * (
-                    (obj.sku.product_code.freight_factor_percentage or 0)
-                    / decimal.Decimal(100)
-                )
-            )
-        ) * (converted_weight or 0)
-        return round(cost, 5)
 
 
 @admin.register(Product)
@@ -257,12 +210,32 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         ),
     )
 
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        self.inlines = []
+
+        try:
+            obj = self.model.objects.get(pk=object_id)
+        except self.model.DoesNotExist:
+            pass
+        else:
+            if obj:
+                if obj.product_code.type in ("Finished Goods"):
+                    self.inlines = self.inlines
+                elif obj.product_code.type in ("Raw Materials"):
+                    self.inlines = [Supplier_Product_Admin_Inline]
+                elif obj.product_code.type in ("Labor Groups", "WIP"):
+                    self.inlines = [Recipe_Line_Inline_Admin]
+                else:
+                    self.inlines = []
+            else:
+                self.inlines = []
+
+        return super().change_view(request, object_id, form_url, extra_context)
+
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = (
-            "unit_freight_cost",
             "unit_cost_total",
             "onhand_quantity",
-            "unit_freight_cost",
             "_last_updated",
             "total_cost",
             "_created",
@@ -280,49 +253,28 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             readonly_fields += ("unit_labor_cost",)
         return readonly_fields
 
-    def unit_freight_cost(self, obj):
-        cost = (obj.unit_material_cost or 0) * (
-            (obj.product_code.freight_factor_percentage or 0) / decimal.Decimal(100)
-        )
-        return round(cost, 5)
-
-    def unit_cost_total(self, obj):
-        cost = (
-            (obj.unit_material_cost or 0)
-            + (obj.unit_labor_cost or 0)
-            + (
-                (obj.unit_material_cost or 0)
-                * (
-                    (obj.product_code.freight_factor_percentage or 0)
-                    / decimal.Decimal(100)
-                )
-            )
-        )
-        return round(cost, 5)
-
-    def onhand_quantity(self, obj):
-        return get_sku_quantity(obj.pk)
-
-    def total_cost(self, obj):
-        cost = (
-            (obj.unit_material_cost or 0)
-            + (obj.unit_labor_cost or 0)
-            + (
-                (obj.unit_material_cost or 0)
-                * (
-                    (obj.product_code.freight_factor_percentage or 0)
-                    / decimal.Decimal(100)
-                )
-            )
-        ) * get_sku_quantity(obj.pk)
-        return round(cost, 5)
-
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("product_code")
 
+    def save_model(self, request, obj, form, change):
+        obj = set_meta_fields(request, obj, form, change)
+
+        # recalculate inventory weights
+        if obj.original_unit_of_measure != obj.unit_of_measure:
+            location_inventory = Inventory_Onhand.objects.filter(sku=obj)
+
+            for i in location_inventory:
+                converted_weight = convert_weight(
+                    from_measure=obj.original_unit_of_measure,
+                    to_measure=obj.unit_of_measure,
+                    weight=i.quantity_onhand,
+                )
+                i.quantity_onhand = converted_weight
+                i.save()
+
+        super().save_model(request, obj, form, change)
+
     def save_formset(self, request, form, formset, change):
-        # set meta fields
-        parent = set_meta_fields(request, form.instance, form, change)
         inline_formsets = formset.save(commit=False)
 
         for obj in inline_formsets:
@@ -334,18 +286,8 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
         formset.save_m2m()
 
-        # recalculate inventory weights
-        if parent.original_unit_of_measure != parent.unit_of_measure:
-            location_inventory = Inventory_Onhand.objects.filter(sku=form.instance)
-
-            for i in location_inventory:
-                converted_weight = convert_weight(
-                    from_measure=parent.original_unit_of_measure,
-                    to_measure=parent.unit_of_measure,
-                    weight=i.quantity_onhand,
-                )
-                i.quantity_onhand = converted_weight
-                i.save()
+        if formset.model == Recipe_Line:
+            recalculate_bom_cost(form.instance.id)
 
 
 @admin.register(Order_Cost_Overlay)
