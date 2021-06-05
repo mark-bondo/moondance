@@ -2,6 +2,26 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.db import connection
 from django.contrib.auth.decorators import login_required
+from .models import recalculate_bom_cost
+
+
+@login_required
+def recalculate_cost(request):
+    with connection.cursor() as cursor:
+        sql = """
+            SELECT DISTINCT
+                product_id
+            FROM
+                staging.products
+            ;
+        """
+        cursor.execute(sql)
+        products = cursor.fetchall()
+
+    for p in products:
+        recalculate_bom_cost(p[0])
+
+    return HttpResponse(products, content_type="application/json")
 
 
 @login_required
@@ -98,11 +118,11 @@ def get_materials(request):
                     JOIN public.operations_product wip ON recipe.sku_parent = wip.id
                     JOIN public.operations_product child ON recipe.sku_child = child.id
                     JOIN public.operations_product_code pcode ON child.product_code_id = pcode.id
-                    JOIN public.making_weight_conversions weight ON
+                    JOIN public.operations_weight_conversions weight ON
                         child.unit_of_measure = weight.to_measure AND
                         recipe.unit_of_measure = weight.from_measure
                     LEFT JOIN public.purchasing_inventory_onhand inventory ON child.id = inventory.sku_id 
-                    JOIN public.making_weight_conversions weight_inventory ON
+                    JOIN public.operations_weight_conversions weight_inventory ON
                         child.unit_of_measure = weight_inventory.from_measure AND
                         recipe.unit_of_measure = weight_inventory.to_measure
                 WHERE

@@ -53,7 +53,6 @@ INSTALLED_APPS = [
     "operations",
     "accounting",
     "purchasing",
-    "making",
     "integration",
     "automationtools",
 ]

@@ -138,16 +138,6 @@ WITH shopify_line_items AS (
         shipping_paid ON shipping_total.order_id = shipping_paid.order_id LEFT JOIN
         shipping_easy ON shipping_total.order_id = shipping_easy.order_id
 )
-, bundles AS (
-    SELECT
-        b.bundle_id,
-        SUM(b.quantity::NUMERIC * top.unit_material_cost) as unit_material_cost
-    FROM
-        public.making_product_bundle_line b JOIN
-        public.operations_product top ON b.product_used_id = top.id
-    GROUP BY
-        b.bundle_id
-)
 , amazon_fees AS (
     WITH events AS (
         SELECT
@@ -229,7 +219,6 @@ SELECT
     shopify_shipping_allocation.shipping_cost as total_shipping_cost,
     (
         COALESCE(
-            bundles.unit_material_cost, 
             p.unit_material_cost,
             (SELECT percent FROM default_costs) * (line_json->>'price')::NUMERIC
         ) *
@@ -262,7 +251,7 @@ SELECT
     DATE_PART('MONTH', processed_at::TIMESTAMP WITH TIME ZONE)::INTEGER as processed_month,
     DATE_TRUNC('MONTH', processed_at::TIMESTAMP WITH TIME ZONE)::DATE as processed_period,
     CASE
-        WHEN COALESCE(bundles.unit_material_cost, p.unit_material_cost) IS NULL THEN 'Product Cost'
+        WHEN p.unit_material_cost IS NULL THEN 'Product Cost'
         ELSE 'Average Cost'
     END as cost_type
 FROM
@@ -274,7 +263,6 @@ FROM
         sp.id IS NULL LEFT JOIN
     public.operations_product p ON COALESCE(sp.product_id, missing.product_id) = p.id LEFT JOIN
     public.operations_product_code pcode ON p.product_code_id = pcode.id LEFT JOIN
-    bundles ON p.id = bundles.bundle_id LEFT JOIN
     shopify_refunds refunds ON (line_json->>'id') = refunds.order_line_id LEFT JOIN
     shopify_shipping_allocation ON (line_json->>'id') = shopify_shipping_allocation.order_line_id LEFT JOIN
     amazon_fees ON 
@@ -316,7 +304,7 @@ SELECT
     NULL::NUMERIC as total_shipping_cost,
     (
         COALESCE(
-            COALESCE(bundles.unit_material_cost, product.unit_material_cost) * sl."QuantityOrdered",
+            product.unit_material_cost * sl."QuantityOrdered",
             (SELECT percent FROM default_costs) * (sl."ItemPrice"->>'Amount')::NUMERIC
         )
     )::NUMERIC as total_material_cost,
@@ -336,7 +324,7 @@ SELECT
     DATE_PART('MONTH', sh."PurchaseDate")::INTEGER as processed_month,
     DATE_TRUNC('MONTH', sh."PurchaseDate")::DATE as processed_period,
     CASE
-        WHEN COALESCE(bundles.unit_material_cost, product.unit_material_cost) IS NULL THEN 'Product Cost'
+        WHEN product.unit_material_cost IS NULL THEN 'Product Cost'
         ELSE 'Average Cost'
     END as cost_type
 FROM
@@ -345,7 +333,6 @@ FROM
     public.integration_amazon_product ap ON sl."ASIN" = ap.asin LEFT JOIN
     public.operations_product product ON ap.product_id = product.id LEFT JOIN
     public.operations_product_code pcode ON product.product_code_id = pcode.id LEFT JOIN
-    bundles ON product.id = bundles.bundle_id  LEFT JOIN
     shopify.shopify_sales_order shopify ON sh."AmazonOrderId" = shopify.reference LEFT JOIN
     amazon_fees ON sl."OrderItemId" = amazon_fees."OrderItemId"
 WHERE
@@ -599,5 +586,3 @@ FROM
         END = county_tax.county LEFT JOIN
     public.accounting_tax_rate_state state_tax ON county_tax.state_id = state_tax.id
 ;
-
- 

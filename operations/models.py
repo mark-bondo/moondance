@@ -50,7 +50,7 @@ def convert_weight(to_measure, from_measure, weight):
             SELECT
                 (conversion_rate * {weight})::NUMERIC(16, 5) as converted_weight
             FROM
-                public.making_weight_conversions
+                public.operations_weight_conversions
             WHERE
                 from_measure = '{from_measure}' AND
                 to_measure = '{to_measure}'
@@ -108,6 +108,16 @@ def recalculate_bom_cost(p):
     )
 
     return p
+
+
+class Weight_Conversions(models.Model):
+    from_measure = models.CharField(max_length=200, choices=UNIT_OF_MEASURES)
+    to_measure = models.CharField(max_length=200, choices=UNIT_OF_MEASURES)
+    conversion_rate = models.DecimalField(max_digits=16, decimal_places=6)
+
+    class Meta:
+        verbose_name = "Weight Conversion"
+        verbose_name_plural = "Weight Conversions"
 
 
 class Product_Code(MetaModel):
