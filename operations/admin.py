@@ -9,14 +9,9 @@ from .models import (
     Product,
     Recipe_Line,
     Order_Cost_Overlay,
-    convert_weight,
-    get_sku_quantity,
     recalculate_bom_cost,
 )
 from purchasing.admin import Supplier_Product_Admin_Inline
-from purchasing.models import (
-    Inventory_Onhand,
-)
 
 
 @admin.register(Product_Code)
@@ -235,6 +230,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = (
             "unit_cost_total",
+            "unit_freight_cost",
             "onhand_quantity",
             "_last_updated",
             "total_cost",
@@ -242,7 +238,10 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             "_created_by",
         )
 
-        if obj and obj.product_code.type in ("WIP",):
+        if obj and obj.product_code.type in (
+            "WIP",
+            "Labor Groups",
+        ):
             readonly_fields += (
                 "unit_material_cost",
                 "unit_labor_cost",
@@ -258,21 +257,10 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def save_model(self, request, obj, form, change):
         obj = set_meta_fields(request, obj, form, change)
-
-        # recalculate inventory weights
-        if obj.original_unit_of_measure != obj.unit_of_measure:
-            location_inventory = Inventory_Onhand.objects.filter(sku=obj)
-
-            for i in location_inventory:
-                converted_weight = convert_weight(
-                    from_measure=obj.original_unit_of_measure,
-                    to_measure=obj.unit_of_measure,
-                    weight=i.quantity_onhand,
-                )
-                i.quantity_onhand = converted_weight
-                i.save()
-
-        super().save_model(request, obj, form, change)
+        obj.unit_freight_cost = (obj.unit_material_cost or 0) * (
+            (obj.product_code.freight_factor_percentage or 0) / decimal.Decimal(100)
+        )
+        obj.save()
 
     def save_formset(self, request, form, formset, change):
         inline_formsets = formset.save(commit=False)

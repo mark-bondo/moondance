@@ -174,6 +174,16 @@ class Product(MetaModel):
     original_unit_of_measure = None
     original_unit_material_cost = None
     original_unit_labor_cost = None
+    original_unit_freight_cost = None
+
+    @property
+    def unit_cost_total(self):
+        cost = (
+            (self.unit_material_cost or 0)
+            + (self.unit_labor_cost or 0)
+            + (self.unit_freight_cost or 0)
+        )
+        return round(cost, 5)
 
     @property
     def total_cost(self):
@@ -188,15 +198,6 @@ class Product(MetaModel):
     def onhand_quantity(self):
         return get_sku_quantity(self.pk)
 
-    @property
-    def unit_cost_total(self):
-        cost = (
-            (self.unit_material_cost or 0)
-            + (self.unit_labor_cost or 0)
-            + (self.unit_freight_cost or 0)
-        )
-        return round(cost, 5)
-
     def __str__(self):
         return "{} ({})".format(self.description, self.sku)
 
@@ -205,6 +206,7 @@ class Product(MetaModel):
         self.original_unit_of_measure = self.unit_of_measure
         self.original_unit_material_cost = self.original_unit_material_cost
         self.original_unit_labor_cost = self.original_unit_labor_cost
+        self.original_unit_freight_cost = self.original_unit_freight_cost
 
     class Meta:
         verbose_name = "Product"
