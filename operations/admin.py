@@ -69,6 +69,16 @@ class Product_Code_Admin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         obj = set_meta_fields(request, obj, form, change)
+
+        if obj.original_freight_factor_percentage != obj.freight_factor_percentage:
+            products = Product.objects.filter(product_code=obj)
+
+            for p in products:
+                p.unit_freight_cost = (p.unit_material_cost or 0) * (
+                    (obj.freight_factor_percentage or 0) / decimal.Decimal(100)
+                )
+                p.save()
+
         super().save_model(request, obj, form, change)
 
 
@@ -206,8 +216,6 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     )
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
-        self.inlines = []
-
         try:
             obj = self.model.objects.get(pk=object_id)
         except self.model.DoesNotExist:

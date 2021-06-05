@@ -122,8 +122,14 @@ class Product_Code(MetaModel):
         help_text="Percentage adder to material cost. Use whole numbers with 2 decimals maximum.",
     )
 
+    original_freight_factor_percentage = None
+
     def __str__(self):
         return "{}".format(self.category)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.original_freight_factor_percentage = self.freight_factor_percentage
 
     class Meta:
         verbose_name = "Product Category"
