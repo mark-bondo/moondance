@@ -149,30 +149,30 @@ WITH shopify_line_items AS (
         b.bundle_id
 )
 , amazon_fees AS (
-    WITH lines AS (
+    WITH events AS (
         SELECT
             "FinancialEvents" as event,
             "AmazonOrderId",
             (jsonb_array_elements("ShipmentItemList")->>'OrderItemId')::BIGINT as "OrderItemId",
-            jsonb_array_elements("ShipmentItemList")->>'SellerSKU' as "SellerSKU",
             -(jsonb_array_elements(jsonb_array_elements("ShipmentItemList")->'ItemFeeList')->'FeeAmount'->>'CurrencyAmount')::NUMERIC(16, 2) as fees
         FROM
             amazon.amazon_financial_events
     )
 
     SELECT
-        "AmazonOrderId",
-        "OrderItemId",
+        events."AmazonOrderId",
+        events."OrderItemId",
         i.product_id,
         SUM(fees) as total_fees
     FROM
-        lines LEFT JOIN
-        public.integration_amazon_product i ON lines."SellerSKU" = i.seller_sku
+        events
+        JOIN amazon.amazon_sales_order_line line ON events."OrderItemId" = line."OrderItemId"
+        JOIN public.integration_amazon_product i ON line."ASIN" = i.asin
     WHERE
         fees != 0
     GROUP BY
-        "AmazonOrderId",
-        "OrderItemId",
+        events."AmazonOrderId",
+        events."OrderItemId",
         i.product_id
 
 )
@@ -342,7 +342,7 @@ SELECT
 FROM
     amazon.amazon_sales_order sh JOIN
     amazon.amazon_sales_order_line sl ON sh."AmazonOrderId" = sl."AmazonOrderId" LEFT JOIN
-    public.integration_amazon_product ap ON sl."SellerSKU" = ap.seller_sku LEFT JOIN
+    public.integration_amazon_product ap ON sl."ASIN" = ap.asin LEFT JOIN
     public.operations_product product ON ap.product_id = product.id LEFT JOIN
     public.operations_product_code pcode ON product.product_code_id = pcode.id LEFT JOIN
     bundles ON product.id = bundles.bundle_id  LEFT JOIN

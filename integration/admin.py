@@ -69,13 +69,11 @@ class Amazon_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Amazon_Product
     list_display = [
         "asin",
-        "seller_sku",
         "product",
         "sku_description",
     ]
     fields = (
         "asin",
-        "seller_sku",
         "sku_description",
         "product",
     )

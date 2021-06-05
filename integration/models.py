@@ -7,8 +7,7 @@ from operations.models import Product
 class Amazon_Product(MetaModel):
     history = HistoricalRecords()
 
-    asin = models.CharField(max_length=200)
-    seller_sku = models.CharField(max_length=200, unique=True)
+    asin = models.CharField(max_length=200, unique=True)
     sku_description = models.CharField(max_length=200)
     product = models.ForeignKey(
         Product,
@@ -19,14 +18,13 @@ class Amazon_Product(MetaModel):
     )
 
     def __str__(self):
-        return "{}: {}".format(self.asin, self.seller_sku)
+        return "{}: {}".format(self.asin)
 
     class Meta:
         verbose_name = "Amazon Product"
         verbose_name_plural = "Amazon Products"
         ordering = (
             "product__sku",
-            "seller_sku",
             "asin",
         )
 

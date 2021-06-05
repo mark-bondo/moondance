@@ -1,7 +1,6 @@
 INSERT INTO public.integration_amazon_product (
     asin,
     product_id,
-    seller_sku,
     sku_description,
     _active,
     _created,
@@ -11,10 +10,9 @@ INSERT INTO public.integration_amazon_product (
 )
 
 SELECT 
-    DISTINCT ON ("SellerSKU")
+    DISTINCT ON ("ASIN")
     "ASIN" as asin,
     NULL::INTEGER as product_id,
-    "SellerSKU" as seller_sku,
     "Title" as sku_description,
     TRUE as _active,
     NOW() as _created,
@@ -24,11 +22,10 @@ SELECT
 FROM
     amazon.amazon_sales_order_line ol
 ORDER BY
-    "SellerSKU",
+    "ASIN",
     "LastUpdateDate" DESC
-ON CONFLICT (seller_sku)
+ON CONFLICT (asin)
 DO UPDATE
     SET
-        asin = EXCLUDED.asin,
         sku_description = EXCLUDED.sku_description
 ;

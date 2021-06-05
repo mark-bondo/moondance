@@ -226,7 +226,6 @@ class Recipe_Line(MetaModel):
         Product,
         on_delete=models.PROTECT,
         related_name="Recipe_sku_fk",
-        limit_choices_to=~models.Q(product_code__type__in=["Finished Goods"]),
     )
     sku_parent = models.ForeignKey(
         Product, on_delete=models.PROTECT, related_name="Recipe_sku_parent_fk"
