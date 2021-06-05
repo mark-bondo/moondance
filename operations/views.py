@@ -20,7 +20,7 @@ def get_products(request):
                 JOIN public.operations_product_code pcode ON p.product_code_id = pcode.id
             WHERE
                 pcode.type IN ('Finished Goods', 'WIP') AND
-                _active = TRUE
+                p._active = TRUE
             ;
         """
         cursor.execute(sql)
@@ -47,7 +47,7 @@ def get_materials(request):
                         parent.quantity as quantity,
                         1 as bom_level
                     FROM
-                        public.making_recipe_line parent 
+                        public.operations_recipe_line parent 
                     WHERE
                         sku_parent_id = ANY(%s)
 
@@ -62,7 +62,7 @@ def get_materials(request):
                         boms.bom_level + 1 as bom_level
                     FROM
                         exploded_recipe boms JOIN
-                        public.making_recipe_line child ON child.sku_parent_id = boms.sku_child
+                        public.operations_recipe_line child ON child.sku_parent_id = boms.sku_child
                 )
 
                 SELECT
@@ -78,8 +78,13 @@ def get_materials(request):
                     SUM(recipe.quantity * weight.conversion_rate * child.unit_material_cost)::NUMERIC(16, 2) as material_cost,
                     SUM(recipe.quantity * weight.conversion_rate * child.unit_material_cost * (pcode.freight_factor_percentage/100::NUMERIC))::NUMERIC(16, 2) as freight_cost,
                     SUM(
-                    (recipe.quantity::NUMERIC * weight.conversion_rate::NUMERIC * child.unit_material_cost::NUMERIC) +
-                    (recipe.quantity::NUMERIC * weight.conversion_rate::NUMERIC * child.unit_material_cost::NUMERIC * (pcode.freight_factor_percentage::NUMERIC/100::NUMERIC))
+                        (
+                            recipe.quantity::NUMERIC * weight.conversion_rate::NUMERIC * 
+                            (COALESCE(child.unit_material_cost::NUMERIC, 0) + COALESCE(child.unit_labor_cost, 0))
+                        ) +
+                        COALESCE(
+                            recipe.quantity::NUMERIC * weight.conversion_rate::NUMERIC * child.unit_material_cost::NUMERIC * (pcode.freight_factor_percentage::NUMERIC/100::NUMERIC)
+                        , 0)
                     )::NUMERIC as total_cost,
                     SUM(COALESCE(inventory.quantity_onhand * weight_inventory.conversion_rate, 0))::NUMERIC(16, 2) as quantity_onhand,
                     child.unit_of_measure as purchasing_unit_of_measure,
