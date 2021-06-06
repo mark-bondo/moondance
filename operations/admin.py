@@ -299,6 +299,7 @@ class Order_Cost_Overlay_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "labor_hourly_rate",
         "labor_minutes",
         "material_cost",
+        "sales_percentage",
         "_active",
     ]
     history_list_display = [
@@ -309,6 +310,7 @@ class Order_Cost_Overlay_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "labor_hourly_rate",
         "labor_minutes",
         "material_cost",
+        "sales_percentage",
         "_active",
     ]
     fields = (
@@ -319,6 +321,7 @@ class Order_Cost_Overlay_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "labor_hourly_rate",
         "labor_minutes",
         "material_cost",
+        "sales_percentage",
         "_active",
     )
 

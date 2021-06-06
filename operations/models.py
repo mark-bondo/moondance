@@ -277,11 +277,12 @@ class Order_Cost_Overlay(MetaModel):
         ("Shopify Website", "Shopify Website"),
         ("Amazon FBA", "Amazon FBA"),
         ("Amazon FBM", "Amazon FBM"),
-        ("POS", "POS"),
+        ("Farmers Market", "Farmers Market"),
     )
     type_list = (
         ("Fulfillment Labor", "Fulfillment Labor"),
         ("Shipping Materials", "Shipping Materials"),
+        ("Transaction Fees", "Transaction Fees"),
     )
     apply_to_list = (
         ("Each Order", "Each Order"),
@@ -298,6 +299,9 @@ class Order_Cost_Overlay(MetaModel):
     labor_minutes = models.IntegerField(null=True, blank=True)
     material_cost = models.DecimalField(
         max_digits=16, decimal_places=2, null=True, blank=True
+    )
+    sales_percentage = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True
     )
 
     def __str__(self):
