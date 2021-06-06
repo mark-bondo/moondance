@@ -405,7 +405,7 @@ CREATE TEMP TABLE order_adder ON COMMIT DROP AS
         SUM(
             (
                 CASE 
-                    WHEN type IN ('Transaction Fees') THEN
+                    WHEN type IN ('Sales Channel Fees') THEN
                         COALESCE(labor_cost, 0) + 
                         COALESCE(material_cost, 0) +
                         COALESCE(sales_percentage_fee * total_sales, 0)
