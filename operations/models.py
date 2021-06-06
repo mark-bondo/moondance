@@ -277,12 +277,13 @@ class Order_Cost_Overlay(MetaModel):
         ("Shopify Website", "Shopify Website"),
         ("Amazon FBA", "Amazon FBA"),
         ("Amazon FBM", "Amazon FBM"),
-        ("Farmers Market", "Farmers Market"),
+        ("Farmers Market - Wake Forest", "Farmers Market - Wake Forest"),
+        ("Farmers Market - Durham", "Farmers Market - Durham"),
     )
     type_list = (
         ("Fulfillment Labor", "Fulfillment Labor"),
         ("Shipping Materials", "Shipping Materials"),
-        ("Transaction Fees", "Transaction Fees"),
+        ("Sales Channel Fees", "Sales Channel Fees"),
     )
     apply_to_list = (
         ("Each Order", "Each Order"),
@@ -290,7 +291,7 @@ class Order_Cost_Overlay(MetaModel):
     )
 
     sales_channel = models.CharField(max_length=200, choices=sales_channel_list)
-    name = models.CharField(max_length=200, unique=True)
+    name = models.CharField(max_length=200)
     type = models.CharField(max_length=200, choices=type_list)
     apply_to = models.CharField(max_length=200, choices=apply_to_list)
     labor_hourly_rate = models.DecimalField(
@@ -310,6 +311,10 @@ class Order_Cost_Overlay(MetaModel):
     class Meta:
         verbose_name = "Cost Overlay"
         verbose_name_plural = "Cost Overlays"
+        unique_together = (
+            "name",
+            "sales_channel",
+        )
         ordering = (
             "sales_channel",
             "name",

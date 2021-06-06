@@ -239,7 +239,7 @@ SELECT
             COALESCE(refunds.quantity, 0)
         )
     ) as direct_labor,
-    amazon_fees.total_fees as amazon_fees,
+    amazon_fees.total_fees as sales_channel_fees,
     discount_applications->0->>'title' as discount_promotion_name,
     (line_json->'discount_allocations'->0->>'amount')::NUMERIC as total_discounts_given,
     CASE
@@ -325,7 +325,7 @@ SELECT
             (SELECT percent FROM default_costs WHERE type = 'labor') * (sl."ItemPrice"->>'Amount')::NUMERIC
         )
     )::NUMERIC as direct_labor,
-    amazon_fees.total_fees::NUMERIC as amazon_fees,
+    amazon_fees.total_fees::NUMERIC as sales_channel_fees,
     NULL::TEXT as discount_promotion_name,
     ((sl."PromotionDiscount"->>'Amount')::NUMERIC(16, 2) / sl."QuantityOrdered")::NUMERIC as total_discounts_given,
     'Retail' as customer_type,
@@ -360,7 +360,8 @@ CREATE TEMP TABLE order_count ON COMMIT DROP AS
     SELECT
         order_id,
         sales_channel,
-        count(*) as order_line_count
+        count(*) as order_line_count,
+        sum(COALESCE(net_sales, 0) + COALESCE(shipping_collected, 0)) as total_sales
     FROM
         sales_orders
     GROUP BY
@@ -369,17 +370,19 @@ CREATE TEMP TABLE order_count ON COMMIT DROP AS
 
 ;
 
-
 CREATE TEMP TABLE adder_rates ON COMMIT DROP AS
     SELECT
+        type,
         sales_channel,
         apply_to,
         ARRAY_AGG(name::TEXT || ' - ' || labor_minutes::TEXT || ' minutes at ' || labor_hourly_rate || ' per hour') as overlay_description,
         SUM((labor_hourly_rate::NUMERIC/60::NUMERIC) * labor_minutes::NUMERIC) as labor_cost,
-        SUM(material_cost) as material_cost
+        SUM(material_cost) as material_cost,
+        SUM(sales_percentage / 100::NUMERIC) as sales_percentage_fee
     FROM
         public.operations_order_cost_overlay
     GROUP BY
+        type,
         sales_channel,
         apply_to
 ;
@@ -389,7 +392,26 @@ CREATE TEMP TABLE order_adder ON COMMIT DROP AS
     SELECT
         order_count.order_id,
         order_count.sales_channel,
-        SUM((COALESCE(labor_cost, 0) + COALESCE(material_cost, 0)) / order_line_count) as cost_per_order
+        SUM(
+            (
+                CASE 
+                    WHEN type IN ('Fulfillment Labor', 'Shipping Materials') THEN
+                        COALESCE(labor_cost, 0) + 
+                        COALESCE(material_cost, 0) +
+                        COALESCE(sales_percentage_fee * total_sales, 0)
+                END
+            ) / order_line_count
+        ) as adder_fullfilment_cost,
+        SUM(
+            (
+                CASE 
+                    WHEN type IN ('Transaction Fees') THEN
+                        COALESCE(labor_cost, 0) + 
+                        COALESCE(material_cost, 0) +
+                        COALESCE(sales_percentage_fee * total_sales, 0)
+                END
+            ) / order_line_count
+        ) as adder_sales_channel_fees
     FROM
         order_count JOIN
         adder_rates ON 
@@ -422,7 +444,7 @@ INSERT INTO report_moondance.sales_orders (
     unit_material_cost,
     unit_direct_labor,
     unit_moondance_fulfillment_cost,
-    unit_amazon_fees,
+    unit_sales_channel_fees,
     unit_cost,
     net_sales,
     shipping_collected,
@@ -431,7 +453,7 @@ INSERT INTO report_moondance.sales_orders (
     material_cost,
     direct_labor,
     moondance_fulfillment_cost,
-    amazon_fees,
+    sales_channel_fees,
     total_cost,
     product_margin,
     gross_profit,
@@ -488,20 +510,25 @@ SELECT
     (
         COALESCE(adder_line.labor_cost, 0) + 
         COALESCE(adder_line.material_cost, 0) +
-        COALESCE(order_adder.cost_per_order, 0)
+        COALESCE(order_adder.adder_fullfilment_cost, 0)
     ) as unit_moondance_fulfillment_cost,
     (
-        (COALESCE(so.amazon_fees, 0) / quantity)
-    ) as unit_amazon_fees,
+        (
+            COALESCE(so.sales_channel_fees, 0) +
+            COALESCE(order_adder.adder_sales_channel_fees, 0)
+          
+        ) / quantity
+    ) as unit_sales_channel_fees,
     (
 		(
 			COALESCE(so.material_cost, 0) +
 			COALESCE(so.direct_labor, 0) +
-			COALESCE(so.amazon_fees, 0) +
+			COALESCE(so.sales_channel_fees, 0) +
 			COALESCE(so.shipping_cost, 0) +
 			COALESCE(adder_line.labor_cost, 0) + 
 			COALESCE(adder_line.material_cost, 0) +
-			COALESCE(order_adder.cost_per_order, 0)
+			COALESCE(order_adder.adder_fullfilment_cost, 0) +
+			COALESCE(order_adder.adder_sales_channel_fees, 0)
 		) / quantity
     ) as unit_cost,
     so.net_sales,
@@ -516,29 +543,32 @@ SELECT
     (
         COALESCE(adder_line.labor_cost, 0) + 
         COALESCE(adder_line.material_cost, 0) +
-        COALESCE(order_adder.cost_per_order, 0)
+        COALESCE(order_adder.adder_fullfilment_cost, 0)
     ) as moondance_fulfillment_cost,
     (
-        COALESCE(so.amazon_fees, 0)
-    ) as amazon_fees,
+        COALESCE(so.sales_channel_fees, 0) +
+		COALESCE(order_adder.adder_sales_channel_fees, 0)
+    ) as sales_channel_fees,
     (
         COALESCE(so.material_cost, 0) +
         COALESCE(so.direct_labor, 0) +
-        COALESCE(so.amazon_fees, 0) +
+        COALESCE(so.sales_channel_fees, 0) +
         COALESCE(so.shipping_cost, 0) +
         COALESCE(adder_line.labor_cost, 0) + 
         COALESCE(adder_line.material_cost, 0) +
-        COALESCE(order_adder.cost_per_order, 0)
+        COALESCE(order_adder.adder_fullfilment_cost, 0) +
+		COALESCE(order_adder.adder_sales_channel_fees, 0)
     ) as product_cost,
     (
         COALESCE(so.net_sales, 0) -
         (
             COALESCE(so.material_cost, 0) +
             COALESCE(so.direct_labor, 0) +
-            COALESCE(so.amazon_fees, 0) +
+            COALESCE(so.sales_channel_fees, 0) +
             COALESCE(adder_line.labor_cost, 0) +
             COALESCE(adder_line.material_cost, 0) +
-            COALESCE(order_adder.cost_per_order, 0)
+            COALESCE(order_adder.adder_fullfilment_cost, 0) +
+			COALESCE(order_adder.adder_sales_channel_fees, 0)
         )
     ) as product_margin,
     (
@@ -547,11 +577,12 @@ SELECT
         (
             COALESCE(so.material_cost, 0) +
             COALESCE(so.direct_labor, 0) +
-            COALESCE(so.amazon_fees, 0) +
+            COALESCE(so.sales_channel_fees, 0) +
             COALESCE(so.shipping_cost, 0) +
             COALESCE(adder_line.labor_cost, 0) +
             COALESCE(adder_line.material_cost, 0) +
-            COALESCE(order_adder.cost_per_order, 0)
+            COALESCE(order_adder.adder_fullfilment_cost, 0) +
+			COALESCE(order_adder.adder_sales_channel_fees, 0)
         )
     ) as gross_profit,
     discount_promotion_name,
