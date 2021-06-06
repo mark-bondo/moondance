@@ -4,7 +4,9 @@ TODO
 */
 
 CREATE TEMP TABLE default_costs ON COMMIT DROP AS
-    SELECT 0.30::NUMERIC as percent
+    SELECT 0.20::NUMERIC as percent, 'materials' as type
+    UNION ALL
+    SELECT 0.10::NUMERIC as percent, 'labor' as type
 ;
 
 
@@ -214,21 +216,30 @@ SELECT
             (line_json->>'price')::NUMERIC -
             COALESCE(((line_json->'discount_allocations'->0->>'amount')::NUMERIC/(line_json->>'quantity')::NUMERIC), 0)
         ) * ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0))
-    ) as total_sales,
-    shopify_shipping_allocation.shipping_collected as total_shipping_collected,
-    shopify_shipping_allocation.shipping_cost as total_shipping_cost,
+    ) as net_sales,
+    shopify_shipping_allocation.shipping_collected as shipping_collected,
+    shopify_shipping_allocation.shipping_cost as shipping_cost,
     (
         COALESCE(
-            p.unit_material_cost,
-            (SELECT percent FROM default_costs) * (line_json->>'price')::NUMERIC
+            p.unit_material_cost + COALESCE(p.unit_freight_cost, 0),
+            (SELECT percent FROM default_costs WHERE type = 'materials') * (line_json->>'price')::NUMERIC
         ) *
         (
             (line_json->>'quantity')::NUMERIC - 
             COALESCE(refunds.quantity, 0)
         )
-    ) as total_material_cost,
-    NULL::NUMERIC as total_moondance_fulfillment_cost,
-    amazon_fees.total_fees as total_amazon_fees,
+    ) as material_cost,
+    (
+        COALESCE(
+            p.unit_labor_cost,
+            (SELECT percent FROM default_costs WHERE type = 'labor') * (line_json->>'price')::NUMERIC
+        ) *
+        (
+            (line_json->>'quantity')::NUMERIC - 
+            COALESCE(refunds.quantity, 0)
+        )
+    ) as direct_labor,
+    amazon_fees.total_fees as amazon_fees,
     discount_applications->0->>'title' as discount_promotion_name,
     (line_json->'discount_allocations'->0->>'amount')::NUMERIC as total_discounts_given,
     CASE
@@ -299,17 +310,22 @@ SELECT
 		WHEN sl."QuantityOrdered" = 0 THEN NULL 
 		ELSE sl."QuantityOrdered" 
 	END as quantity,
-    (sl."ItemPrice"->>'Amount')::NUMERIC as total_sales,
-    NULL::NUMERIC as total_shipping_collected,
-    NULL::NUMERIC as total_shipping_cost,
+    (sl."ItemPrice"->>'Amount')::NUMERIC as net_sales,
+    NULL::NUMERIC as shipping_collected,
+    NULL::NUMERIC as shipping_cost,
     (
         COALESCE(
-            product.unit_material_cost * sl."QuantityOrdered",
-            (SELECT percent FROM default_costs) * (sl."ItemPrice"->>'Amount')::NUMERIC
+            (product.unit_material_cost + COALESCE(product.unit_freight_cost, 0)) * sl."QuantityOrdered",
+            (SELECT percent FROM default_costs WHERE type = 'materials') * (sl."ItemPrice"->>'Amount')::NUMERIC
         )
-    )::NUMERIC as total_material_cost,
-    NULL::NUMERIC as total_moondance_fulfillment_cost,
-    amazon_fees.total_fees::NUMERIC as total_amazon_fees,
+    )::NUMERIC as material_cost,
+    (
+        COALESCE(
+            (product.unit_labor_cost) * sl."QuantityOrdered",
+            (SELECT percent FROM default_costs WHERE type = 'labor') * (sl."ItemPrice"->>'Amount')::NUMERIC
+        )
+    )::NUMERIC as direct_labor,
+    amazon_fees.total_fees::NUMERIC as amazon_fees,
     NULL::TEXT as discount_promotion_name,
     ((sl."PromotionDiscount"->>'Amount')::NUMERIC(16, 2) / sl."QuantityOrdered")::NUMERIC as total_discounts_given,
     'Retail' as customer_type,
@@ -404,19 +420,21 @@ INSERT INTO report_moondance.sales_orders (
     quantity,
     unit_sales_price,
     unit_material_cost,
+    unit_direct_labor,
     unit_moondance_fulfillment_cost,
     unit_amazon_fees,
     unit_cost,
-    total_sales,
-    total_shipping_collected,
-    total_shipping_cost,
-    total_shipping_margin,
-    total_material_cost,
-    total_moondance_fulfillment_cost,
-    total_amazon_fees,
+    net_sales,
+    shipping_collected,
+    shipping_cost,
+    shipping_margin,
+    material_cost,
+    direct_labor,
+    moondance_fulfillment_cost,
+    amazon_fees,
     total_cost,
-    total_product_margin,
-    total_margin,
+    product_margin,
+    gross_profit,
     discount_promotion_name,
     total_discounts_given,
     customer_type,
@@ -459,81 +477,83 @@ SELECT
     so.source_product_name,
     so.quantity,
     (
-        (COALESCE(total_sales, 0) / quantity)
+        (COALESCE(so.net_sales, 0) / quantity)
     ) as unit_sales_price,
     (
-        (COALESCE(total_material_cost, 0) / quantity)
+        (COALESCE(so.material_cost, 0) / quantity)
     ) as unit_material_cost,
     (
-        (COALESCE(total_moondance_fulfillment_cost, 0) / quantity) + 
+        (COALESCE(so.direct_labor, 0) / quantity)
+    ) as unit_direct_labor,
+    (
         COALESCE(adder_line.labor_cost, 0) + 
         COALESCE(adder_line.material_cost, 0) +
         COALESCE(order_adder.cost_per_order, 0)
     ) as unit_moondance_fulfillment_cost,
     (
-        (COALESCE(total_amazon_fees, 0) / quantity)
+        (COALESCE(so.amazon_fees, 0) / quantity)
     ) as unit_amazon_fees,
     (
 		(
-			COALESCE(total_material_cost, 0) +
-			COALESCE(total_moondance_fulfillment_cost, 0) +
-			COALESCE(total_amazon_fees, 0) +
-			COALESCE(total_shipping_cost, 0) +
+			COALESCE(so.material_cost, 0) +
+			COALESCE(so.direct_labor, 0) +
+			COALESCE(so.amazon_fees, 0) +
+			COALESCE(so.shipping_cost, 0) +
 			COALESCE(adder_line.labor_cost, 0) + 
 			COALESCE(adder_line.material_cost, 0) +
 			COALESCE(order_adder.cost_per_order, 0)
 		) / quantity
     ) as unit_cost,
-    total_sales,
-    total_shipping_collected,
-    total_shipping_cost,
+    so.net_sales,
+    so.shipping_collected,
+    so.shipping_cost,
     (
-        COALESCE(total_shipping_collected, 0) -
-        COALESCE(total_shipping_cost, 0)
-    ) as total_shipping_margin,
-    total_material_cost,
+        COALESCE(so.shipping_collected, 0) -
+        COALESCE(so.shipping_cost, 0)
+    ) as shipping_margin,
+    so.material_cost,
+    so.direct_labor,
     (
-        COALESCE(total_moondance_fulfillment_cost, 0) +
         COALESCE(adder_line.labor_cost, 0) + 
         COALESCE(adder_line.material_cost, 0) +
         COALESCE(order_adder.cost_per_order, 0)
-    ) as total_moondance_fulfillment_cost,
+    ) as moondance_fulfillment_cost,
     (
-        COALESCE(total_amazon_fees, 0)
-    ) as total_amazon_fees,
+        COALESCE(so.amazon_fees, 0)
+    ) as amazon_fees,
     (
-        COALESCE(total_material_cost, 0) +
-        COALESCE(total_moondance_fulfillment_cost, 0) +
-        COALESCE(total_amazon_fees, 0) +
-        COALESCE(total_shipping_cost, 0) +
+        COALESCE(so.material_cost, 0) +
+        COALESCE(so.direct_labor, 0) +
+        COALESCE(so.amazon_fees, 0) +
+        COALESCE(so.shipping_cost, 0) +
         COALESCE(adder_line.labor_cost, 0) + 
         COALESCE(adder_line.material_cost, 0) +
         COALESCE(order_adder.cost_per_order, 0)
-    ) as total_cost,
+    ) as product_cost,
     (
-        COALESCE(total_sales, 0) -
+        COALESCE(so.net_sales, 0) -
         (
-            COALESCE(total_material_cost, 0) +
-            COALESCE(total_moondance_fulfillment_cost, 0) +
-            COALESCE(total_amazon_fees, 0) +
+            COALESCE(so.material_cost, 0) +
+            COALESCE(so.direct_labor, 0) +
+            COALESCE(so.amazon_fees, 0) +
             COALESCE(adder_line.labor_cost, 0) +
             COALESCE(adder_line.material_cost, 0) +
             COALESCE(order_adder.cost_per_order, 0)
         )
-    ) as total_product_margin,
+    ) as product_margin,
     (
-        COALESCE(total_sales, 0) +
-        COALESCE(total_shipping_collected, 0) -
+        COALESCE(so.net_sales, 0) +
+        COALESCE(so.shipping_collected, 0) -
         (
-            COALESCE(total_material_cost, 0) +
-            COALESCE(total_moondance_fulfillment_cost, 0) +
-            COALESCE(total_amazon_fees, 0) +
-            COALESCE(total_shipping_cost, 0) +
+            COALESCE(so.material_cost, 0) +
+            COALESCE(so.direct_labor, 0) +
+            COALESCE(so.amazon_fees, 0) +
+            COALESCE(so.shipping_cost, 0) +
             COALESCE(adder_line.labor_cost, 0) +
             COALESCE(adder_line.material_cost, 0) +
             COALESCE(order_adder.cost_per_order, 0)
         )
-    ) as total_margin,
+    ) as gross_profit,
     discount_promotion_name,
     total_discounts_given,
     customer_type,
@@ -559,9 +579,9 @@ SELECT
     county_tax.transit_rate as county_transit_tax_rate,
     county_tax.base_rate as county_base_tax_rate,
     state_tax.base_rate as state_tax_rate,
-    (county_tax.transit_rate/100::NUMERIC) * (COALESCE(total_sales, 0) + COALESCE(total_shipping_collected, 0)) as total_county_transit_tax,
-    (county_tax.base_rate/100::NUMERIC)  * (COALESCE(total_sales, 0) + COALESCE(total_shipping_collected, 0)) as total_county_base_tax,
-    (state_tax.base_rate/100::NUMERIC)  * (COALESCE(total_sales, 0) + COALESCE(total_shipping_collected, 0)) as total_state_tax   
+    (county_tax.transit_rate/100::NUMERIC) * (COALESCE(so.net_sales, 0) + COALESCE(so.shipping_collected, 0)) as total_county_transit_tax,
+    (county_tax.base_rate/100::NUMERIC)  * (COALESCE(so.net_sales, 0) + COALESCE(so.shipping_collected, 0)) as total_county_base_tax,
+    (state_tax.base_rate/100::NUMERIC)  * (COALESCE(so.net_sales, 0) + COALESCE(so.shipping_collected, 0)) as total_state_tax   
 FROM
     sales_orders so LEFT JOIN
     adder_rates adder_line ON
