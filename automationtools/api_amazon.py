@@ -9,6 +9,7 @@ import time
 import collections
 import contextlib
 import psycopg2
+from datetime import datetime
 from common import get_table_columns, insert_data, escape_value
 from dotenv import load_dotenv
 
