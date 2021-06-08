@@ -143,18 +143,16 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "sku",
         "description",
         "product_code",
+        "unit_cost_total",
         "onhand_quantity",
         "sales_channel_type",
         "unit_of_measure",
-        "unit_material_cost",
-        "unit_labor_cost",
         "_active",
     ]
     list_editable = [
         "sales_channel_type",
         "unit_of_measure",
-        "unit_material_cost",
-        "unit_labor_cost",
+        "_active",
     ]
     history_list_display = [
         "sku",
@@ -163,9 +161,8 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "_active",
         "product_code",
         "unit_of_measure",
+        "unit_cost_total",
         "onhand_quantity",
-        "unit_material_cost",
-        "unit_labor_cost",
         "_last_updated",
         "_last_updated_by",
         "_created",
