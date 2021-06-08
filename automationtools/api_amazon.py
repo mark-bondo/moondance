@@ -1,6 +1,5 @@
 import requests
 import os
-import datetime
 import hashlib
 import hmac
 import json
@@ -9,6 +8,7 @@ import time
 import collections
 import contextlib
 import psycopg2
+import random
 from datetime import datetime
 from common import get_table_columns, insert_data, escape_value
 from dotenv import load_dotenv
@@ -295,9 +295,11 @@ class Amazon_API(object):
         with open(self.object_dd["file_name"], "w") as w:
             w.write("\t".join(self.object_dd["table_columns"]))
             w.write("\n")
+            error_count = 0
 
             while True:
-                time.sleep(2)
+                sleeping = random.uniform(2, 3)
+                time.sleep(sleeping)
                 self.logger.info(
                     'sync amazon {}: getting data from "{}"'.format(
                         self.command, self.request_url
@@ -319,6 +321,13 @@ class Amazon_API(object):
                             self.command, r.text
                         )
                     )
+
+                    if error_count < 3:
+                        time.sleep(3)
+                        error_count += 1
+                        continue
+                    else:
+                        break
 
                 self.row_count += len(json_data)
                 self.logger.info(
