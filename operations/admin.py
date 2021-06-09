@@ -213,6 +213,8 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     )
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
+        self.inlines = self.inlines
+
         try:
             obj = self.model.objects.get(pk=object_id)
         except self.model.DoesNotExist:
