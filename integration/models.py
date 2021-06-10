@@ -18,7 +18,7 @@ class Amazon_Product(MetaModel):
     )
 
     def __str__(self):
-        return "{}: {}".format(self.asin)
+        return "{}".format(self.sku_description)
 
     class Meta:
         verbose_name = "Amazon Product"

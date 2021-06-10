@@ -212,25 +212,23 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         ),
     )
 
-    def change_view(self, request, object_id, form_url="", extra_context=None):
-        self.inlines = self.inlines
+    def add_view(self, request, object_id, form_url="", extra_context=None):
+        self.inlines = []
 
-        try:
-            obj = self.model.objects.get(pk=object_id)
-        except self.model.DoesNotExist:
-            pass
-        else:
-            if obj:
-                if obj.product_code.type in ("Finished Goods"):
-                    self.inlines = self.inlines
-                elif obj.product_code.type in ("Raw Materials"):
-                    self.inlines = [Supplier_Product_Admin_Inline]
-                elif obj.product_code.type in ("Labor Groups", "WIP"):
-                    self.inlines = [Recipe_Line_Inline_Admin]
-                else:
-                    self.inlines = []
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        obj = self.model.objects.get(pk=object_id)
+
+        if obj.product_code:
+            if obj.product_code.type in ("Finished Goods"):
+                self.inlines = self.inlines
+            elif obj.product_code.type in ("Raw Materials"):
+                self.inlines = [Supplier_Product_Admin_Inline]
+            elif obj.product_code.type in ("Labor Groups", "WIP"):
+                self.inlines = [Recipe_Line_Inline_Admin]
             else:
                 self.inlines = []
+        else:
+            self.inlines = []
 
         return super().change_view(request, object_id, form_url, extra_context)
 
@@ -245,18 +243,20 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             "_created_by",
         )
 
-        if obj and obj.product_code.type in (
-            "WIP",
-            "Labor Groups",
-        ):
-            readonly_fields += (
-                "unit_material_cost",
-                "unit_labor_cost",
-            )
-        elif obj and obj.product_code.type == "Labor":
-            readonly_fields += ("unit_material_cost",)
-        elif obj and obj.product_code.type == "Raw Materials":
-            readonly_fields += ("unit_labor_cost",)
+        if obj and obj.product_code:
+            ptype = obj.product_code.type
+            if ptype in (
+                "WIP",
+                "Labor Groups",
+            ):
+                readonly_fields += (
+                    "unit_material_cost",
+                    "unit_labor_cost",
+                )
+            elif ptype == "Labor":
+                readonly_fields += ("unit_material_cost",)
+            elif ptype == "Raw Materials":
+                readonly_fields += ("unit_labor_cost",)
         return readonly_fields
 
     def get_queryset(self, request):
