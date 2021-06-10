@@ -86,26 +86,27 @@ def recalculate_bom_cost(p):
         )
     )
 
-    unit_material_cost = 0
-    unit_labor_cost = 0
-    unit_freight_cost = 0
+    if bom:
+        unit_material_cost = 0
+        unit_labor_cost = 0
+        unit_freight_cost = 0
 
-    for b in bom:
-        converted_weight = convert_weight(
-            to_measure=b.sku.unit_of_measure,
-            from_measure=b.unit_of_measure,
-            weight=(b.quantity or 0),
+        for b in bom:
+            converted_weight = convert_weight(
+                to_measure=b.sku.unit_of_measure,
+                from_measure=b.unit_of_measure,
+                weight=(b.quantity or 0),
+            )
+
+            unit_material_cost += (b.sku.unit_material_cost or 0) * converted_weight
+            unit_labor_cost += (b.sku.unit_labor_cost or 0) * converted_weight
+            unit_freight_cost += (b.sku.unit_freight_cost or 0) * converted_weight
+
+        Product.objects.filter(id=p).update(
+            unit_material_cost=unit_material_cost,
+            unit_labor_cost=unit_labor_cost,
+            unit_freight_cost=unit_freight_cost,
         )
-
-        unit_material_cost += (b.sku.unit_material_cost or 0) * converted_weight
-        unit_labor_cost += (b.sku.unit_labor_cost or 0) * converted_weight
-        unit_freight_cost += (b.sku.unit_freight_cost or 0) * converted_weight
-
-    Product.objects.filter(id=p).update(
-        unit_material_cost=unit_material_cost,
-        unit_labor_cost=unit_labor_cost,
-        unit_freight_cost=unit_freight_cost,
-    )
 
     return p
 

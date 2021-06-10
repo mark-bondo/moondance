@@ -212,8 +212,10 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         ),
     )
 
-    def add_view(self, request, object_id, form_url="", extra_context=None):
+    def add_view(self, request, form_url="", extra_context=None):
         self.inlines = []
+
+        return super().add_view(request, form_url, extra_context)
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         obj = self.model.objects.get(pk=object_id)
