@@ -217,10 +217,14 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         obj = self.model.objects.get(pk=object_id)
+        self.inlines = [
+            Recipe_Line_Inline_Admin,
+            Supplier_Product_Admin_Inline,
+        ]
 
         if obj.product_code:
             if obj.product_code.type in ("Finished Goods"):
-                self.inlines = self.inlines
+                pass
             elif obj.product_code.type in ("Raw Materials"):
                 self.inlines = [Supplier_Product_Admin_Inline]
             elif obj.product_code.type in ("Labor Groups", "WIP"):
