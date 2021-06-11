@@ -19,7 +19,7 @@ data/
 analysis/*
 excel_loaders/*
 media/
-static/
+static/*
 
 # Vue
 vue_frontend/node_modules/
