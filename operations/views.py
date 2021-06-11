@@ -9,7 +9,7 @@ SQL_DD = {}
 
 def get_data(name, args={}, dd={}):
     if name not in SQL_DD:
-        with open(f"templates/operations/sql/{name}.sql", "r") as f:
+        with open(f"./templates/operations/sql/{name}.sql", "r") as f:
             SQL_DD[name] = f.read()
 
     sql = SQL_DD[name]
