@@ -1,12 +1,8 @@
 const BundleTracker = require("webpack-bundle-tracker");
 
 const pages = {
-    // 'vue_demandplanning': {
-    //     entry: './src/demandplanning.js',
-    //     chunks: ['chunk-vendors']
-    // },
-    "vue_api": {
-        entry: './src/api.js',
+    "top-sellers": {
+        entry: './src/vue_app_configs.js',
         chunks: ['chunk-vendors']
     }
 }
@@ -16,14 +12,10 @@ module.exports = {
     filenameHashing: false,
     productionSourceMap: false,
     publicPath: process.env.NODE_ENV === 'production' ?
-        '' : 'https://operations.moondancesoaps.com:8080/',
+        '' : 'http://127.0.0.1:8080',
     outputDir: '../moondance/static/vue/',
-    devServer: {
-        disableHostCheck: true
-    },
 
     chainWebpack: config => {
-
         config.optimization
             .splitChunks({
                 cacheGroups: {
@@ -50,8 +42,8 @@ module.exports = {
             .set('__STATIC__', 'static')
 
         config.devServer
-            .public('http://localhost:8080')
-            .host('localhost')
+            .public('http://127.0.0.1:8080')
+            .host('127.0.0.1')
             .port(8080)
             .hotOnly(true)
             .watchOptions({
@@ -62,5 +54,6 @@ module.exports = {
                 "Access-Control-Allow-Origin": ["*"]
             })
 
-    }
+    },
+    transpileDependencies: ['vuetify']
 };
