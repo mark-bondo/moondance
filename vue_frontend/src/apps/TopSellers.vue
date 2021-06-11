@@ -9,19 +9,17 @@
       <v-card-text>
         <v-row>
           <v-col cols="4">
-            <!-- <pie-chart
-              :name="item.name"
+            <pie-chart
+              name="Sales by Sales Channel"
               type="sales"
-              :chartData="item.phased_sales"
-              :xaxis="item.xaxis"
-            /> -->
+              :chartData="chart1"
+            />
           </v-col>
           <v-col cols="4"> </v-col>
           <v-col cols="4"> </v-col>
         </v-row>
       </v-card-text>
     </v-card>
-
     <v-card>
       <v-card-title>
         <v-row>
@@ -110,13 +108,13 @@
 
 <script>
   import SparkLineChart from "@/components/SparkLineChart.vue";
-  // import PieChart from "@/components/PieChart.vue";
+  import PieChart from "@/components/PieChart.vue";
 
   export default {
     name: "TopSellers",
     components: {
       SparkLineChart,
-      // PieChart,
+      PieChart,
     },
     props: [],
     data: function () {
@@ -130,6 +128,7 @@
         productData: [],
         search: "",
         expanded: [],
+        chart1: {},
         headers: [
           { text: "", value: "data-table-expand" },
           {
@@ -183,16 +182,9 @@
       },
     },
     beforeMount() {
+      this.getPie("sales_channel");
       this.getProductData(this.selectedProductFamily.value);
-      this.$http
-        .get(`../product-family/`, {
-          // data: params
-        })
-        .then((response) => {
-          this.productFamilies = [this.selectedProductFamily].concat(
-            response.data
-          );
-        });
+      this.getProductFamilies();
     },
     methods: {
       // parseDates(series) {
@@ -205,14 +197,26 @@
       //   }
       //   return series;
       // },
+      getProductFamilies() {
+        this.$http.get(`../product-family/`, {}).then((response) => {
+          this.productFamilies = [this.selectedProductFamily].concat(
+            response.data
+          );
+        });
+      },
       getProductData(value) {
+        this.$http.get(`../product-data/${value}`, {}).then((response) => {
+          this.productData = response.data;
+          this.gridLoading = false;
+        });
+      },
+      getPie(value) {
         this.$http
-          .get(`../product-data/${value}`, {
+          .get(`../get-pie/${value}`, {
             // data: params
           })
           .then((response) => {
-            this.productData = response.data;
-            this.gridLoading = false;
+            this.chart1 = response.data;
           });
       },
       commatize(x) {

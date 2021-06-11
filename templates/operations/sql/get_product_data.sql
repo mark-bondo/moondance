@@ -29,7 +29,7 @@ WITH dates AS (
         SUM(COALESCE(so.total_cost, 0)) as total_cost,
         SUM(COALESCE(so.net_sales, 0) - COALESCE(so.total_cost, 0)) as total_margin
     FROM
-        products 
+        products
         LEFT JOIN report_moondance.sales_orders so ON 
             products.sku = so.product_sku AND
             products.month = so.processed_period
