@@ -1,14 +1,12 @@
 <template>
   <v-container>
-    <div style="height: 50px; width: 200px">
-      <highcharts class="chart" :options="chartOptions"></highcharts>
-    </div>
+    <highcharts class="chart" :options="chartOptions"></highcharts>
   </v-container>
 </template>
 
 <script>
   export default {
-    name: "LineChart",
+    name: "PieChart",
     props: ["name", "type", "chartData", "xaxis"],
     data: () => ({
       chartOptions: {},
@@ -25,10 +23,11 @@
         },
         credits: false,
         chart: {
-          width: 160,
-          height: 60,
-          type: "area",
-          margin: [2, 0, 2, 0],
+          width: 400,
+          height: 400,
+          type: "pie",
+          margin: [0, 0, 4, 0],
+          backgroundColor: "transparent",
           style: {
             overflow: "visible",
           },
@@ -45,9 +44,9 @@
           shared: true,
           valueDecimals: 0,
           pointFormat: `<span>${this.name}</span>: <b>
-                ${this.series[this.type].format}
-                {point.y}<br/>
-                `,
+                  ${this.series[this.type].format}
+                  {point.y}<br/>
+                  `,
         },
         series: [
           {

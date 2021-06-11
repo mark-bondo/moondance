@@ -1,94 +1,131 @@
 <template>
   <v-app>
-    <v-card class="ma-5">
-      <v-card-title>Sales Dashboard</v-card-title>
+    <v-card>
+      <v-card-title>
+        <v-row>
+          <v-col cols="4"> Sales Summary</v-col>
+        </v-row>
+      </v-card-title>
       <v-card-text>
         <v-row>
           <v-col cols="4">
-            <v-combobox
-              v-model="selectedProductFamily"
-              :items="productFamilies"
-              label="Select a Product Family"
-              class="mx-5"
-            ></v-combobox>
+            <!-- <pie-chart
+              :name="item.name"
+              type="sales"
+              :chartData="item.phased_sales"
+              :xaxis="item.xaxis"
+            /> -->
           </v-col>
+          <v-col cols="4"> </v-col>
+          <v-col cols="4"> </v-col>
         </v-row>
+      </v-card-text>
+    </v-card>
+
+    <v-card>
+      <v-card-title>
         <v-row>
           <v-col cols="12">
-            <!-- <v-card>
-              <v-container> -->
-            <!-- <v-row class="v-card__title">
-                  <v-col cols="6"> Title </v-col>
-                  <v-spacer />
-                </v-row> -->
-            <v-data-table
-              :headers="headers"
-              :items="productData"
-              :search="search"
-              :items-per-page="10"
-              class="elevation-1"
-              :expanded.sync="expanded"
-              item-key="name"
-              show-expand
-            >
-              <template v-slot:item.total_quantity="{ item }">
-                {{ commatize(item.total_quantity) }}
-              </template>
-              <template v-slot:item.phased_quantity="{ item }">
-                <line-chart
-                  :name="item.name"
-                  type="quantity"
-                  :chartData="item.phased_quantity"
-                  :xaxis="item.xaxis"
-                />
-              </template>
-              <template v-slot:item.total_sales="{ item }">
-                ${{ commatize(item.total_sales) }}
-              </template>
-              <template v-slot:item.phased_sales="{ item }">
-                <line-chart
-                  :name="item.name"
-                  type="sales"
-                  :chartData="item.phased_sales"
-                  :xaxis="item.xaxis"
-                />
-              </template>
-              <template v-slot:item.total_margin="{ item }">
-                ${{ commatize(item.total_margin) }}
-              </template>
-              <template v-slot:item.phased_margin="{ item }">
-                <line-chart
-                  :name="item.name"
-                  type="margin"
-                  :chartData="item.phased_margin"
-                  :xaxis="item.xaxis"
-                />
-              </template>
-            </v-data-table>
-            <!-- </v-container>
-            </v-card> -->
+            <v-row>
+              <v-col cols="4"> Sales by Product</v-col>
+            </v-row>
+            <!-- <v-row>
+              <v-col cols="4">
+                <v-combobox
+                  v-model="selectedProductFamily"
+                  :items="productFamilies"
+                  label="Select a Product Family"
+                ></v-combobox>
+              </v-col>
+            </v-row> -->
+            <v-row>
+              <v-col cols="4">
+                <v-text-field
+                  v-model="search"
+                  append-icon="mdi-magnify"
+                  label="Search Products"
+                ></v-text-field>
+              </v-col>
+            </v-row>
           </v-col>
         </v-row>
+      </v-card-title>
+      <v-card-text>
+        <v-data-table
+          :headers="headers"
+          :items="productData"
+          :search="search"
+          :items-per-page="10"
+          class="elevation-1"
+          :expanded.sync="expanded"
+          item-key="name"
+          show-expand
+          :loading="gridLoading"
+          loading-text="Saponifying Data... Please wait"
+        >
+          <template v-slot:item.name="{ item }">
+            <span class="med-text">{{ item.name }}</span>
+          </template>
+          <template v-slot:item.total_quantity="{ item }">
+            <span class="big-text">{{ commatize(item.total_quantity) }}</span>
+          </template>
+          <template v-slot:item.average_quantity="{ item }">
+            <span class="big-text">{{ commatize(item.average_quantity) }}</span>
+          </template>
+          <template v-slot:item.phased_quantity="{ item }">
+            <spark-line-chart
+              :name="item.name"
+              type="quantity"
+              :chartData="item.phased_quantity"
+              :xaxis="item.xaxis"
+            />
+          </template>
+          <template v-slot:item.total_sales="{ item }">
+            <span class="big-text">${{ commatize(item.total_sales) }}</span>
+          </template>
+          <template v-slot:item.phased_sales="{ item }">
+            <spark-line-chart
+              :name="item.name"
+              type="sales"
+              :chartData="item.phased_sales"
+              :xaxis="item.xaxis"
+            />
+          </template>
+          <template v-slot:item.total_margin="{ item }">
+            <span class="big-text">${{ commatize(item.total_margin) }}</span>
+          </template>
+          <template v-slot:item.phased_margin="{ item }">
+            <spark-line-chart
+              :name="item.name"
+              type="margin"
+              :chartData="item.phased_margin"
+              :xaxis="item.xaxis"
+            />
+          </template>
+        </v-data-table>
       </v-card-text>
     </v-card>
   </v-app>
 </template>
 
 <script>
-  import LineChart from "@/components/LineChart.vue";
+  import SparkLineChart from "@/components/SparkLineChart.vue";
+  // import PieChart from "@/components/PieChart.vue";
 
   export default {
     name: "TopSellers",
     components: {
-      LineChart,
+      SparkLineChart,
+      // PieChart,
     },
     props: [],
     data: function () {
       return {
         selectedProductFamily: {
-          text: null,
-          value: null,
+          text: "All Products",
+          value: "All Products",
         },
+        gridLoading: true,
         productFamilies: [],
         productData: [],
         search: "",
@@ -103,51 +140,37 @@
           },
           {
             text: "Total Quantity",
-            sortable: true,
-            filterable: true,
             value: "total_quantity",
+            sortable: true,
+          },
+          {
+            text: "Average Quantity",
+            value: "average_quantity",
           },
           {
             text: "Quantity by Month",
-            sortable: true,
-            filterable: true,
             value: "phased_quantity",
+            sortable: false,
           },
           {
             text: "Total Sales",
-            sortable: true,
-            filterable: true,
             value: "total_sales",
+            sortable: true,
           },
           {
             text: "Sales by Month",
-            sortable: true,
-            filterable: true,
             value: "phased_sales",
+            sortable: false,
           },
-          // {
-          //   text: "Total Cost",
-          //   sortable: true,
-          //   filterable: true,
-          //   value: "total_cost",
-          // },
-          // {
-          //   text: "Cost by Month",
-          //   sortable: true,
-          //   filterable: true,
-          //   value: "phased_cost",
-          // },
           {
             text: "Total Margin",
-            sortable: true,
-            filterable: true,
             value: "total_margin",
+            sortable: true,
           },
           {
             text: "Margin by Month",
-            sortable: true,
-            filterable: true,
             value: "phased_margin",
+            sortable: false,
           },
         ],
       };
@@ -155,16 +178,20 @@
     computed: {},
     watch: {
       selectedProductFamily: function (val) {
+        this.gridLoading = true;
         this.getProductData(val.value);
       },
     },
     beforeMount() {
+      this.getProductData(this.selectedProductFamily.value);
       this.$http
         .get(`../product-family/`, {
           // data: params
         })
         .then((response) => {
-          this.productFamilies = response.data;
+          this.productFamilies = [this.selectedProductFamily].concat(
+            response.data
+          );
         });
     },
     methods: {
@@ -185,6 +212,7 @@
           })
           .then((response) => {
             this.productData = response.data;
+            this.gridLoading = false;
           });
       },
       commatize(x) {
@@ -197,3 +225,13 @@
     },
   };
 </script>
+
+
+<style>
+  .big-text {
+    font-size: 18px;
+  }
+  .med-text {
+    font-size: 16px;
+  }
+</style>
