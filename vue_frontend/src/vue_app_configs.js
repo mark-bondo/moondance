@@ -10,7 +10,7 @@ import axios from 'axios'
 import _ from 'lodash'
 import '@mdi/font/css/materialdesignicons.css'
 
-import TopSellers from "./apps/TopSellers.vue"
+import KPIDashboard from "./apps/KPIDashboard.vue"
 
 axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = "X-CSRFTOKEN"
@@ -33,4 +33,4 @@ function deployVueApp(component, id) {
   }
 }
 
-deployVueApp(TopSellers, 'top-sellers')
+deployVueApp(KPIDashboard, 'kpi-dashboard')

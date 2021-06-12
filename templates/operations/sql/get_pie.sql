@@ -14,10 +14,17 @@ WITH pie AS (
 )
 
 SELECT
-    JSON_AGG(
+    JSON_BUILD_OBJECT(
+        'data',
+        JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'name', name,
+                'y', y
+            )
+        ),
+        'options',
         JSON_BUILD_OBJECT(
-            'name', name,
-            'y', y
+            'total', SUM(y)
         )
     )::TEXT as json_data
 FROM

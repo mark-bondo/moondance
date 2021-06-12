@@ -1,7 +1,7 @@
 const BundleTracker = require("webpack-bundle-tracker");
 
 const pages = {
-    "top-sellers": {
+    "kpi-dashboard": {
         entry: './src/vue_app_configs.js',
         chunks: ['chunk-vendors']
     }

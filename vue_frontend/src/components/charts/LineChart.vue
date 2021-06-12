@@ -6,8 +6,8 @@
 
 <script>
   export default {
-    name: "PieChart",
-    props: ["name", "type", "chartData"],
+    name: "LineChart",
+    props: ["name", "type", "chartData", "xaxis"],
     data: () => ({
       chartOptions: {},
       series: {
@@ -23,8 +23,20 @@
         },
         credits: false,
         chart: {
-          type: "pie",
+          width: 160,
+          height: 65,
+          type: "area",
+          margin: [0, 0, 4, 0],
           backgroundColor: "transparent",
+          style: {
+            overflow: "visible",
+          },
+        },
+        xAxis: {
+          categories: this.xaxis,
+        },
+        legend: {
+          enabled: false,
         },
         tooltip: {
           hideDelay: 0,
@@ -32,21 +44,23 @@
           shared: true,
           valueDecimals: 0,
           pointFormat: `<span>${this.name}</span>: <b>
-                        ${this.series[this.type].format}
-                        {point.y}<br/>
-                        `,
+                  ${this.series[this.type].format}
+                  {point.y}<br/>
+                  `,
         },
-        series: [],
+        series: [
+          {
+            name: this.type,
+            data: this.chartData,
+            color: this.series[this.type].color,
+          },
+        ],
       };
     },
     watch: {
-      chartData(value) {
-        console.log(value);
-        this.chartOptions.series = {
-          name: this.name,
-          data: value,
-        };
-      },
+      // name() {
+      //   this.v_name = this.name;
+      // },
     },
     methods: {},
   };

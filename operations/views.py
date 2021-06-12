@@ -1,15 +1,18 @@
+import os
+from dotenv import load_dotenv
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.db import connection
 from django.contrib.auth.decorators import login_required
 from .models import recalculate_bom_cost
 
+load_dotenv()
 SQL_DD = {}
 
 
 def get_data(name, args={}, dd={}):
-    if name not in SQL_DD:
-        with open(f"moondance/templates/operations/sql/{name}.sql", "r") as f:
+    if name not in SQL_DD or os.getenv("NODE_ENV") == "development":
+        with open(f"./templates/operations/sql/{name}.sql", "r") as f:
             SQL_DD[name] = f.read()
 
     sql = SQL_DD[name]
@@ -62,7 +65,7 @@ def get_pie(request, group):
     dd = {"group": group, "filters": "", "yaxis": "net_sales"}
 
     json_data = get_data(name="get_pie", dd=dd)
-    return HttpResponse(json_data[0][0], content_type="application/json")
+    return HttpResponse(json_data[0], content_type="application/json")
 
 
 @login_required

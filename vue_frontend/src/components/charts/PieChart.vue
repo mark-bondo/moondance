@@ -6,8 +6,8 @@
 
 <script>
   export default {
-    name: "SparkLineChart",
-    props: ["name", "type", "chartData", "xaxis"],
+    name: "PieChart",
+    props: ["name", "type", "chartData", "options"],
     data: () => ({
       chartOptions: {},
       series: {
@@ -23,20 +23,8 @@
         },
         credits: false,
         chart: {
-          width: 160,
-          height: 65,
-          type: "area",
-          margin: [0, 0, 4, 0],
+          type: "pie",
           backgroundColor: "transparent",
-          style: {
-            overflow: "visible",
-          },
-        },
-        xAxis: {
-          categories: this.xaxis,
-        },
-        legend: {
-          enabled: false,
         },
         tooltip: {
           hideDelay: 0,
@@ -44,23 +32,23 @@
           shared: true,
           valueDecimals: 0,
           pointFormat: `<span>${this.name}</span>: <b>
-                ${this.series[this.type].format}
-                {point.y}<br/>
-                `,
+                                      ${this.series[this.type].format}
+                                      {point.y}<br/>
+                                      `,
         },
-        series: [
-          {
-            name: this.type,
-            data: this.chartData,
-            color: this.series[this.type].color,
-          },
-        ],
+        series: [],
       };
     },
     watch: {
-      // name() {
-      //   this.v_name = this.name;
-      // },
+      chartData(value) {
+        this.chartOptions.series = {
+          name: this.name,
+          data: value,
+        };
+        this.chartOptions.title = {
+          text: `${this.series[this.type].format}${this.options.total}`,
+        };
+      },
     },
     methods: {},
   };

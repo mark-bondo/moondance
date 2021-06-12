@@ -3,20 +3,37 @@
     <v-card>
       <v-card-title>
         <v-row>
-          <v-col cols="4"> Sales Summary</v-col>
+          <v-col cols="12"> Sales Summary</v-col>
         </v-row>
       </v-card-title>
       <v-card-text>
         <v-row>
-          <v-col cols="4">
+          <v-col cols="12" xs="12" md="6" lg="4">
             <pie-chart
               name="Sales by Sales Channel"
               type="sales"
-              :chartData="chart1"
+              :chartData="chart1.data"
+              :options="chart1.options"
             />
           </v-col>
-          <v-col cols="4"> </v-col>
-          <v-col cols="4"> </v-col>
+          <v-col cols="12" xs="12" md="6" lg="4">
+            <pie-chart
+              name="Sales by Sales Channel"
+              type="sales"
+              :chartData="chart1.data"
+              :options="chart1.options"
+            />
+          </v-col>
+          <v-col cols="12" xs="12" md="6" lg="4">
+            <pie-chart
+              name="Sales by Sales Channel"
+              type="sales"
+              :chartData="chart1.data"
+              :options="chart1.options"
+            />
+          </v-col>
+          <!-- <v-col cols="4"> </v-col>
+          <v-col cols="4"> </v-col> -->
         </v-row>
       </v-card-text>
     </v-card>
@@ -58,6 +75,8 @@
           :expanded.sync="expanded"
           item-key="name"
           show-expand
+          fixed-header
+          multi-sort
           :loading="gridLoading"
           loading-text="Saponifying Data... Please wait"
         >
@@ -71,7 +90,7 @@
             <span class="big-text">{{ commatize(item.average_quantity) }}</span>
           </template>
           <template v-slot:item.phased_quantity="{ item }">
-            <spark-line-chart
+            <line-chart
               :name="item.name"
               type="quantity"
               :chartData="item.phased_quantity"
@@ -82,7 +101,7 @@
             <span class="big-text">${{ commatize(item.total_sales) }}</span>
           </template>
           <template v-slot:item.phased_sales="{ item }">
-            <spark-line-chart
+            <line-chart
               :name="item.name"
               type="sales"
               :chartData="item.phased_sales"
@@ -93,7 +112,7 @@
             <span class="big-text">${{ commatize(item.total_margin) }}</span>
           </template>
           <template v-slot:item.phased_margin="{ item }">
-            <spark-line-chart
+            <line-chart
               :name="item.name"
               type="margin"
               :chartData="item.phased_margin"
@@ -107,13 +126,13 @@
 </template>
 
 <script>
-  import SparkLineChart from "@/components/SparkLineChart.vue";
-  import PieChart from "@/components/PieChart.vue";
+  import LineChart from "@/components/charts/LineChart.vue";
+  import PieChart from "@/components/charts/PieChart.vue";
 
   export default {
-    name: "TopSellers",
+    name: "ProductSales",
     components: {
-      SparkLineChart,
+      LineChart,
       PieChart,
     },
     props: [],
@@ -150,6 +169,7 @@
             text: "Quantity by Month",
             value: "phased_quantity",
             sortable: false,
+            align: " d-none d-lg-table-cell",
           },
           {
             text: "Total Sales",
@@ -160,6 +180,7 @@
             text: "Sales by Month",
             value: "phased_sales",
             sortable: false,
+            align: " d-none d-lg-table-cell",
           },
           {
             text: "Total Margin",
@@ -170,6 +191,7 @@
             text: "Margin by Month",
             value: "phased_margin",
             sortable: false,
+            align: " d-none d-lg-table-cell",
           },
         ],
       };

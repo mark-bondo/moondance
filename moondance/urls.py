@@ -10,11 +10,10 @@ from operations.views import (
 
 urlpatterns = [
     # path("", render_home),
-    path("", admin.site.urls),
-    path("admin/", admin.site.urls),
+    path("", report_home),
+    path("data-manager/", admin.site.urls),
     path("select2/", include("django_select2.urls")),
     path("operations/", include("operations.urls")),
-    path("reports/", report_home),
     path("product/", get_products),
     path("product-data/<str:family>", get_product_data),
     path("product-family/", get_product_families),
