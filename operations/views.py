@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 from django.shortcuts import render
 from django.http import HttpResponse
@@ -65,6 +66,28 @@ def get_pie(request, group):
     dd = {"group": group, "filters": "", "yaxis": "net_sales"}
 
     json_data = get_data(name="get_pie", dd=dd)
+    return HttpResponse(json_data[0], content_type="application/json")
+
+
+@login_required
+def get_chart_data(request):
+    chart = json.loads(request.body)["data"]
+    # dd = {"group": chart["group"], "filters": "", "yaxis": chart["yaxis"]}
+
+    if chart["type"] in (
+        "pie",
+        "donut",
+    ):
+        json_data = get_data(name="get_pie", dd=chart)
+    elif chart["type"] in (
+        "area",
+        "line",
+        "spline",
+        "column",
+        "bar",
+    ):
+        json_data = get_data(name="get_line", dd=chart)
+
     return HttpResponse(json_data[0], content_type="application/json")
 
 

@@ -7,7 +7,7 @@
 <script>
   export default {
     name: "LineChart",
-    props: ["name", "type", "chartData", "xaxis"],
+    props: ["name", "type", "chartData", "xaxis", "commatize"],
     data: () => ({
       chartOptions: {},
       series: {
@@ -44,9 +44,9 @@
           shared: true,
           valueDecimals: 0,
           pointFormat: `<span>${this.name}</span>: <b>
-                  ${this.series[this.type].format}
-                  {point.y}<br/>
-                  `,
+                      ${this.series[this.type].format}
+                      {point.y}<br/>
+                      `,
         },
         series: [
           {
@@ -57,11 +57,7 @@
         ],
       };
     },
-    watch: {
-      // name() {
-      //   this.v_name = this.name;
-      // },
-    },
+    watch: {},
     methods: {},
   };
 </script>

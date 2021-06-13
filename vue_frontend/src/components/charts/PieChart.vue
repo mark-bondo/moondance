@@ -7,7 +7,7 @@
 <script>
   export default {
     name: "PieChart",
-    props: ["name", "type", "chartData", "options"],
+    props: ["title", "type", "chartData", "options", "commatize", "prefix"],
     data: () => ({
       chartOptions: {},
       series: {
@@ -19,7 +19,7 @@
     beforeMount() {
       this.chartOptions = {
         title: {
-          text: "",
+          text: this.title,
         },
         credits: false,
         chart: {
@@ -30,11 +30,8 @@
           hideDelay: 0,
           outside: true,
           shared: true,
-          valueDecimals: 0,
-          pointFormat: `<span>${this.name}</span>: <b>
-                                        ${this.series[this.type].format}
-                                        {point.y}<br/>
-                                        `,
+          // valueDecimals: 0,
+          pointFormat: `<b>${this.prefix}{point.y:,.0f}</b>`,
         },
         series: [],
       };
@@ -42,11 +39,10 @@
     watch: {
       chartData(value) {
         this.chartOptions.series = {
-          name: this.name,
           data: value,
         };
         this.chartOptions.title = {
-          text: `${this.series[this.type].format}${this.options.total}`,
+          text: this.title,
         };
       },
     },

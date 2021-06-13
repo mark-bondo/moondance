@@ -12,6 +12,15 @@ import '@mdi/font/css/materialdesignicons.css'
 
 import KPIDashboard from "./apps/KPIDashboard.vue"
 
+Highcharts.setOptions({
+    lang: {
+        decimalPoint: '.',
+        resetZoom: 'Reset',
+        thousandsSep: ','
+    }
+});
+
+
 axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = "X-CSRFTOKEN"
 

@@ -54,7 +54,7 @@
 
       <v-card-text class="ma-0 pa-0">
         <div v-if="group === 'Sales Summary'">
-          <sales-summary></sales-summary>
+          <sales-summary :commatize="commatize"></sales-summary>
         </div>
         <div v-else-if="group === 'Product Sales'">
           <product-sales></product-sales>
@@ -80,7 +80,15 @@
       drawer: false,
       group: "Sales Summary",
     }),
-    methods: {},
+    methods: {
+      commatize(x) {
+        var sign = x < 0 ? "-" : "";
+        x = Math.abs(x).toFixed(0);
+        var parts = x.toString().split(".");
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return `${sign}${parts[0]}`;
+      },
+    },
     watch: {
       group(value) {
         this.drawer = false;
