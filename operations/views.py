@@ -12,7 +12,7 @@ SQL_DD = {}
 
 def get_data(name, args={}, dd={}):
     if name not in SQL_DD or os.getenv("NODE_ENV") == "development":
-        with open(f"./templates/operations/sql/{name}.sql", "r") as f:
+        with open(f"./templates/sql/{name}.sql", "r") as f:
             SQL_DD[name] = f.read()
 
     sql = SQL_DD[name]

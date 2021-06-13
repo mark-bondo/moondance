@@ -3,43 +3,6 @@
     <v-card>
       <v-card-title>
         <v-row>
-          <v-col cols="12"> Sales Summary</v-col>
-        </v-row>
-      </v-card-title>
-      <v-card-text>
-        <v-row>
-          <v-col cols="12" xs="12" md="6" lg="4">
-            <pie-chart
-              name="Sales by Sales Channel"
-              type="sales"
-              :chartData="chart1.data"
-              :options="chart1.options"
-            />
-          </v-col>
-          <v-col cols="12" xs="12" md="6" lg="4">
-            <pie-chart
-              name="Sales by Sales Channel"
-              type="sales"
-              :chartData="chart1.data"
-              :options="chart1.options"
-            />
-          </v-col>
-          <v-col cols="12" xs="12" md="6" lg="4">
-            <pie-chart
-              name="Sales by Sales Channel"
-              type="sales"
-              :chartData="chart1.data"
-              :options="chart1.options"
-            />
-          </v-col>
-          <!-- <v-col cols="4"> </v-col>
-          <v-col cols="4"> </v-col> -->
-        </v-row>
-      </v-card-text>
-    </v-card>
-    <v-card>
-      <v-card-title>
-        <v-row>
           <v-col cols="12">
             <v-row>
               <v-col cols="4"> Sales by Product</v-col>
@@ -127,13 +90,11 @@
 
 <script>
   import LineChart from "@/components/charts/LineChart.vue";
-  import PieChart from "@/components/charts/PieChart.vue";
 
   export default {
     name: "ProductSales",
     components: {
       LineChart,
-      PieChart,
     },
     props: [],
     data: function () {

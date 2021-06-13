@@ -1,34 +1,51 @@
 <template>
   <v-app>
-    <v-card class="overflow-hidden">
-      <v-app-bar color="deep-purple darken-3" dark>
-        <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
+    <v-card height="100%">
+      <v-app-bar
+        color="#554e6e"
+        dark
+        style="height: 86.19px; border-radius: 0px"
+      >
+        <v-app-bar-nav-icon
+          @click.stop="drawer = !drawer"
+          style="margin-top: 20px"
+        ></v-app-bar-nav-icon>
+
+        <!-- <v-spacer></v-spacer> -->
+        <!-- <img
+          src="/static/site-wide/logo-large-white.png"
+          width="300px"
+          style="margin-top: 28px"
+          class="d-none d-md-flex"
+        /> -->
+        <v-spacer></v-spacer>
+        <v-toolbar-title style="margin-top: 20px"
+          ><h2>{{ title }}</h2></v-toolbar-title
+        >
 
         <v-spacer></v-spacer>
 
-        <v-toolbar-title><h2>MoonDance Soaps Dashboard</h2></v-toolbar-title>
-
-        <v-spacer></v-spacer>
-
-        <v-btn icon>
+        <!-- <v-btn icon>
           <v-icon>mdi-magnify</v-icon>
         </v-btn>
         <v-btn icon>
           <v-icon>mdi-filter</v-icon>
-        </v-btn>
+        </v-btn> -->
       </v-app-bar>
 
       <v-navigation-drawer v-model="drawer" absolute bottom temporary>
-        <v-list nav dense>
+        <v-list>
           <v-list-item-group
             v-model="group"
             active-class="deep-purple--text text--accent-4"
           >
-            <v-list-item>
+            <v-list-item value="Sales Summary">
+              <v-list-item-title>Sales Summary</v-list-item-title>
+            </v-list-item>
+            <v-list-item value="Product Sales">
               <v-list-item-title>Product Sales</v-list-item-title>
             </v-list-item>
-
-            <v-list-item @click="openDataManager">
+            <v-list-item value="Data Manager">
               <v-list-item-title>Data Manager</v-list-item-title>
             </v-list-item>
           </v-list-item-group>
@@ -36,7 +53,12 @@
       </v-navigation-drawer>
 
       <v-card-text class="ma-0 pa-0">
-        <product-sales></product-sales>
+        <div v-if="group === 'Sales Summary'">
+          <sales-summary></sales-summary>
+        </div>
+        <div v-else-if="group === 'Product Sales'">
+          <product-sales></product-sales>
+        </div>
       </v-card-text>
     </v-card>
   </v-app>
@@ -44,25 +66,30 @@
 
 <script>
   import ProductSales from "@/components/KPIDashboard/ProductSales.vue";
+  import SalesSummary from "@/components/KPIDashboard/SalesSummary.vue";
 
   export default {
     name: "KPIDashboard",
     components: {
       ProductSales,
+      SalesSummary,
     },
     props: [],
     data: () => ({
+      title: "Sales Summary",
       drawer: false,
-      group: null,
+      group: "Sales Summary",
     }),
-    methods: {
-      openDataManager() {
-        window.open("/data-manager/", "_blank").focus();
-      },
-    },
+    methods: {},
     watch: {
-      group() {
+      group(value) {
         this.drawer = false;
+
+        if (value === "Data Manager") {
+          window.open("/data-manager/", "_blank").focus();
+        } else {
+          this.title = value;
+        }
       },
     },
   };

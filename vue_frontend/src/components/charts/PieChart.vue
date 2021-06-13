@@ -32,9 +32,9 @@
           shared: true,
           valueDecimals: 0,
           pointFormat: `<span>${this.name}</span>: <b>
-                                      ${this.series[this.type].format}
-                                      {point.y}<br/>
-                                      `,
+                                        ${this.series[this.type].format}
+                                        {point.y}<br/>
+                                        `,
         },
         series: [],
       };
