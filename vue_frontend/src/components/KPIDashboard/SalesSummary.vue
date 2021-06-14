@@ -15,22 +15,17 @@
           md="6"
           lg="4"
         >
-          <div v-if="chart.type === 'pie'">
+          <div v-if="chart.options.type === 'pie'">
             <pie-chart
-              type="sales"
-              :title="chart.title"
               :chartData="chart.data"
               :options="chart.options"
-              :prefix="chart.prefix"
               :commatize="commatize"
             />
           </div>
-          <div v-else-if="chart.type === 'spline'">
+          <div v-else-if="chart.options.type === 'spline'">
             <line-chart
-              type="margin"
-              :title="chart.title"
               :chartData="chart.data"
-              :xaxis="chart.xaxis"
+              :options="chart.options"
               :commatize="commatize"
             />
           </div>
@@ -55,6 +50,52 @@
       return {
         gridLoading: true,
         charts: [
+          {
+            id: 1,
+            sql: {
+              group: "sales_channel",
+              xaxis: null,
+              yaxis: "net_sales",
+              filters: "",
+            },
+            options: {
+              title: "Sales Channel Sales",
+              type: "pie",
+              prefix: "$",
+            },
+            data: [],
+          },
+          // {
+          //   id: 2,
+          //   sql: {
+          //     group: "product_family",
+          //     xaxis: null,
+          //     yaxis: "net_sales",
+          //     filters: "",
+          //   },
+          //   options: {
+          //     title: "Product Family Sales",
+          //     type: "pie",
+          //     prefix: "$",
+          //   },
+          //   data: [],
+          // },
+          {
+            id: 3,
+            sql: {
+              group: "source_system",
+              xaxis: "processed_period",
+              yaxis: "net_sales",
+              filters: "",
+            },
+            options: {
+              title: "Product Family Sales by Month",
+              type: "spline",
+              prefix: "$",
+            },
+            data: [],
+          },
+
           // {
           //   title: "Sales By Month",
           //   type: "spline",
@@ -65,50 +106,26 @@
           //   filters: "",
           //   data: [],
           // },
-          {
-            id: 1,
-            title: "Sales By Sales Channel",
-            type: "pie",
-            prefix: "$",
-            group: "sales_channel",
-            xaxis: null,
-            yaxis: "net_sales",
-            filters: "",
-            data: [],
-          },
-          {
-            id: 2,
-            title: "Sales By Product Family",
-            type: "pie",
-            prefix: "$",
-            group: "product_family",
-            xaxis: null,
-            yaxis: "net_sales",
-            filters: "",
-            data: [],
-          },
         ],
       };
     },
     computed: {},
     watch: {},
     beforeMount() {
-      this.charts.forEach((d) => {
-        this.getData(d);
+      this.charts.forEach((chart) => {
+        this.getData(chart);
       });
     },
     methods: {
-      getData(d) {
+      getData(chart) {
+        var params = Object.assign(chart.sql, { type: chart.options.type });
         this.$http
           .post(`get-chart-data/`, {
-            data: d,
+            data: params,
           })
           .then((response) => {
-            let r = response.data;
-            d.data = r.data;
-            d.title = `${d.title}<br> ${d.prefix}${this.commatize(
-              response.data.options.total
-            )}`;
+            chart.data = response.data.data;
+            Object.assign(chart.options, response.data.options);
           });
       },
     },

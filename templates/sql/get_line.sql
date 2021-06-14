@@ -1,7 +1,7 @@
 WITH line AS (
     SELECT
         %(group)s as name,
-        EXTRACT(epoch FROM %(xaxis)s) as x,
+        TO_CHAR(%(xaxis)s, 'MM/DD/YYYY') as x,
         SUM(%(yaxis)s) as y
     FROM
         report_moondance.sales_orders
@@ -30,7 +30,9 @@ WITH line AS (
 )
 
 SELECT
-    JSON_AGG(data) as data
+    JSON_BUILD_OBJECT(
+        'data', JSON_AGG(data)
+    )::TEXT as data
 FROM
     detail
 ;

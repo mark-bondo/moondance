@@ -7,31 +7,25 @@
 <script>
   export default {
     name: "PieChart",
-    props: ["title", "type", "chartData", "options", "commatize", "prefix"],
+    props: ["chartData", "options", "commatize"],
     data: () => ({
       chartOptions: {},
-      series: {
-        quantity: { color: "#0c5ea2", format: "" },
-        sales: { color: "#88075f", format: "$" },
-        margin: { color: "#019c15", format: "" },
-      },
     }),
     beforeMount() {
       this.chartOptions = {
         title: {
-          text: this.title,
+          text: this.options.title,
         },
         credits: false,
         chart: {
-          type: "pie",
+          type: this.options.type,
           backgroundColor: "transparent",
         },
         tooltip: {
           hideDelay: 0,
           outside: true,
           shared: true,
-          // valueDecimals: 0,
-          pointFormat: `<b>${this.prefix}{point.y:,.0f}</b>`,
+          pointFormat: `<b>${this.options.prefix}{point.y:,.0f}</b>`,
         },
         series: [],
       };
@@ -42,7 +36,9 @@
           data: value,
         };
         this.chartOptions.title = {
-          text: this.title,
+          text: `${this.options.title}<br> ${this.options.prefix}${this.commatize(
+            this.options.total
+          )}`,
         };
       },
     },
