@@ -31,7 +31,7 @@
           type: "datetime",
           dateTimeLabelFormats: {
             // don't display the dummy year
-            month: "%b",
+            month: "%b %Y",
             year: "%Y",
           },
           title: {
@@ -40,7 +40,7 @@
           // categories: this.xaxis,
         },
         legend: {
-          enabled: false,
+          enabled: true,
         },
         tooltip: {
           hideDelay: 0,
@@ -53,7 +53,7 @@
     },
     watch: {
       chartData(value) {
-        this.chartOptions.series = value;
+        this.chartOptions.series = this.parseDates(value);
         this.chartOptions.title = {
           text: `${this.options.title}<br> ${this.options.prefix}${this.commatize(
             this.options.total
@@ -61,6 +61,17 @@
         };
       },
     },
-    methods: {},
+    methods: {
+      parseDates(series) {
+        for (let i = 0; i < series.length; i++) {
+          var obj = series[i];
+
+          for (let x = 0; x < obj.data.length; x++) {
+            obj.data[x][0] = Date.parse(obj.data[x][0]);
+          }
+        }
+        return series;
+      },
+    },
   };
 </script>

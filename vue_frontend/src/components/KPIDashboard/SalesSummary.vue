@@ -83,7 +83,7 @@
           {
             id: 3,
             sql: {
-              group: "source_system",
+              group: "sales_channel",
               xaxis: "processed_period",
               yaxis: "net_sales",
               filters: "",

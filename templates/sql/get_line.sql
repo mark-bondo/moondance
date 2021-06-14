@@ -1,7 +1,7 @@
 WITH line AS (
     SELECT
         %(group)s as name,
-        TO_CHAR(%(xaxis)s, 'MM/DD/YYYY') as x,
+        %(xaxis)s as x,
         SUM(%(yaxis)s) as y
     FROM
         report_moondance.sales_orders
