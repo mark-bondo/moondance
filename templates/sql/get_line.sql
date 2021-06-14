@@ -31,7 +31,8 @@ WITH line AS (
 
 SELECT
     JSON_BUILD_OBJECT(
-        'data', JSON_AGG(data)
+        'data', JSON_AGG(data),
+        'options', JSON_BUILD_OBJECT('total', (SELECT sum(y) FROM line))
     )::TEXT as data
 FROM
     detail
