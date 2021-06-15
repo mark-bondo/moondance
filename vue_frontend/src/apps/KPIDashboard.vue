@@ -54,24 +54,29 @@
 
       <v-card-text class="ma-0 pa-0">
         <div v-if="group === 'Sales Summary'">
-          <sales-summary :commatize="commatize"></sales-summary>
+          <sales-summary :commatize="commatize" :getChartData="getChartData">
+            ></sales-summary
+          >
         </div>
-        <div v-else-if="group === 'Product Sales'">
-          <product-sales></product-sales>
-        </div>
+        <!-- <div v-else-if="group === 'Product Sales'">
+          <product-sales
+            :commatize="commatize"
+            :getChartData="getChartData"
+          ></product-sales>
+        </div> -->
       </v-card-text>
     </v-card>
   </v-app>
 </template>
 
 <script>
-  import ProductSales from "@/components/KPIDashboard/ProductSales.vue";
+  // import ProductSales from "@/components/KPIDashboard/ProductSales.vue";
   import SalesSummary from "@/components/KPIDashboard/SalesSummary.vue";
 
   export default {
     name: "KPIDashboard",
     components: {
-      ProductSales,
+      // ProductSales,
       SalesSummary,
     },
     props: [],
@@ -79,6 +84,15 @@
       title: "Sales Summary",
       drawer: false,
       group: "Sales Summary",
+      chartCategories: {
+        pie: "summary",
+        donut: "summary",
+        line: "phased",
+        spline: "phased",
+        area: "phased",
+        column: "phased",
+        bar: "phased",
+      },
     }),
     methods: {
       commatize(x) {
@@ -87,6 +101,19 @@
         var parts = x.toString().split(".");
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         return `${sign}${parts[0]}`;
+      },
+      getChartData(chart) {
+        var params = Object.assign(chart.sql, { type: chart.options.type });
+        this.$http
+          .post(`get-chart-data/`, {
+            data: params,
+          })
+          .then((response) => {
+            chart.data = response.data.data;
+            chart.options.chartCategory =
+              this.chartCategories[chart.options.type];
+            Object.assign(chart.options, response.data.options);
+          });
       },
     },
     watch: {

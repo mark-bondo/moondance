@@ -53,33 +53,30 @@
             <span class="big-text">{{ commatize(item.average_quantity) }}</span>
           </template>
           <template v-slot:item.phased_quantity="{ item }">
-            <line-chart
-              :name="item.name"
-              type="quantity"
-              :chartData="item.phased_quantity"
-              :xaxis="item.xaxis"
+            <chart
+              :chartData="item.data"
+              :options="item.options"
+              :commatize="commatize"
             />
           </template>
           <template v-slot:item.total_sales="{ item }">
             <span class="big-text">${{ commatize(item.total_sales) }}</span>
           </template>
           <template v-slot:item.phased_sales="{ item }">
-            <line-chart
-              :name="item.name"
-              type="sales"
-              :chartData="item.phased_sales"
-              :xaxis="item.xaxis"
+            <chart
+              :chartData="item.data"
+              :options="item.options"
+              :commatize="commatize"
             />
           </template>
           <template v-slot:item.total_margin="{ item }">
             <span class="big-text">${{ commatize(item.total_margin) }}</span>
           </template>
           <template v-slot:item.phased_margin="{ item }">
-            <line-chart
-              :name="item.name"
-              type="margin"
-              :chartData="item.phased_margin"
-              :xaxis="item.xaxis"
+            <chart
+              :chartData="item.data"
+              :options="item.options"
+              :commatize="commatize"
             />
           </template>
         </v-data-table>
@@ -89,14 +86,14 @@
 </template>
 
 <script>
-  import LineChart from "@/components/charts/LineChart.vue";
+  import Chart from "@/components/Chart.vue";
 
   export default {
     name: "ProductSales",
     components: {
-      LineChart,
+      Chart,
     },
-    props: [],
+    props: ["commatize", "getChartData"],
     data: function () {
       return {
         selectedProductFamily: {
@@ -165,21 +162,11 @@
       },
     },
     beforeMount() {
-      this.getPie("sales_channel");
-      this.getProductData(this.selectedProductFamily.value);
-      this.getProductFamilies();
+      // this.getPie("sales_channel");
+      // this.getProductData(this.selectedProductFamily.value);
+      // this.getProductFamilies();
     },
     methods: {
-      // parseDates(series) {
-      //   for (let i = 0; i < series.length; i++) {
-      //     var obj = series[i];
-
-      //     for (let x = 0; x < obj.data.length; x++) {
-      //       obj.data[x][0] = Date.parse(obj.data[x][0]);
-      //     }
-      //   }
-      //   return series;
-      // },
       getProductFamilies() {
         this.$http.get(`../product-family/`, {}).then((response) => {
           this.productFamilies = [this.selectedProductFamily].concat(
@@ -193,22 +180,15 @@
           this.gridLoading = false;
         });
       },
-      getPie(value) {
-        this.$http
-          .get(`../get-pie/${value}`, {
-            // data: params
-          })
-          .then((response) => {
-            this.chart1 = response.data;
-          });
-      },
-      commatize(x) {
-        var sign = x < 0 ? "-" : "";
-        x = Math.abs(x).toFixed(0);
-        var parts = x.toString().split(".");
-        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        return `${sign}${parts[0]}`;
-      },
+      // getPie(value) {
+      //   this.$http
+      //     .get(`../get-pie/${value}`, {
+      //       // data: params
+      //     })
+      //     .then((response) => {
+      //       this.chart1 = response.data;
+      //     });
+      // },
     },
   };
 </script>

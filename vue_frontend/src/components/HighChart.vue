@@ -6,7 +6,7 @@
 
 <script>
   export default {
-    name: "LineChart",
+    name: "HighChart",
     props: ["chartData", "options", "commatize"],
     data: () => ({
       chartOptions: {},
@@ -27,18 +27,6 @@
           //   overflow: "visible",
           // },
         },
-        xAxis: {
-          type: "datetime",
-          dateTimeLabelFormats: {
-            // don't display the dummy year
-            month: "%b %Y",
-            year: "%Y",
-          },
-          title: {
-            text: "Date",
-          },
-          // categories: this.xaxis,
-        },
         legend: {
           enabled: true,
         },
@@ -53,24 +41,62 @@
     },
     watch: {
       chartData(value) {
-        this.chartOptions.series = this.parseDates(value);
+        this.updateChart(value);
+      },
+    },
+    methods: {
+      createPointEvent() {
+        return {
+          events: {
+            click: (e) => {
+              this.drillDown(e);
+            },
+          },
+        };
+      },
+      updateChart(value) {
+        if (this.options.chartCategory === "phased") {
+          this.chartOptions.xAxis = {
+            type: "datetime",
+            dateTimeLabelFormats: {
+              month: "%b %Y",
+              year: "%Y",
+            },
+            title: {
+              text: "Date",
+            },
+          };
+          this.chartOptions.series = this.parseDates(value);
+        } else {
+          this.chartOptions.series = {
+            data: value,
+            point: Object.assign(this.createPointEvent()),
+          };
+        }
+
         this.chartOptions.title = {
           text: `${this.options.title}<br> ${this.options.prefix}${this.commatize(
             this.options.total
           )}`,
         };
       },
-    },
-    methods: {
       parseDates(series) {
         for (let i = 0; i < series.length; i++) {
           var obj = series[i];
+          series[i].point = this.createPointEvent();
 
           for (let x = 0; x < obj.data.length; x++) {
             obj.data[x][0] = Date.parse(obj.data[x][0]);
           }
         }
         return series;
+      },
+      drillDown(e) {
+        if (this.options.chartCategory === "phased") {
+          console.log(e.point.series.name);
+        } else {
+          console.log(e.point.name);
+        }
       },
     },
   };
