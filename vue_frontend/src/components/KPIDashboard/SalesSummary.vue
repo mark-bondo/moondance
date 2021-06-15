@@ -1,5 +1,5 @@
 <template>
-  <v-card>
+  <v-card height="calc(100% - 86.19px)">
     <v-card-title>
       <v-row>
         <v-col cols="12"> Sales Summary</v-col>
@@ -10,7 +10,7 @@
         <v-col v-for="chart in charts" :key="chart.id" cols="12" xs="12" lg="6">
           <high-chart
             :chartData="chart.data"
-            :options="chart.options"
+            :options="chart.chartOptions"
             :commatize="commatize"
           />
         </v-col>
@@ -40,7 +40,7 @@
               yaxis: "net_sales",
               filters: "",
             },
-            options: {
+            chartOptions: {
               title: "Sales Channel Sales",
               type: "pie",
               prefix: "$",
@@ -48,17 +48,28 @@
             data: [],
           },
           {
-            id: 3,
+            id: 2,
             sql: {
               group: "sales_channel",
               xaxis: "processed_period",
               yaxis: "net_sales",
               filters: "",
             },
-            options: {
+            chartOptions: {
               title: "Product Family Sales by Month",
               type: "spline",
               prefix: "$",
+              xAxis: {
+                title: { text: "Date Ordered" },
+                type: "datetime",
+                dateTimeLabelFormats: {
+                  month: "%b %Y",
+                  year: "%Y",
+                },
+              },
+              legend: {
+                enabled: true,
+              },
             },
             data: [],
           },
@@ -72,21 +83,7 @@
         this.getChartData(chart);
       });
     },
-    methods: {
-      // getData(chart) {
-      //   var params = Object.assign(chart.sql, { type: chart.options.type });
-      //   this.$http
-      //     .post(`get-chart-data/`, {
-      //       data: params,
-      //     })
-      //     .then((response) => {
-      //       chart.data = response.data.data;
-      //       chart.options.chartCategory =
-      //         this.chartCategories[chart.options.type];
-      //       Object.assign(chart.options, response.data.options);
-      //     });
-      // },
-    },
+    methods: {},
   };
 </script>
 

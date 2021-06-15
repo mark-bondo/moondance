@@ -53,8 +53,8 @@
             <span class="big-text">{{ commatize(item.average_quantity) }}</span>
           </template>
           <template v-slot:item.phased_quantity="{ item }">
-            <chart
-              :chartData="item.data"
+            <high-chart
+              :chartData="item.phased_quantity"
               :options="item.options"
               :commatize="commatize"
             />
@@ -63,8 +63,8 @@
             <span class="big-text">${{ commatize(item.total_sales) }}</span>
           </template>
           <template v-slot:item.phased_sales="{ item }">
-            <chart
-              :chartData="item.data"
+            <high-chart
+              :chartData="item.phased_sales"
               :options="item.options"
               :commatize="commatize"
             />
@@ -73,8 +73,8 @@
             <span class="big-text">${{ commatize(item.total_margin) }}</span>
           </template>
           <template v-slot:item.phased_margin="{ item }">
-            <chart
-              :chartData="item.data"
+            <high-chart
+              :chartData="item.phased_sales"
               :options="item.options"
               :commatize="commatize"
             />
@@ -86,12 +86,12 @@
 </template>
 
 <script>
-  import Chart from "@/components/Chart.vue";
+  import HighChart from "@/components/HighChart.vue";
 
   export default {
     name: "ProductSales",
     components: {
-      Chart,
+      HighChart,
     },
     props: ["commatize", "getChartData"],
     data: function () {
@@ -105,7 +105,6 @@
         productData: [],
         search: "",
         expanded: [],
-        chart1: {},
         headers: [
           { text: "", value: "data-table-expand" },
           {
@@ -162,9 +161,8 @@
       },
     },
     beforeMount() {
-      // this.getPie("sales_channel");
-      // this.getProductData(this.selectedProductFamily.value);
-      // this.getProductFamilies();
+      this.getProductData(this.selectedProductFamily.value);
+      this.getProductFamilies();
     },
     methods: {
       getProductFamilies() {
@@ -175,20 +173,37 @@
         });
       },
       getProductData(value) {
+        let productData = this.productData;
         this.$http.get(`../product-data/${value}`, {}).then((response) => {
-          this.productData = response.data;
+          let chartOptions = {
+            options: {
+              title: "Product Family Sales by Month",
+              chartCategory: "phased",
+              type: "area",
+              prefix: "$",
+              width: 160,
+              height: 65,
+              xAxis: {
+                title: { text: "" },
+                type: "category",
+                categories: response.data[0].xaxis,
+                dateTimeLabelFormats: {
+                  month: "%b %Y",
+                  year: "%Y",
+                },
+              },
+              legend: {
+                enabled: false,
+              },
+            },
+          };
+
+          response.data.forEach(function (sku) {
+            productData.push(Object.assign(sku, chartOptions));
+          });
           this.gridLoading = false;
         });
       },
-      // getPie(value) {
-      //   this.$http
-      //     .get(`../get-pie/${value}`, {
-      //       // data: params
-      //     })
-      //     .then((response) => {
-      //       this.chart1 = response.data;
-      //     });
-      // },
     },
   };
 </script>

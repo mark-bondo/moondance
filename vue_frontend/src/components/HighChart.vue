@@ -20,15 +20,12 @@
         chart: {
           type: this.options.type,
           backgroundColor: "transparent",
-          // width: 160,
-          // height: 65,
+          width: "width" in this.options ? this.options.width : null,
+          height: "height" in this.options ? this.options.height : null,
           // margin: [0, 0, 4, 0],
-          // style: {
-          //   overflow: "visible",
-          // },
-        },
-        legend: {
-          enabled: true,
+          style: {
+            overflow: "visible",
+          },
         },
         tooltip: {
           hideDelay: 0,
@@ -38,6 +35,9 @@
         },
         series: [],
       };
+    },
+    mounted() {
+      // this.updateChart(this.chartData);
     },
     watch: {
       chartData(value) {
@@ -56,17 +56,12 @@
       },
       updateChart(value) {
         if (this.options.chartCategory === "phased") {
-          this.chartOptions.xAxis = {
-            type: "datetime",
-            dateTimeLabelFormats: {
-              month: "%b %Y",
-              year: "%Y",
-            },
-            title: {
-              text: "Date",
-            },
-          };
-          this.chartOptions.series = this.parseDates(value);
+          this.chartOptions.xAxis = this.options.xAxis;
+          this.chartOptions.legend = this.options.legend;
+          this.chartOptions.series =
+            this.options.xAxis.type === "datetime"
+              ? this.parseDates(value)
+              : { data: value };
         } else {
           this.chartOptions.series = {
             data: value,
@@ -74,11 +69,11 @@
           };
         }
 
-        this.chartOptions.title = {
-          text: `${this.options.title}<br> ${this.options.prefix}${this.commatize(
-            this.options.total
-          )}`,
-        };
+        // this.chartOptions.title = {
+        //   text: `${this.options.title}<br> ${this.options.prefix}${this.commatize(
+        //     this.options.total
+        //   )}`,
+        // };
       },
       parseDates(series) {
         for (let i = 0; i < series.length; i++) {

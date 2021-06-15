@@ -69,6 +69,10 @@ def get_pie(request, group):
     return HttpResponse(json_data[0], content_type="application/json")
 
 
+def get_dashboard():
+    pass
+
+
 @login_required
 def get_chart_data(request):
     chart = json.loads(request.body)["data"]

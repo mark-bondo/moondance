@@ -58,32 +58,32 @@
             ></sales-summary
           >
         </div>
-        <!-- <div v-else-if="group === 'Product Sales'">
+        <div v-else-if="group === 'Product Sales'">
           <product-sales
             :commatize="commatize"
             :getChartData="getChartData"
           ></product-sales>
-        </div> -->
+        </div>
       </v-card-text>
     </v-card>
   </v-app>
 </template>
 
 <script>
-  // import ProductSales from "@/components/KPIDashboard/ProductSales.vue";
+  import ProductSales from "@/components/KPIDashboard/ProductSales.vue";
   import SalesSummary from "@/components/KPIDashboard/SalesSummary.vue";
 
   export default {
     name: "KPIDashboard",
     components: {
-      // ProductSales,
+      ProductSales,
       SalesSummary,
     },
     props: [],
     data: () => ({
-      title: "Sales Summary",
+      title: "Product Sales",
       drawer: false,
-      group: "Sales Summary",
+      group: "Product Sales",
       chartCategories: {
         pie: "summary",
         donut: "summary",
@@ -103,16 +103,16 @@
         return `${sign}${parts[0]}`;
       },
       getChartData(chart) {
-        var params = Object.assign(chart.sql, { type: chart.options.type });
+        var params = Object.assign(chart.sql, { type: chart.chartOptions.type });
         this.$http
           .post(`get-chart-data/`, {
             data: params,
           })
           .then((response) => {
             chart.data = response.data.data;
-            chart.options.chartCategory =
-              this.chartCategories[chart.options.type];
-            Object.assign(chart.options, response.data.options);
+            chart.chartOptions.chartCategory =
+              this.chartCategories[chart.chartOptions.type];
+            Object.assign(chart.chartOptions, response.data.options);
           });
       },
     },
