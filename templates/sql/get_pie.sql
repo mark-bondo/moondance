@@ -3,7 +3,7 @@ WITH pie AS (
         %(grouping)s as name,
         SUM(%(yaxis)s) as y
     FROM
-        report_moondance.sales_orders
+        %(table)s
     WHERE
         processed_date >= '2020-10-01'
         %(filters)s
@@ -22,6 +22,8 @@ SELECT
                 'y', y
             )
         ),
+        'name',
+        INITCAP(REPLACE('%(grouping)s', '_', ' ')),
         'options',
         JSON_BUILD_OBJECT(
             'total', SUM(y)

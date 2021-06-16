@@ -4,7 +4,7 @@ WITH line AS (
         %(xaxis)s as x,
         SUM(%(yaxis)s) as y
     FROM
-        report_moondance.sales_orders
+        %(table)s
     WHERE
         processed_date >= '2020-10-01'
         %(filters)s

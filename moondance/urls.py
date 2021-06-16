@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
+from moondance.views import get_dashboards
 from automationtools.views import report_home
 from operations.views import (
     get_products,
@@ -7,7 +8,6 @@ from operations.views import (
     get_product_data,
     get_pie,
     get_chart_data,
-    get_dashboard,
 )
 
 urlpatterns = [
@@ -21,7 +21,7 @@ urlpatterns = [
     path("product-family/", get_product_families),
     path("get-pie/<str:group>", get_pie),
     path("get-chart-data/", get_chart_data),
-    path("dashboard/<int:id>", get_dashboard),
+    path("dashboards/", get_dashboards),
 ]
 
 # if settings.DEBUG:

@@ -36,17 +36,13 @@
       <v-navigation-drawer v-model="drawer" absolute bottom temporary>
         <v-list>
           <v-list-item-group
-            v-model="group"
+            v-model="selectedItem"
             active-class="deep-purple--text text--accent-4"
           >
-            <v-list-item value="Sales Summary">
-              <v-list-item-title>Sales Summary</v-list-item-title>
-            </v-list-item>
-            <v-list-item value="Product Sales">
-              <v-list-item-title>Product Sales</v-list-item-title>
-            </v-list-item>
-            <v-list-item value="Data Manager">
-              <v-list-item-title>Data Manager</v-list-item-title>
+            <v-list-item v-for="d in dashboards" :key="d.id" :value="d.name">
+              <v-list-item-content>
+                <v-list-item-title v-text="d.name"></v-list-item-title>
+              </v-list-item-content>
             </v-list-item>
           </v-list-item-group>
         </v-list>
@@ -54,9 +50,7 @@
 
       <v-card-text class="ma-0 pa-0">
         <div v-if="group === 'Sales Summary'">
-          <sales-summary :commatize="commatize" :getChartData="getChartData">
-            ></sales-summary
-          >
+          <dashboard :commatize="commatize"> ></dashboard>
         </div>
         <div v-else-if="group === 'Product Sales'">
           <product-sales
@@ -71,16 +65,18 @@
 
 <script>
   import ProductSales from "@/components/KPIDashboard/ProductSales.vue";
-  import SalesSummary from "@/components/KPIDashboard/SalesSummary.vue";
+  import Dashboard from "@/components/Dashboard.vue";
 
   export default {
     name: "KPIDashboard",
     components: {
       ProductSales,
-      SalesSummary,
+      Dashboard,
     },
     props: [],
     data: () => ({
+      selectedItem: 0,
+      dashboards: [{ id: 0, name: "Data Manager" }],
       title: "Sales Summary",
       drawer: false,
       group: "Sales Summary",
@@ -94,6 +90,9 @@
         bar: "phased",
       },
     }),
+    beforeMount() {
+      this.getDashboards();
+    },
     methods: {
       commatize(x) {
         var sign = x < 0 ? "-" : "";
@@ -115,11 +114,15 @@
             Object.assign(chart.chartOptions, response.data.options);
           });
       },
+      getDashboards() {
+        this.$http.get("dashboards/", {}).then((response) => {
+          response.data.forEach((d) => this.dashboards.push(d));
+        });
+      },
     },
     watch: {
-      group(value) {
+      selectedItem(value) {
         this.drawer = false;
-
         if (value === "Data Manager") {
           window.open("/data-manager/", "_blank").focus();
         } else {

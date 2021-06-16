@@ -2,12 +2,12 @@
 import 'core-js/stable'
 import 'regenerator-runtime/runtime';
 // Imports
+import _ from 'lodash'
 import Vue from 'vue'
 import vuetify from '@/plugins/vuetify'
 import HighchartsVue from 'highcharts-vue'
 import Highcharts from 'highcharts';
 import axios from 'axios'
-import _ from 'lodash'
 import '@mdi/font/css/materialdesignicons.css'
 
 import KPIDashboard from "./apps/KPIDashboard.vue"
@@ -19,7 +19,6 @@ Highcharts.setOptions({
         thousandsSep: ','
     }
 });
-
 
 axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = "X-CSRFTOKEN"

@@ -1,28 +1,31 @@
 <template>
   <v-container>
-    <highcharts class="chart" :options="chartOptions"></highcharts>
+    <highcharts class="chart" :options="localOptions"></highcharts>
   </v-container>
 </template>
 
 <script>
+  import _ from "lodash";
   export default {
     name: "HighChart",
-    props: ["chartData", "options", "commatize"],
+    props: ["options", "commatize"],
     data: () => ({
-      chartOptions: {},
-    }),
-    beforeMount() {
-      this.chartOptions = {
+      chartMap: {
+        pie: "summary",
+        donut: "summary",
+        area: "phased",
+        line: "phased",
+        spline: "phased",
+        column: "phased",
+        bar: "phased",
+      },
+      localOptions: {
         title: {
           text: "",
         },
         credits: false,
         chart: {
-          type: this.options.type,
           backgroundColor: "transparent",
-          width: "width" in this.options ? this.options.width : null,
-          height: "height" in this.options ? this.options.height : null,
-          // margin: [0, 0, 4, 0],
           style: {
             overflow: "visible",
           },
@@ -31,21 +34,59 @@
           hideDelay: 0,
           outside: true,
           shared: true,
-          pointFormat: `<span>{series.name}</span>: <b>${this.options.prefix}{point.y}<br/>`,
+          pointFormat: "<b>{point.y}</b><br/>",
+        },
+        legend: {
+          enabled: true,
+        },
+        xAxis: {
+          dateTimeLabelFormats: {
+            month: "%b %Y",
+            year: "%Y",
+          },
         },
         series: [],
-      };
-    },
-    mounted() {
-      console.log(this.chartData);
-      this.updateChart(this.chartData);
-    },
-    watch: {
-      chartData(value) {
-        this.updateChart(value);
       },
+    }),
+    beforeMount() {},
+    mounted() {
+      this.getData();
     },
+    // watch: {
+    //   chartData(value) {
+    //     this.getData(value);
+    //   },
+    // },
     methods: {
+      getData() {
+        this.$http
+          .post(`get-chart-data/`, {
+            data: this.options.sql,
+          })
+          .then((response) => {
+            let data = response.data;
+            _.merge(this.localOptions, this.options);
+
+            if (this.chartMap[this.localOptions.chart.type] === "summary") {
+              this.localOptions.series = [{ data: data.data, name: data.name }];
+              console.log(this.localOptions.series);
+            } else if (this.localOptions.xAxis.type === "datetime") {
+              this.localOptions.series = this.parseDates(data.data);
+            } else {
+              this.localOptions.series = data.data;
+            }
+
+            // this.localOptions.tooltip.pointFormat =
+            //   this.localOptions.chart.type === "summary"
+            //     ? "<span>{point.name}</span>: <b>{point.y}</b><br/>"
+            //     : "<span>{series.name}</span>: <b>{point.y}</b><br/>";
+            // this.chartOptions.title = {
+            //   text: `${this.options.title}<br> ${this.options.prefix}${this.commatize(
+            //     this.options.total
+            //   )}`,
+            // };
+          });
+      },
       createPointEvent() {
         return {
           events: {
@@ -54,27 +95,6 @@
             },
           },
         };
-      },
-      updateChart(value) {
-        if (this.options.chartCategory === "phased") {
-          this.chartOptions.xAxis = this.options.xAxis;
-          this.chartOptions.legend = this.options.legend;
-          this.chartOptions.series =
-            this.options.xAxis.type === "datetime"
-              ? this.parseDates(value)
-              : { data: value };
-        } else {
-          this.chartOptions.series = {
-            data: value,
-            point: Object.assign(this.createPointEvent()),
-          };
-        }
-
-        // this.chartOptions.title = {
-        //   text: `${this.options.title}<br> ${this.options.prefix}${this.commatize(
-        //     this.options.total
-        //   )}`,
-        // };
       },
       parseDates(series) {
         for (let i = 0; i < series.length; i++) {
@@ -88,7 +108,7 @@
         return series;
       },
       drillDown(e) {
-        if (this.options.chartCategory === "phased") {
+        if (this.localOptions.chartCategory === "phased") {
           console.log(e.point.series.name);
         } else {
           console.log(e.point.name);
