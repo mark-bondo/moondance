@@ -1,6 +1,6 @@
 WITH pie AS (
     SELECT
-        %(group)s as name,
+        %(grouping)s as name,
         SUM(%(yaxis)s) as y
     FROM
         report_moondance.sales_orders
@@ -8,7 +8,7 @@ WITH pie AS (
         processed_date >= '2020-10-01'
         %(filters)s
     GROUP BY
-        %(group)s
+        %(grouping)s
     ORDER BY
         2 DESC NULLS LAST
 )

@@ -69,8 +69,16 @@ def get_pie(request, group):
     return HttpResponse(json_data[0], content_type="application/json")
 
 
-def get_dashboard():
-    pass
+def get_dashboard(request, id):
+    json_data = json.loads(get_data(name="get_dashboard", args={"id": str(id)})[0][0])
+
+    for c in json_data["charts"]:
+        if c["chart"]["type"] == "pie":
+            c["data"] = json.loads(get_data(name="get_pie", dd=c["sql"])[0][0])
+        elif c["chart"]["type"] == "spline":
+            c["data"] = json.loads(get_data(name="get_line", dd=c["sql"])[0][0])
+
+    return HttpResponse(json.dumps(json_data), content_type="application/json")
 
 
 @login_required

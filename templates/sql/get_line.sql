@@ -1,6 +1,6 @@
 WITH line AS (
     SELECT
-        %(group)s as name,
+        %(grouping)s as name,
         %(xaxis)s as x,
         SUM(%(yaxis)s) as y
     FROM

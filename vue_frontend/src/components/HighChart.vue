@@ -37,7 +37,8 @@
       };
     },
     mounted() {
-      // this.updateChart(this.chartData);
+      console.log(this.chartData);
+      this.updateChart(this.chartData);
     },
     watch: {
       chartData(value) {

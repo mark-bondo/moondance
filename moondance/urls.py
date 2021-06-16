@@ -7,6 +7,7 @@ from operations.views import (
     get_product_data,
     get_pie,
     get_chart_data,
+    get_dashboard,
 )
 
 urlpatterns = [
@@ -20,6 +21,7 @@ urlpatterns = [
     path("product-family/", get_product_families),
     path("get-pie/<str:group>", get_pie),
     path("get-chart-data/", get_chart_data),
+    path("dashboard/<int:id>", get_dashboard),
 ]
 
 # if settings.DEBUG:

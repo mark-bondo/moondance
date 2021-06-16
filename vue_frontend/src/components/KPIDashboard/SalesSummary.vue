@@ -31,59 +31,67 @@
     data: function () {
       return {
         gridLoading: true,
-        charts: [
-          {
-            id: 1,
-            sql: {
-              group: "sales_channel",
-              xaxis: null,
-              yaxis: "net_sales",
-              filters: "",
-            },
-            chartOptions: {
-              title: "Sales Channel Sales",
-              type: "pie",
-              prefix: "$",
-            },
-            data: [],
-          },
-          {
-            id: 2,
-            sql: {
-              group: "sales_channel",
-              xaxis: "processed_period",
-              yaxis: "net_sales",
-              filters: "",
-            },
-            chartOptions: {
-              title: "Product Family Sales by Month",
-              type: "spline",
-              prefix: "$",
-              xAxis: {
-                title: { text: "Date Ordered" },
-                type: "datetime",
-                dateTimeLabelFormats: {
-                  month: "%b %Y",
-                  year: "%Y",
-                },
-              },
-              legend: {
-                enabled: true,
-              },
-            },
-            data: [],
-          },
-        ],
+        charts: [],
+        // charts: [
+        //   {
+        //     id: 1,
+        //     sql: {
+        //       group: "sales_channel",
+        //       xaxis: null,
+        //       yaxis: "net_sales",
+        //       filters: "",
+        //     },
+        //     chartOptions: {
+        //       title: "Sales Channel Sales",
+        //       type: "pie",
+        //       prefix: "$",
+        //     },
+        //     data: [],
+        //   },
+        //   {
+        //     id: 2,
+        //     sql: {
+        //       group: "sales_channel",
+        //       xaxis: "processed_period",
+        //       yaxis: "net_sales",
+        //       filters: "",
+        //     },
+        //     chartOptions: {
+        //       title: "Product Family Sales by Month",
+        //       type: "spline",
+        //       prefix: "$",
+        //       xAxis: {
+        //         title: { text: "Date Ordered" },
+        //         type: "datetime",
+        //         dateTimeLabelFormats: {
+        //           month: "%b %Y",
+        //           year: "%Y",
+        //         },
+        //       },
+        //       legend: {
+        //         enabled: true,
+        //       },
+        //     },
+        //     data: [],
+        //   },
+        // ],
       };
     },
     computed: {},
     watch: {},
     beforeMount() {
-      this.charts.forEach((chart) => {
-        this.getChartData(chart);
-      });
+      // this.charts.forEach((chart) => {
+      //   this.getChartData(chart);
+      // });
+      this.charts = this.getDashboard(1);
     },
-    methods: {},
+    methods: {
+      getDashboard(id) {
+        this.$http.get(`../dashboard/${id}`, {}).then((response) => {
+          this.charts = response.data.charts;
+        });
+      },
+    },
   };
 </script>
 

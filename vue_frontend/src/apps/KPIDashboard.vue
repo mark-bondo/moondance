@@ -81,9 +81,9 @@
     },
     props: [],
     data: () => ({
-      title: "Product Sales",
+      title: "Sales Summary",
       drawer: false,
-      group: "Product Sales",
+      group: "Sales Summary",
       chartCategories: {
         pie: "summary",
         donut: "summary",
