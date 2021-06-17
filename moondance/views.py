@@ -10,17 +10,17 @@ load_dotenv()
 SQL_DD = {}
 
 
-def get_data(name, args={}, dd={}):
+def get_data(name, args={}, replace_dd={}):
     if name not in SQL_DD or os.getenv("NODE_ENV") == "development":
         with open(f"./templates/sql/{name}.sql", "r") as f:
             SQL_DD[name] = f.read()
 
     sql = SQL_DD[name]
 
-    if dd:
-        sql = sql % dd
+    if replace_dd:
+        sql = sql % replace_dd
 
-    # print(sql)
+    print(sql)
 
     with connection.cursor() as cursor:
         cursor.execute(sql, args)
@@ -42,22 +42,42 @@ def get_dashboards(request):
 
 
 @login_required
-def get_chart(request):
-    # chart = json.loads(request.body)["data"]
-    # dd = {"group": chart["group"], "filters": "", "yaxis": chart["yaxis"]}
+def get_chart(request, id):
+    # get chart options
+    chart = json.loads(get_data(name="get_chart_options", args={"id": id})[0][0])
+    category = chart["chart"]["category"]
+    replace_dd = chart["sql"]
 
-    if chart["type"] in (
-        "pie",
-        "donut",
-    ):
-        json_data = get_data(name="get_pie", dd=chart)
-    elif chart["type"] in (
-        "area",
-        "line",
-        "spline",
-        "column",
-        "bar",
-    ):
-        json_data = get_data(name="get_line", dd=chart)
+    # check for user parameters
+    filters = [""]
+    if request.body != b"":
+        user_params = json.loads(request.body)["data"]
 
-    return HttpResponse(json_data[0], content_type="application/json")
+        for k, v in user_params["filters"].items():
+            column = v["value"].replace("'", "''")
+            filter = v["filter"].replace("'", "''")
+            filters.append(f"{column}='{filter}'")
+
+        user_params["filters"] = " AND ".join(filters)
+
+        if not user_params["grouping"]:
+            user_params["grouping"] = replace_dd["grouping"]
+
+        replace_dd.update(user_params)
+
+    # get chart data
+    if category == "summary":
+        data = get_data(name="get_summary_data", replace_dd=replace_dd)[0][0]
+    elif category == "phased":
+        data = get_data(name="get_phased_data", replace_dd=replace_dd)[0][0]
+
+    # clean up and format json for HighCharts response
+    chart["series"] = data["data"]
+    chart.pop("sql", None)
+    chart["title"]["text"] = "{}<br>{}{:,}".format(
+        chart["title"]["text"],
+        chart["title"]["prefix"],
+        int(data["options"]["total"]),
+    )
+
+    return HttpResponse(json.dumps(chart), content_type="application/json")

@@ -1,13 +1,12 @@
 from django.contrib import admin
 from django.urls import path, include
-from moondance.views import get_dashboards
+from moondance.views import get_dashboards, get_chart
 from automationtools.views import report_home
 from operations.views import (
     get_products,
     get_product_families,
     get_product_data,
     # get_pie,
-    get_chart,
 )
 
 urlpatterns = [

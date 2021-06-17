@@ -1,7 +1,7 @@
 SELECT
     JSONB_BUILD_OBJECT(
         'title', 
-        JSONB_BUILD_OBJECT('text', c.title),
+        JSONB_BUILD_OBJECT('text', c.title, 'prefix', yaxis.yaxis_prefix),
         'chart',
         JSONB_BUILD_OBJECT(
             'type', c.type,
@@ -29,7 +29,7 @@ SELECT
             'type', c.type,
             'filters', '' -- FIXME
         )
-    )::TEXT as json
+    ) as json
 FROM
     public.automationtools_chart c
     JOIN public.automationtools_chart_options xaxis ON 

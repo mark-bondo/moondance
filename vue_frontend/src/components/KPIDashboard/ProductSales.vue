@@ -53,7 +53,7 @@
             <span class="big-text">{{ commatize(item.average_quantity) }}</span>
           </template>
           <template v-slot:item.phased_quantity="{ item }">
-            <high-chart
+            <chart
               :chartData="item.phased_quantity"
               :options="item.options"
               :commatize="commatize"
@@ -63,7 +63,7 @@
             <span class="big-text">${{ commatize(item.total_sales) }}</span>
           </template>
           <template v-slot:item.phased_sales="{ item }">
-            <high-chart
+            <chart
               :chartData="item.phased_sales"
               :options="item.options"
               :commatize="commatize"
@@ -73,7 +73,7 @@
             <span class="big-text">${{ commatize(item.total_margin) }}</span>
           </template>
           <template v-slot:item.phased_margin="{ item }">
-            <high-chart
+            <chart
               :chartData="item.phased_sales"
               :options="item.options"
               :commatize="commatize"
@@ -86,12 +86,12 @@
 </template>
 
 <script>
-  import HighChart from "@/components/HighChart.vue";
+  import Chart from "@/components/Chart.vue";
 
   export default {
     name: "ProductSales",
     components: {
-      HighChart,
+      Chart,
     },
     props: ["commatize", "getChartData"],
     data: function () {

@@ -1,4 +1,4 @@
-WITH line AS (
+WITH phased AS (
     SELECT
         %(grouping)s as name,
         %(xaxis)s as x,
@@ -24,7 +24,7 @@ WITH line AS (
             )
         ) as data
     FROM
-        line
+        phased
     GROUP BY
         name
 )
@@ -32,8 +32,8 @@ WITH line AS (
 SELECT
     JSON_BUILD_OBJECT(
         'data', JSON_AGG(data),
-        'options', JSON_BUILD_OBJECT('total', (SELECT sum(y) FROM line))
-    )::TEXT as data
+        'options', JSON_BUILD_OBJECT('total', (SELECT sum(y) FROM phased))
+    ) as json_data
 FROM
     detail
 ;
