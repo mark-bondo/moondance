@@ -1,27 +1,54 @@
 <template>
   <v-container>
-    <div>
-      <highcharts class="chart" :options="localOptions"></highcharts>
-      <v-menu v-model="showMenu" :position-x="x" :position-y="y" offset-y
-        ><v-card>
-          <v-card-text>
-            <v-list dense>
-              <v-subheader>Drill Down</v-subheader>
-              <v-list-item-group color="primary">
-                <v-list-item
-                  v-for="item in drillDowns"
-                  :key="item.value"
-                  @click="getDrillDown(item)"
-                >
-                  <v-list-item-content>
-                    <v-list-item-title v-text="item.text"></v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-list-item-group>
-            </v-list>
-          </v-card-text> </v-card
-      ></v-menu>
-    </div>
+    <v-card>
+      <v-card-text>
+        <v-row>
+          <v-col cols="12">
+            <v-breadcrumbs :items="breadCrumbs">
+              <template v-slot:item="{ item }">
+                <v-breadcrumbs-item>
+                  <v-icon>mdi-filter</v-icon>
+                  {{ item.filter }}
+                </v-breadcrumbs-item>
+              </template>
+              <template v-slot:divider>
+                <v-icon>mdi-chevron-right</v-icon>
+              </template>
+            </v-breadcrumbs>
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="12">
+            <highcharts class="chart" :options="localOptions"></highcharts>
+            <v-menu
+              v-model="menu.show"
+              :position-x="menu.x"
+              :position-y="menu.y"
+              offset-y
+              ><v-card>
+                <v-card-text>
+                  <v-list dense>
+                    <v-subheader>Drill Down</v-subheader>
+                    <v-list-item-group color="primary">
+                      <v-list-item
+                        v-for="item in drillDowns"
+                        :key="item.value"
+                        @click="getDrillDown(item)"
+                      >
+                        <v-list-item-content>
+                          <v-list-item-title
+                            v-text="item.text"
+                          ></v-list-item-title>
+                        </v-list-item-content>
+                      </v-list-item>
+                    </v-list-item-group>
+                  </v-list>
+                </v-card-text> </v-card
+            ></v-menu>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
   </v-container>
 </template>
 
@@ -31,14 +58,17 @@
     name: "Chart",
     props: ["chartId", "commatize"],
     data: () => ({
-      showMenu: false,
-      x: 0,
-      y: 0,
+      menu: {
+        show: false,
+        x: 0,
+        y: 0,
+      },
+      breadCrumbs: [],
       drillDowns: [
         { text: "Product Category", value: "product_category" },
         { text: "Customer Type", value: "customer_type" },
       ],
-      filters: {},
+      filters: [],
       grouping: { value: null, text: null },
       chartMap: {
         pie: "summary",
@@ -100,7 +130,7 @@
               (s) => (s.point = this.createPointEvent())
             );
 
-            if (_.isEmpty(this.filters)) {
+            if (this.filters.length === 0) {
               _.merge(this.localOptions, serverOptions);
             } else {
               this.localOptions.series = serverOptions.series;
@@ -127,7 +157,7 @@
         return series;
       },
       showDrillMenu(e) {
-        this.showMenu = false;
+        this.menu.show = false;
         var filter;
         var value;
         var text;
@@ -140,21 +170,24 @@
           text = e.point.series.userOptions.name;
         }
 
-        this.filters[value] = {
+        this.filters.push({
           value: value,
           text: text,
           filter: filter,
-        };
+        });
 
-        this.x = e.clientX;
-        this.y = e.clientY;
-        this.showMenu = true;
+        this.menu = {
+          x: e.clientX,
+          y: e.clientY,
+          show: true,
+        };
 
         // console.log(this.filters);
         // console.log(e);
       },
       getDrillDown(item) {
         this.grouping = item;
+        this.breadCrumbs = _.clone(this.filters);
         this.getData();
       },
     },

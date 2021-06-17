@@ -53,9 +53,9 @@ def get_chart(request, id):
     if request.body != b"":
         user_params = json.loads(request.body)["data"]
 
-        for k, v in user_params["filters"].items():
-            column = v["value"].replace("'", "''")
-            filter = v["filter"].replace("'", "''")
+        for f in user_params["filters"]:
+            column = f["value"].replace("'", "''")
+            filter = f["filter"].replace("'", "''")
             filters.append(f"{column}='{filter}'")
 
         user_params["filters"] = " AND ".join(filters)
