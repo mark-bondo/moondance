@@ -1,33 +1,8 @@
-import os
-import json
-from dotenv import load_dotenv
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.db import connection
 from django.contrib.auth.decorators import login_required
 from .models import recalculate_bom_cost
-
-load_dotenv()
-SQL_DD = {}
-
-
-def get_data(name, args={}, dd={}):
-    if name not in SQL_DD or os.getenv("NODE_ENV") == "development":
-        with open(f"./templates/sql/{name}.sql", "r") as f:
-            SQL_DD[name] = f.read()
-
-    sql = SQL_DD[name]
-
-    if dd:
-        sql = sql % dd
-
-    # print(sql)
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql, args)
-        data = cursor.fetchall()
-
-    return data
 
 
 @login_required
@@ -66,28 +41,6 @@ def get_pie(request, group):
     dd = {"group": group, "filters": "", "yaxis": "net_sales"}
 
     json_data = get_data(name="get_pie", dd=dd)
-    return HttpResponse(json_data[0], content_type="application/json")
-
-
-@login_required
-def get_chart_data(request):
-    chart = json.loads(request.body)["data"]
-    # dd = {"group": chart["group"], "filters": "", "yaxis": chart["yaxis"]}
-
-    if chart["type"] in (
-        "pie",
-        "donut",
-    ):
-        json_data = get_data(name="get_pie", dd=chart)
-    elif chart["type"] in (
-        "area",
-        "line",
-        "spline",
-        "column",
-        "bar",
-    ):
-        json_data = get_data(name="get_line", dd=chart)
-
     return HttpResponse(json_data[0], content_type="application/json")
 
 

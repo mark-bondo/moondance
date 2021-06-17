@@ -20,7 +20,7 @@
         /> -->
         <v-spacer></v-spacer>
         <v-toolbar-title style="margin-top: 20px"
-          ><h2>{{ title }}</h2></v-toolbar-title
+          ><h2>{{ headerTitle }}</h2></v-toolbar-title
         >
 
         <v-spacer></v-spacer>
@@ -35,13 +35,30 @@
 
       <v-navigation-drawer v-model="drawer" absolute bottom temporary>
         <v-list>
-          <v-list-item-group
-            v-model="selectedItem"
-            active-class="deep-purple--text text--accent-4"
+          <v-subheader
+            ><v-icon class="pr-3">mdi-chart-bar</v-icon>Dashboards</v-subheader
           >
-            <v-list-item v-for="d in dashboards" :key="d.id" :value="d.name">
+          <v-list-item-group active-class="deep-purple--text text--accent-4">
+            <v-list-item
+              v-for="item in dashboards"
+              :key="item.id"
+              @click="menuActionClick(item)"
+            >
               <v-list-item-content>
-                <v-list-item-title v-text="d.name"></v-list-item-title>
+                <v-list-item-title v-text="item.name"></v-list-item-title>
+              </v-list-item-content>
+            </v-list-item>
+            <v-divider></v-divider>
+            <v-subheader
+              ><v-icon class="pr-3">mdi-tools</v-icon>Admin</v-subheader
+            >
+            <v-list-item
+              v-for="item in admin"
+              :key="item.id"
+              @click="menuActionClick(item)"
+            >
+              <v-list-item-content>
+                <v-list-item-title v-text="item.name"></v-list-item-title>
               </v-list-item-content>
             </v-list-item>
           </v-list-item-group>
@@ -49,10 +66,13 @@
       </v-navigation-drawer>
 
       <v-card-text class="ma-0 pa-0">
-        <div v-if="group === 'Sales Summary'">
-          <dashboard :commatize="commatize"> ></dashboard>
+        <div v-if="selectedItem.type === 'dashboard'">
+          <dashboard
+            :commatize="commatize"
+            :charts="selectedItem.charts"
+          ></dashboard>
         </div>
-        <div v-else-if="group === 'Product Sales'">
+        <div v-else-if="selectedItem === 'Product Sales'">
           <product-sales
             :commatize="commatize"
             :getChartData="getChartData"
@@ -75,20 +95,11 @@
     },
     props: [],
     data: () => ({
-      selectedItem: 0,
-      dashboards: [{ id: 0, name: "Data Manager" }],
-      title: "Sales Summary",
+      selectedItem: {},
+      dashboards: [],
+      admin: [{ id: 0, name: "Data Manager", type: "admin" }],
+      headerTitle: "Home",
       drawer: false,
-      group: "Sales Summary",
-      chartCategories: {
-        pie: "summary",
-        donut: "summary",
-        line: "phased",
-        spline: "phased",
-        area: "phased",
-        column: "phased",
-        bar: "phased",
-      },
     }),
     beforeMount() {
       this.getDashboards();
@@ -101,35 +112,23 @@
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         return `${sign}${parts[0]}`;
       },
-      getChartData(chart) {
-        var params = Object.assign(chart.sql, { type: chart.chartOptions.type });
-        this.$http
-          .post(`get-chart-data/`, {
-            data: params,
-          })
-          .then((response) => {
-            chart.data = response.data.data;
-            chart.chartOptions.chartCategory =
-              this.chartCategories[chart.chartOptions.type];
-            Object.assign(chart.chartOptions, response.data.options);
-          });
-      },
       getDashboards() {
         this.$http.get("dashboards/", {}).then((response) => {
           response.data.forEach((d) => this.dashboards.push(d));
         });
       },
-    },
-    watch: {
-      selectedItem(value) {
+      menuActionClick(item) {
         this.drawer = false;
-        if (value === "Data Manager") {
+        if (item.name === "Data Manager") {
           window.open("/data-manager/", "_blank").focus();
         } else {
-          this.title = value;
+          this.headerTitle = item.name;
         }
+
+        this.selectedItem = item;
       },
     },
+    watch: {},
   };
 </script>
 

@@ -31,7 +31,6 @@ SELECT
         )
     )::TEXT as json
 FROM
-
     public.automationtools_chart c
     JOIN public.automationtools_chart_options xaxis ON 
         c.id = xaxis.chart_id AND

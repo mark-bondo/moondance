@@ -5,10 +5,10 @@
 </template>
 
 <script>
-  import _ from "lodash";
+  // import _ from "lodash";
   export default {
     name: "HighChart",
-    props: ["options", "commatize"],
+    props: ["chartId", "commatize"],
     data: () => ({
       chartMap: {
         pie: "summary",
@@ -60,21 +60,23 @@
     methods: {
       getData() {
         this.$http
-          .post(`get-chart-data/`, {
-            data: this.options.sql,
+          .post(`chart/${this.chartId}`, {
+            data: {},
           })
           .then((response) => {
             let data = response.data;
-            _.merge(this.localOptions, this.options);
 
-            if (this.chartMap[this.localOptions.chart.type] === "summary") {
-              this.localOptions.series = [{ data: data.data, name: data.name }];
-              console.log(this.localOptions.series);
-            } else if (this.localOptions.xAxis.type === "datetime") {
-              this.localOptions.series = this.parseDates(data.data);
-            } else {
-              this.localOptions.series = data.data;
-            }
+            console.log(data);
+            // _.merge(this.localOptions, this.options);
+
+            // if (this.chartMap[this.localOptions.chart.type] === "summary") {
+            //   this.localOptions.series = [{ data: data.data, name: data.name }];
+            //   console.log(this.localOptions.series);
+            // } else if (this.localOptions.xAxis.type === "datetime") {
+            //   this.localOptions.series = this.parseDates(data.data);
+            // } else {
+            //   this.localOptions.series = data.data;
+            // }
 
             // this.localOptions.tooltip.pointFormat =
             //   this.localOptions.chart.type === "summary"

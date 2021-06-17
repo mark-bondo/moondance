@@ -7,8 +7,14 @@
     </v-card-title>
     <v-card-text>
       <v-row>
-        <v-col v-for="chart in charts" :key="chart.id" cols="12" xs="12" lg="6">
-          <high-chart :options="chart" :commatize="commatize" />
+        <v-col
+          v-for="chartId in charts"
+          :key="chartId"
+          cols="12"
+          xs="12"
+          lg="6"
+        >
+          <high-chart :chartId="chartId" :commatize="commatize" />
         </v-col>
       </v-row>
     </v-card-text>
@@ -23,23 +29,23 @@
     components: {
       HighChart,
     },
-    props: ["commatize"],
+    props: ["commatize", "charts"],
     data: function () {
       return {
-        charts: [],
+        // charts: [],
       };
     },
     computed: {},
     watch: {},
     beforeMount() {
-      this.charts = this.getDashboard(1);
+      // this.charts = this.getDashboard(1);
     },
     methods: {
-      getDashboard(id) {
-        this.$http.get(`../dashboard/${id}`, {}).then((response) => {
-          this.charts = response.data.charts;
-        });
-      },
+      // getDashboard(id) {
+      //   this.$http.get(`../dashboard/${id}`, {}).then((response) => {
+      //     this.charts = response.data.charts;
+      //   });
+      // },
     },
   };
 </script>
