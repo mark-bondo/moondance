@@ -20,7 +20,7 @@ def get_data(name, args={}, replace_dd={}):
     if replace_dd:
         sql = sql % replace_dd
 
-    print(sql)
+    # print(sql)
 
     with connection.cursor() as cursor:
         cursor.execute(sql, args)
@@ -45,13 +45,14 @@ def get_dashboards(request):
 def get_chart(request, id):
     # get chart options
     chart = json.loads(get_data(name="get_chart_options", args={"id": id})[0][0])
-    category = chart["chart"]["category"]
-    replace_dd = chart["sql"]
+    category = chart["extraOptions"]["category"]
+    replace_dd = chart["extraOptions"]["sql"]
 
     # check for user parameters
     filters = [""]
     if request.body != b"":
         user_params = json.loads(request.body)["data"]
+        print(user_params)
 
         for f in user_params["filters"]:
             column = f["value"].replace("'", "''")
@@ -72,11 +73,12 @@ def get_chart(request, id):
         data = get_data(name="get_phased_data", replace_dd=replace_dd)[0][0]
 
     # clean up and format json for HighCharts response
-    chart["series"] = data["data"]
-    chart.pop("sql", None)
-    chart["title"]["text"] = "{}<br>{}{:,}".format(
-        chart["title"]["text"],
-        chart["title"]["prefix"],
+    chart["highCharts"]["series"] = data["data"]
+    chart["extraOptions"].pop("sql", None)
+    chart["extraOptions"]["grouping"] = user_params["grouping"]
+    chart["extraOptions"]["title"] = "{} {}{:,}".format(
+        chart["extraOptions"]["title"],
+        chart["extraOptions"]["prefix"],
         int(data["options"]["total"]),
     )
 

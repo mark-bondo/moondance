@@ -1,33 +1,39 @@
 SELECT
     JSONB_BUILD_OBJECT(
-        'title', 
-        JSONB_BUILD_OBJECT('text', c.title, 'prefix', yaxis.yaxis_prefix),
-        'chart',
+        'extraOptions',
         JSONB_BUILD_OBJECT(
-            'type', c.type,
+            'title', c.title, 
+            'prefix', yaxis.yaxis_prefix,
             'id', c.id,
             'category', CASE
                             WHEN c.type IN ('pie', 'donut') THEN 'summary'
                             ELSE 'phased'
-                        END
+                        END,
+            'sql',
+            JSONB_BUILD_OBJECT(
+                'table', c.table,
+                'grouping', grouping.field,
+                'yaxis', yaxis.field,
+                'xaxis', xaxis.field,
+                'type', c.type,
+                'filters', '' -- FIXME
+            )
         ),
-        'legend',
+        'highCharts',
         JSONB_BUILD_OBJECT(
-            'enabled', c.show_legend
-        ),
-        'xAxis',
-        JSONB_BUILD_OBJECT(
-            'title', xaxis.name,
-            'type', xaxis.xaxis_type
-        ),
-        'sql',
-        JSONB_BUILD_OBJECT(
-            'table', c.table,
-            'grouping', grouping.field,
-            'yaxis', yaxis.field,
-            'xaxis', xaxis.field,
-            'type', c.type,
-            'filters', '' -- FIXME
+            'chart',
+            JSONB_BUILD_OBJECT(
+                'type', c.type
+            ),
+            'legend',
+            JSONB_BUILD_OBJECT(
+                'enabled', c.show_legend
+            ),
+            'xAxis',
+            JSONB_BUILD_OBJECT(
+                'title', xaxis.name,
+                'type', xaxis.xaxis_type
+            )
         )
     ) as json
 FROM
