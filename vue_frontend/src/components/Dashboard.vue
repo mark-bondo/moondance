@@ -14,7 +14,7 @@
           xs="12"
           lg="6"
         >
-          <chart :chartId="chartId" :commatize="commatize" />
+          <chart :chartId="chartId" :dashboardId="dashboardId" />
         </v-col>
       </v-row>
     </v-card-text>
@@ -29,13 +29,17 @@
     components: {
       Chart,
     },
-    props: ["commatize", "charts"],
+    props: ["dashboardId"],
     data: function () {
       return {
         // charts: [],
       };
     },
-    computed: {},
+    computed: {
+      charts() {
+        return this.$store.state.kpi.dashboard[this.dashboardId].charts;
+      },
+    },
     watch: {},
     beforeMount() {},
     methods: {},

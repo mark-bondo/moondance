@@ -67,10 +67,7 @@
 
       <v-card-text class="ma-0 pa-0">
         <div v-if="selectedItem.type === 'dashboard'">
-          <dashboard
-            :commatize="commatize"
-            :charts="selectedItem.charts"
-          ></dashboard>
+          <dashboard :dashboardId="selectedItem.id"></dashboard>
         </div>
         <div v-else-if="selectedItem === 'Product Sales'">
           <product-sales
@@ -86,6 +83,7 @@
 <script>
   import ProductSales from "@/components/KPIDashboard/ProductSales.vue";
   import Dashboard from "@/components/Dashboard.vue";
+  import _ from "lodash";
 
   export default {
     name: "KPIDashboard",
@@ -114,7 +112,11 @@
       },
       getDashboards() {
         this.$http.get("dashboards/", {}).then((response) => {
-          response.data.forEach((d) => this.dashboards.push(d));
+          var self = this;
+          _.forEach(response.data, function (d) {
+            self.dashboards.push(d);
+            self.$store.state.kpi.dashboard[d.id] = d;
+          });
         });
       },
       menuActionClick(item) {

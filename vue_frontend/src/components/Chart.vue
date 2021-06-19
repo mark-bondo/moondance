@@ -7,51 +7,15 @@
       <v-card-text>
         <v-row>
           <v-col cols="12" class="pa-0">
-            <v-breadcrumbs :items="VisibleBreadCrumbs" class="pa-0">
-              <template v-slot:item="{ item }">
-                <v-breadcrumbs-item>
-                  <v-menu offset-y :disabled="!(item.isCurrent === true)">
-                    <template v-slot:activator="{ on, attrs }">
-                      <v-chip
-                        class="ma-2"
-                        label
-                        text-color="white"
-                        :color="item.icon.color"
-                        :value="item.value"
-                        @click="removeBreadCrumb(item)"
-                        v-bind="attrs"
-                        v-on="on"
-                      >
-                        <span v-if="item.filter !== null">{{
-                          item.filter
-                        }}</span>
-                        <span v-else>{{ item.text }}</span>
-
-                        <v-icon
-                          class="ml-1"
-                          v-text="item.icon.current"
-                        ></v-icon>
-                      </v-chip>
-                    </template>
-                    <v-list>
-                      <v-list-item
-                        v-for="(i, index) in AvailableDrillDowns"
-                        :key="i.value"
-                        :value="index"
-                        @click="breadCrumbMenuClick(i, item)"
-                        link
-                        dense
-                      >
-                        <v-list-item-title>{{ i.text }}</v-list-item-title>
-                      </v-list-item>
-                    </v-list>
-                  </v-menu>
-                </v-breadcrumbs-item>
-              </template>
-              <template v-slot:divider>
-                <v-icon>mdi-chevron-right</v-icon>
-              </template>
-            </v-breadcrumbs>
+            <bread-crumbs
+              :getData="getData"
+              :AvailableDrillDowns="AvailableDrillDowns"
+              :addedBreadCrumb="addedBreadCrumb"
+              :drillDowns="drillDowns"
+              :selectedFilterValue="selectedFilterValue"
+              @updateDrillDowns="updateDrillDowns"
+            >
+            </bread-crumbs>
           </v-col>
         </v-row>
         <v-row>
@@ -95,9 +59,12 @@
 
 <script>
   import _ from "lodash";
+  import BreadCrumbs from "@/components/BreadCrumbs.vue";
+
   export default {
     name: "Chart",
-    props: ["chartId", "commatize"],
+    props: ["chartId", "dashboardId"],
+    components: { BreadCrumbs },
     data: () => ({
       menu: {
         show: false,
@@ -116,6 +83,7 @@
       },
       drillDowns: [],
       selectedFilterValue: null,
+      addedBreadCrumb: null,
       extraOptions: {
         title: "Loading Chart",
       },
@@ -162,11 +130,11 @@
       AvailableDrillDowns() {
         return this.drillDowns.filter((d) => d.isBreadCrumb === false);
       },
-      VisibleBreadCrumbs() {
-        return this.drillDowns.filter((d) => d.isBreadCrumb === true);
-      },
     },
     beforeMount() {
+      this.chartStore = this.$store.state.kpi.dashboard[this.dashboardId][
+        this.chartId
+      ] = {};
       this.getData();
     },
     methods: {
@@ -203,6 +171,7 @@
               this.localOptions.plotOptions
             );
             serverOptions.series.forEach((s) => this.localOptions.series.push(s));
+            this.chartStore.drillDowns = this.drillDowns;
           });
       },
       createPointEvent() {
@@ -239,63 +208,17 @@
         };
       },
       drillDownSelected(newItem) {
-        this.extraOptions.grouping = newItem;
-        this.addBreadCrumb(newItem);
+        this.addedBreadCrumb = newItem;
         this.getData();
       },
-      addBreadCrumb(newItem) {
-        var oldItem = _.find(this.drillDowns, { isCurrent: true });
-        oldItem = Object.assign(oldItem, {
-          isCurrent: false,
-          isBreadCrumb: true,
-          icon: this.iconMap[false],
-          filter: this.selectedFilterValue,
-        });
+      updateDrillDowns(d) {
+        // console.log(d);
+        // console.log(this.drillDowns);
+        // console.log(_.intersectionWith(d, this.drillDowns, _.isEqual));
 
-        Object.assign(newItem, {
-          isCurrent: true,
-          isBreadCrumb: true,
-          icon: this.iconMap[true],
-          sortOrder: oldItem.sortOrder + 10,
-        });
-
-        this.drillDowns = _.orderBy(this.drillDowns, "sortOrder");
-      },
-      removeBreadCrumb(removedItem) {
-        if (removedItem.isCurrent !== true) {
-          Object.assign(removedItem, {
-            isCurrent: false,
-            isBreadCrumb: false,
-            filter: null,
-            icon: this.iconMap[false],
-            sortOrder: 0,
-          });
-          this.getData();
-        }
-      },
-      breadCrumbMenuClick(newItem, oldItem) {
-        let newItemCopy = Object.assign({}, newItem);
-        let oldItemCopy = Object.assign({}, oldItem);
-
-        Object.assign(oldItem, {
-          text: newItemCopy.text,
-          value: newItemCopy.value,
-          filter: newItemCopy.filter,
-        });
-        Object.assign(newItem, {
-          text: oldItemCopy.text,
-          value: oldItemCopy.value,
-          filter: oldItemCopy.filter,
-        });
-
+        this.drillDowns = d;
         this.getData();
       },
     },
   };
 </script>
-
-<style>
-  .v-breadcrumbs li:nth-child(2n) {
-    padding: 0px;
-  }
-</style>

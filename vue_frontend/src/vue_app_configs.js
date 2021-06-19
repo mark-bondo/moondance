@@ -4,6 +4,7 @@ import 'regenerator-runtime/runtime';
 // Imports
 import _ from 'lodash'
 import Vue from 'vue'
+import store from "@/store"
 import vuetify from '@/plugins/vuetify'
 import HighchartsVue from 'highcharts-vue'
 import Highcharts from 'highcharts';
@@ -36,6 +37,7 @@ function deployVueApp(component, id) {
           vuetify,
           Highcharts,
           HighchartsVue,
+          store,
           render: h => h(component)
       }).$mount(`#${id}`)
   }
