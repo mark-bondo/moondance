@@ -34,6 +34,7 @@ class Chart_YAxis_Inline(admin.TabularInline):
         "is_default",
         "field",
         "name",
+        "yaxis_decimals",
         "yaxis_prefix",
     )
 

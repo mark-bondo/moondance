@@ -133,8 +133,18 @@
         tooltip: {
           hideDelay: 0,
           outside: true,
-          shared: true,
-          pointFormat: "<b>{point.y}</b><br/>",
+          shared: false,
+          valueDecimals: 0,
+          pointFormat: "{series.name}: <b>{point.y}</b><br/>",
+        },
+        plotOptions: {
+          pie: {
+            dataLabels: {
+              enabled: true,
+              format:
+                "<b>{point.name}</b><br>{point.y:,.0f} ({point.percentage:.1f}%)",
+            },
+          },
         },
         legend: {
           enabled: true,
@@ -188,6 +198,10 @@
 
             _.merge(this.localOptions, serverOptions);
             this.localOptions.series = [];
+            this.localOptions.plotOptions = Object.assign(
+              {},
+              this.localOptions.plotOptions
+            );
             serverOptions.series.forEach((s) => this.localOptions.series.push(s));
           });
       },

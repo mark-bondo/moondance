@@ -54,10 +54,28 @@ SELECT
             JSONB_BUILD_OBJECT(
                 'enabled', c.show_legend
             ),
+            'tooltip',
+            JSONB_BUILD_OBJECT(
+                'valuePrefix', yaxis.yaxis_prefix,
+                'valueDecimals', yaxis.yaxis_decimals,
+                'pointFormat', CASE
+                                    WHEN c.type IN ('pie', 'donut') THEN '{series.name}: <b>{point.y} ({point.percentage:.1f}%%)</b><br/>'
+                                    ELSE '{series.name}: <b>{point.y}</b><br/>'
+                                END
+            ),
             'xAxis',
             JSONB_BUILD_OBJECT(
                 'title', xaxis.name,
                 'type', xaxis.xaxis_type
+            ),
+            'plotOptions',
+            JSONB_BUILD_OBJECT(
+                'pie', JSONB_BUILD_OBJECT(
+                    'dataLabels', JSONB_BUILD_OBJECT(
+                        'enabled', true,
+                        'format', '<b>{point.name}</b><br>' || yaxis.yaxis_prefix || '{point.y:,.0f} ({point.percentage:.1f}%%)'
+                    )
+                )
             )
         )
     ) as json

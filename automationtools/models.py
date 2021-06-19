@@ -73,6 +73,7 @@ class Chart_Options(MetaModel):
     yaxis_prefix = models.CharField(
         max_length=200, choices=yaxis_prefix_choices, null=True, blank=True
     )
+    yaxis_decimals = models.IntegerField(default=0)
     xaxis_type = models.CharField(
         max_length=200, choices=xaxis_type_list, null=True, blank=True
     )
