@@ -22,7 +22,11 @@
                         v-bind="attrs"
                         v-on="on"
                       >
-                        {{ item.breadCrumbText }}
+                        <span v-if="item.filter !== null">{{
+                          item.filter
+                        }}</span>
+                        <span v-else>{{ item.text }}</span>
+
                         <v-icon
                           class="ml-1"
                           v-text="item.icon.current"
@@ -32,14 +36,13 @@
                     <v-list>
                       <v-list-item
                         v-for="(i, index) in AvailableDrillDowns"
-                        :key="index"
+                        :key="i.value"
+                        :value="index"
                         @click="breadCrumbMenuClick(i, item)"
                         link
                         dense
                       >
-                        <v-list-item-title value="index">{{
-                          i.text
-                        }}</v-list-item-title>
+                        <v-list-item-title>{{ i.text }}</v-list-item-title>
                       </v-list-item>
                     </v-list>
                   </v-menu>
@@ -116,37 +119,33 @@
           text: "Product Family",
           value: "product_family",
           filter: null,
-          breadCrumbText: "Product Family",
           isCurrent: true,
           isBreadCrumb: true,
-          sortOrder: 1,
+          sortOrder: 10,
         },
         {
           text: "Product Category",
           value: "product_category",
           filter: null,
-          breadCrumbText: "Product Category",
           isCurrent: false,
           isBreadCrumb: false,
-          sortOrder: -1,
+          sortOrder: 0,
         },
         {
           text: "Customer Type",
           value: "customer_type",
           filter: null,
-          breadCrumbText: "Customer Type",
           isCurrent: false,
           isBreadCrumb: false,
-          sortOrder: -1,
+          sortOrder: 0,
         },
         {
           text: "Product Description",
           value: "product_description",
           filter: null,
-          breadCrumbText: "Product Description",
           isCurrent: false,
           isBreadCrumb: false,
-          sortOrder: -1,
+          sortOrder: 0,
         },
       ],
       selectedFilterValue: null,
@@ -199,7 +198,7 @@
         this.localOptions.series = [];
         this.$http
           .post(`chart/${this.chartId}`, {
-            filters: _.reject(this.drillDown, { filter: null }),
+            filters: _.reject(this.drillDowns, { filter: null }),
             grouping: _.find(this.drillDowns, { isCurrent: true }),
           })
           .then((response) => {
@@ -264,16 +263,16 @@
           isBreadCrumb: true,
           icon: this.iconMap[false],
           filter: this.selectedFilterValue,
-          breadCrumbText: this.selectedFilterValue,
         });
 
         Object.assign(newItem, {
           isCurrent: true,
           isBreadCrumb: true,
           icon: this.iconMap[true],
-          breadCrumbText: newItem.text,
-          sortOrder: oldItem.sortOrder + 1,
+          sortOrder: oldItem.sortOrder + 10,
         });
+
+        this.drillDowns = _.orderBy(this.drillDowns, "sortOrder");
       },
       removeBreadCrumb(removedItem) {
         if (removedItem.isCurrent !== true) {
@@ -282,7 +281,7 @@
             isBreadCrumb: false,
             filter: null,
             icon: this.iconMap[false],
-            sortOrder: -1,
+            sortOrder: 0,
           });
           this.getData();
         }
@@ -294,13 +293,11 @@
         Object.assign(oldItem, {
           text: newItemCopy.text,
           value: newItemCopy.value,
-          breadCrumbText: newItemCopy.breadCrumbText,
           filter: newItemCopy.filter,
         });
         Object.assign(newItem, {
           text: oldItemCopy.text,
           value: oldItemCopy.value,
-          breadCrumbText: oldItemCopy.breadCrumbText,
           filter: oldItemCopy.filter,
         });
 
