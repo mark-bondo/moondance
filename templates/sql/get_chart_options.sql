@@ -1,10 +1,35 @@
+WITH drilldowns AS (
+    SELECT
+        chart_id,
+        JSON_AGG(
+            JSONB_BUILD_OBJECT(
+                'value', field,
+                'text', COALESCE(name, REPLACE(INITCAP(field), '_', ' ')),
+                'isVisible', is_visible,
+                'isCurrent', is_default,
+                'isBreadCrumb', is_default,
+                'sortOrder', 0,
+                'filter', CASE WHEN filter IS NOT NULL THEN field || filter END
+            )
+            ORDER BY COALESCE(name, field)
+         ) fields
+    FROM
+        public.automationtools_chart_options
+    WHERE
+        type = 'grouping' AND
+        chart_id = %(id)s
+    GROUP BY
+        chart_id
+    
+)
+
 SELECT
     JSONB_BUILD_OBJECT(
         'extraOptions',
         JSONB_BUILD_OBJECT(
             'title', c.title, 
             'prefix', yaxis.yaxis_prefix,
-            'id', c.id,
+            'drillDowns', drilldowns.fields,
             'category', CASE
                             WHEN c.type IN ('pie', 'donut') THEN 'summary'
                             ELSE 'phased'
@@ -50,5 +75,6 @@ FROM
         c.id = grouping.chart_id AND
         grouping.is_default = TRUE AND
         grouping.type = 'grouping' 
+    JOIN drilldowns ON c.id = drilldowns.chart_id
 WHERE
     c.id = %(id)s

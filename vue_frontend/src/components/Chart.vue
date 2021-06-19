@@ -114,40 +114,7 @@
           color: "grey",
         },
       },
-      drillDowns: [
-        {
-          text: "Product Family",
-          value: "product_family",
-          filter: null,
-          isCurrent: true,
-          isBreadCrumb: true,
-          sortOrder: 10,
-        },
-        {
-          text: "Product Category",
-          value: "product_category",
-          filter: null,
-          isCurrent: false,
-          isBreadCrumb: false,
-          sortOrder: 0,
-        },
-        {
-          text: "Customer Type",
-          value: "customer_type",
-          filter: null,
-          isCurrent: false,
-          isBreadCrumb: false,
-          sortOrder: 0,
-        },
-        {
-          text: "Product Description",
-          value: "product_description",
-          filter: null,
-          isCurrent: false,
-          isBreadCrumb: false,
-          sortOrder: 0,
-        },
-      ],
+      drillDowns: [],
       selectedFilterValue: null,
       extraOptions: {
         title: "Loading Chart",
@@ -190,7 +157,6 @@
       },
     },
     beforeMount() {
-      this.drillDowns.forEach((d) => (d.icon = this.iconMap[d.isCurrent]));
       this.getData();
     },
     methods: {
@@ -204,6 +170,13 @@
           .then((response) => {
             let serverOptions = response.data.highCharts;
             this.extraOptions = response.data.extraOptions;
+
+            if (this.drillDowns.length === 0) {
+              this.drillDowns = this.extraOptions.drillDowns;
+              this.drillDowns.forEach(
+                (d) => (d.icon = this.iconMap[d.isCurrent])
+              );
+            }
 
             if (this.extraOptions.category === "phased") {
               serverOptions.series = this.parseDates(serverOptions.series);

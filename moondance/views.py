@@ -46,10 +46,19 @@ def get_chart(request, id):
     # get chart options
     chart = json.loads(get_data(name="get_chart_options", args={"id": id})[0][0])
     category = chart["extraOptions"]["category"]
+    drillDowns = chart["extraOptions"]["drillDowns"]
     server_params = chart["extraOptions"]["sql"]
+    filters = [""]
+
+    # check for server params
+    for d in drillDowns:
+        if d["filter"]:
+            filters.push(d["filter"])
+        if d["isCurrent"]:
+            grouping = d["value"]
+        d["filter"] = None
 
     # check for user parameters
-    filters = [""]
     if request.body != b"":
         user_params = json.loads(request.body)
 
@@ -59,16 +68,18 @@ def get_chart(request, id):
             filters.append(f"{column}='{filter}'")
 
         user_params["filters"] = " AND ".join(filters)
-        user_params["grouping"] = user_params["grouping"]["value"]
+        user_params["grouping"] = (
+            user_params["grouping"]["value"] if "grouping" in user_params else grouping
+        )
         server_params.update(user_params)
 
     # get series data and totals
     data = get_data(name=f"get_{category}_data", replace_dd=server_params)[0][0]
 
     # clean up and format json for HighCharts response
-    chart["extraOptions"].pop("sql", None)
     chart["highCharts"]["series"] = data["data"]
-
+    chart["extraOptions"].pop("sql")
+    chart["extraOptions"]["drillDowns"] = [d for d in drillDowns if d["isVisible"]]
     chart["extraOptions"]["title"] = "{} {}{:,}".format(
         chart["extraOptions"]["title"],
         chart["extraOptions"]["prefix"],
