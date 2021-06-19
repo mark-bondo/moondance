@@ -10,18 +10,39 @@
             <v-breadcrumbs :items="VisibleBreadCrumbs" class="pa-0">
               <template v-slot:item="{ item }">
                 <v-breadcrumbs-item>
-                  <v-chip
-                    class="ma-2"
-                    text-color="white"
-                    :color="item.icon.color"
-                    :value="item.value"
-                    @mouseover="item.icon.current = item.icon.remove"
-                    @mouseleave="item.icon.current = item.icon.add"
-                    @click="removeBreadCrumb(item)"
-                  >
-                    {{ item.breadCrumbText }}
-                    <v-icon class="ml-1" v-text="item.icon.current"></v-icon>
-                  </v-chip>
+                  <v-menu offset-y :disabled="!(item.isCurrent === true)">
+                    <template v-slot:activator="{ on, attrs }">
+                      <v-chip
+                        class="ma-2"
+                        label
+                        text-color="white"
+                        :color="item.icon.color"
+                        :value="item.value"
+                        @click="removeBreadCrumb(item)"
+                        v-bind="attrs"
+                        v-on="on"
+                      >
+                        {{ item.breadCrumbText }}
+                        <v-icon
+                          class="ml-1"
+                          v-text="item.icon.current"
+                        ></v-icon>
+                      </v-chip>
+                    </template>
+                    <v-list>
+                      <v-list-item
+                        v-for="(i, index) in AvailableDrillDowns"
+                        :key="index"
+                        @click="breadCrumbMenuClick(i, item)"
+                        link
+                        dense
+                      >
+                        <v-list-item-title value="index">{{
+                          i.text
+                        }}</v-list-item-title>
+                      </v-list-item>
+                    </v-list>
+                  </v-menu>
                 </v-breadcrumbs-item>
               </template>
               <template v-slot:divider>
@@ -119,6 +140,15 @@
           value: "customer_type",
           filter: null,
           breadCrumbText: "Customer Type",
+          isCurrent: false,
+          isBreadCrumb: false,
+          sortOrder: -1,
+        },
+        {
+          text: "Product Description",
+          value: "product_description",
+          filter: null,
+          breadCrumbText: "Product Description",
           isCurrent: false,
           isBreadCrumb: false,
           sortOrder: -1,
@@ -279,28 +309,53 @@
         this.getData();
       },
       removeBreadCrumb(removedItem) {
-        if (removedItem.isCurrent === true) {
-          var index = _.findIndex(this.drillDowns, { isCurrent: true });
+        if (removedItem.isCurrent !== true) {
+          // var index = _.findIndex(this.drillDowns, { isCurrent: true });
 
-          var newItem = this.drillDowns[index - 1];
-          Object.assign(newItem, {
-            isCurrent: true,
-            breadCrumbText: newItem.text,
-            icon: this.iconMap[true],
+          // var newItem = this.drillDowns[index - 1];
+          // Object.assign(newItem, {
+          //   isCurrent: true,
+          //   breadCrumbText: newItem.text,
+          //   icon: this.iconMap[true],
+          // });
+
+          Object.assign(removedItem, {
+            isCurrent: false,
+            isBreadCrumb: false,
+            filter: null,
+            icon: this.iconMap[false],
+            sortOrder: -1,
           });
+          this.getData();
         }
+      },
+      breadCrumbMenuClick(newItem, oldItem) {
+        // var newIndex = _.findIndex(this.drillDowns, { value: newItem.value });
+        // var oldIndex = _.findIndex(this.drillDowns, { value: oldItem.value });
+        console.log("new", newItem);
+        console.log("old", oldItem);
+        var newItemCopy = Object.assign({}, newItem);
+        var oldItemCopy = Object.assign({}, oldItem);
 
-        console.log(this.drillDowns[index - 1]);
-
-        Object.assign(removedItem, {
-          isCurrent: false,
-          isBreadCrumb: false,
-          filter: null,
-          icon: this.iconMap[false],
-          sortOrder: -1,
+        // [this.drillDowns[newIndex], this.drillDowns[oldIndex]] = [
+        //   this.drillDowns[oldIndex],
+        //   this.drillDowns[newIndex],
+        // ];
+        Object.assign(oldItem, {
+          text: newItemCopy.text,
+          value: newItemCopy.value,
+          breadCrumbText: newItemCopy.breadCrumbText,
+          filter: newItemCopy.filter,
+        });
+        Object.assign(newItem, {
+          text: oldItemCopy.text,
+          value: oldItemCopy.value,
+          breadCrumbText: oldItemCopy.breadCrumbText,
+          filter: oldItemCopy.filter,
         });
 
-        // console.log(removedItem);
+        // console.log("new", newItem);
+        // console.log("old", oldItem);
         this.getData();
       },
     },
