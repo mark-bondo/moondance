@@ -46,13 +46,12 @@ def get_chart(request, id):
     # get chart options
     chart = json.loads(get_data(name="get_chart_options", args={"id": id})[0][0])
     category = chart["extraOptions"]["category"]
-    replace_dd = chart["extraOptions"]["sql"]
+    server_params = chart["extraOptions"]["sql"]
 
     # check for user parameters
     filters = [""]
     if request.body != b"":
-        user_params = json.loads(request.body)["data"]
-        print(user_params)
+        user_params = json.loads(request.body)
 
         for f in user_params["filters"]:
             column = f["value"].replace("'", "''")
@@ -60,22 +59,16 @@ def get_chart(request, id):
             filters.append(f"{column}='{filter}'")
 
         user_params["filters"] = " AND ".join(filters)
+        user_params["grouping"] = user_params["grouping"]["value"]
+        server_params.update(user_params)
 
-        if not user_params["grouping"]:
-            user_params["grouping"] = replace_dd["grouping"]
-
-        replace_dd.update(user_params)
-
-    # get chart data
-    if category == "summary":
-        data = get_data(name="get_summary_data", replace_dd=replace_dd)[0][0]
-    elif category == "phased":
-        data = get_data(name="get_phased_data", replace_dd=replace_dd)[0][0]
+    # get series data and totals
+    data = get_data(name=f"get_{category}_data", replace_dd=server_params)[0][0]
 
     # clean up and format json for HighCharts response
-    chart["highCharts"]["series"] = data["data"]
     chart["extraOptions"].pop("sql", None)
-    chart["extraOptions"]["grouping"] = user_params["grouping"]
+    chart["highCharts"]["series"] = data["data"]
+
     chart["extraOptions"]["title"] = "{} {}{:,}".format(
         chart["extraOptions"]["title"],
         chart["extraOptions"]["prefix"],

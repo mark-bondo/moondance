@@ -71,7 +71,7 @@
                       <v-list-item
                         v-for="item in AvailableDrillDowns"
                         :key="item.value"
-                        @click="getDrillDown(item)"
+                        @click="drillDownSelected(item)"
                       >
                         <v-list-item-content v-if="item.isBreadCrumb === false">
                           <v-list-item-title
@@ -101,18 +101,13 @@
         x: 0,
         y: 0,
       },
-      breadCrumbs: [],
       iconMap: {
         true: {
           current: "mdi-eye-outline",
-          add: "mdi-eye-outline",
-          remove: "mdi-close-circle-outline",
           color: "green",
         },
         false: {
           current: "mdi-filter-outline",
-          add: "mdi-filter-outline",
-          remove: "mdi-close-circle-outline",
           color: "grey",
         },
       },
@@ -155,18 +150,7 @@
         },
       ],
       selectedFilterValue: null,
-      filters: [],
-      chartMap: {
-        pie: "summary",
-        donut: "summary",
-        area: "phased",
-        line: "phased",
-        spline: "phased",
-        column: "phased",
-        bar: "phased",
-      },
       extraOptions: {
-        grouping: { value: null },
         title: "Loading Chart",
       },
       localOptions: {
@@ -208,32 +192,15 @@
     },
     beforeMount() {
       this.drillDowns.forEach((d) => (d.icon = this.iconMap[d.isCurrent]));
-
       this.getData();
     },
-    mounted() {},
     methods: {
       getData() {
         this.localOptions.series = [];
-        var filters = [];
-
-        this.drillDowns.forEach(function (d) {
-          if (d.filter !== null) {
-            filters.push({ filter: d.filter, value: d.value });
-          }
-        });
-
         this.$http
           .post(`chart/${this.chartId}`, {
-            data: Object.assign(
-              {
-                filters: filters,
-              },
-              {
-                grouping: this.drillDowns.filter((d) => d.isCurrent === true)[0]
-                  .value,
-              }
-            ),
+            filters: _.reject(this.drillDown, { filter: null }),
+            grouping: _.find(this.drillDowns, { isCurrent: true }),
           })
           .then((response) => {
             let serverOptions = response.data.highCharts;
@@ -247,7 +214,7 @@
               (s) => (s.point = this.createPointEvent())
             );
 
-            this.localOptions = _.merge(this.localOptions, serverOptions);
+            _.merge(this.localOptions, serverOptions);
             this.localOptions.series = [];
             serverOptions.series.forEach((s) => this.localOptions.series.push(s));
           });
@@ -274,11 +241,10 @@
       showDrillMenu(e) {
         this.menu.show = false;
 
-        if (this.extraOptions.category === "phased") {
-          this.selectedFilterValue = e.point.series.name;
-        } else {
-          this.selectedFilterValue = e.point.name;
-        }
+        this.selectedFilterValue =
+          this.extraOptions.category === "phased"
+            ? e.point.series.name
+            : (this.selectedFilterValue = e.point.name);
 
         this.menu = {
           x: e.clientX,
@@ -286,10 +252,13 @@
           show: true,
         };
       },
-      getDrillDown(newItem) {
+      drillDownSelected(newItem) {
         this.extraOptions.grouping = newItem;
-
-        var oldItem = this.drillDowns[_.findIndex(this.drillDowns, "isCurrent")];
+        this.addBreadCrumb(newItem);
+        this.getData();
+      },
+      addBreadCrumb(newItem) {
+        var oldItem = _.find(this.drillDowns, { isCurrent: true });
         oldItem = Object.assign(oldItem, {
           isCurrent: false,
           isBreadCrumb: true,
@@ -298,27 +267,16 @@
           breadCrumbText: this.selectedFilterValue,
         });
 
-        newItem = Object.assign(newItem, {
+        Object.assign(newItem, {
           isCurrent: true,
           isBreadCrumb: true,
           icon: this.iconMap[true],
           breadCrumbText: newItem.text,
           sortOrder: oldItem.sortOrder + 1,
         });
-
-        this.getData();
       },
       removeBreadCrumb(removedItem) {
         if (removedItem.isCurrent !== true) {
-          // var index = _.findIndex(this.drillDowns, { isCurrent: true });
-
-          // var newItem = this.drillDowns[index - 1];
-          // Object.assign(newItem, {
-          //   isCurrent: true,
-          //   breadCrumbText: newItem.text,
-          //   icon: this.iconMap[true],
-          // });
-
           Object.assign(removedItem, {
             isCurrent: false,
             isBreadCrumb: false,
@@ -330,17 +288,9 @@
         }
       },
       breadCrumbMenuClick(newItem, oldItem) {
-        // var newIndex = _.findIndex(this.drillDowns, { value: newItem.value });
-        // var oldIndex = _.findIndex(this.drillDowns, { value: oldItem.value });
-        console.log("new", newItem);
-        console.log("old", oldItem);
-        var newItemCopy = Object.assign({}, newItem);
-        var oldItemCopy = Object.assign({}, oldItem);
+        let newItemCopy = Object.assign({}, newItem);
+        let oldItemCopy = Object.assign({}, oldItem);
 
-        // [this.drillDowns[newIndex], this.drillDowns[oldIndex]] = [
-        //   this.drillDowns[oldIndex],
-        //   this.drillDowns[newIndex],
-        // ];
         Object.assign(oldItem, {
           text: newItemCopy.text,
           value: newItemCopy.value,
@@ -354,8 +304,6 @@
           filter: oldItemCopy.filter,
         });
 
-        // console.log("new", newItem);
-        // console.log("old", oldItem);
         this.getData();
       },
     },
