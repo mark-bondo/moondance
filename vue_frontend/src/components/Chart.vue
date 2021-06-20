@@ -5,7 +5,6 @@
         <v-spacer></v-spacer>
         <v-toolbar-title>{{ extraOptions.title }}</v-toolbar-title>
         <v-spacer></v-spacer>
-
         <v-menu left offset-y>
           <template v-slot:activator="{ on, attrs }">
             <v-btn icon v-bind="attrs" v-on="on">
@@ -39,9 +38,10 @@
         <v-col cols="12" class="pa-0">
           <bread-crumbs
             :AvailableDrillDowns="AvailableDrillDowns"
-            :addedBreadCrumb="addedBreadCrumb"
+            :selectedBreadCrumb="selectedBreadCrumb"
             :drillDowns="drillDowns"
             :selectedFilterValue="selectedFilterValue"
+            :activeIconMap="activeIconMap"
             @updateDrillDowns="updateDrillDowns"
           >
           </bread-crumbs>
@@ -50,32 +50,12 @@
       <v-row>
         <v-col cols="12">
           <highcharts :options="localOptions"></highcharts>
-          <v-menu
-            v-model="menu.show"
-            :position-x="menu.x"
-            :position-y="menu.y"
-            offset-y
-            ><v-card>
-              <v-card-text class="pa-1">
-                <v-list dense>
-                  <v-subheader>Drill Down Options</v-subheader>
-                  <v-list-item-group color="primary">
-                    <v-list-item
-                      v-for="item in AvailableDrillDowns"
-                      :key="item.value"
-                      @click="drillDownSelected(item)"
-                    >
-                      <v-list-item-content v-if="item.isBreadCrumb === false">
-                        <v-list-item-title
-                          v-text="item.text"
-                        ></v-list-item-title>
-                      </v-list-item-content>
-                    </v-list-item>
-                  </v-list-item-group>
-                  <v-divider></v-divider>
-                </v-list>
-              </v-card-text> </v-card
-          ></v-menu>
+          <drill-menu
+            :AvailableDrillDowns="AvailableDrillDowns"
+            :showDrillMenu="showDrillMenu"
+            :chartCategory="extraOptions.chartCategory"
+            @setParentItem="setParentItem"
+          ></drill-menu>
         </v-col>
       </v-row>
     </v-card-text>
@@ -85,18 +65,14 @@
 <script>
   import _ from "lodash";
   import BreadCrumbs from "@/components/BreadCrumbs.vue";
+  import DrillMenu from "@/components/DrillMenu.vue";
 
   export default {
     name: "Chart",
     props: ["chartId", "dashboardId"],
-    components: { BreadCrumbs },
+    components: { BreadCrumbs, DrillMenu },
     data: () => ({
-      menu: {
-        show: false,
-        x: 0,
-        y: 0,
-      },
-      iconMap: {
+      activeIconMap: {
         true: {
           current: "mdi-eye-outline",
           color: "success",
@@ -150,9 +126,10 @@
           isActive: false,
         },
       ],
+      showDrillMenu: null,
       drillDowns: [],
       selectedFilterValue: null,
-      addedBreadCrumb: null,
+      selectedBreadCrumb: null,
       extraOptions: {
         title: "Loading Chart",
         selectedChartType: null,
@@ -237,7 +214,7 @@
             if (this.isInitialLoad) {
               this.drillDowns = this.extraOptions.drillDowns;
               this.drillDowns.forEach(
-                (d) => (d.icon = this.iconMap[d.isCurrent])
+                (d) => (d.icon = this.activeIconMap[d.isCurrent])
               );
 
               _.merge(this.localOptions, serverOptions);
@@ -265,7 +242,7 @@
         return {
           events: {
             click: (e) => {
-              this.showDrillMenu(e);
+              this.showDrillMenu = e;
             },
           },
         };
@@ -280,26 +257,12 @@
         }
         return series;
       },
-      showDrillMenu(e) {
-        this.menu.show = false;
-
-        this.selectedFilterValue =
-          this.extraOptions.chartCategory === "phased"
-            ? e.point.series.name
-            : (this.selectedFilterValue = e.point.name);
-
-        this.menu = {
-          x: e.clientX,
-          y: e.clientY,
-          show: true,
-        };
-      },
-      drillDownSelected(newItem) {
-        this.addedBreadCrumb = newItem;
-      },
       updateDrillDowns(d) {
         this.drillDowns = d;
         this.getData();
+      },
+      setParentItem(item) {
+        this[item.name] = item.value;
       },
     },
   };

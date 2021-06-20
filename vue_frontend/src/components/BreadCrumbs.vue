@@ -49,40 +49,30 @@
     props: [
       "drillDowns",
       "AvailableDrillDowns",
-      "addedBreadCrumb",
+      "selectedBreadCrumb",
       "selectedFilterValue",
+      "activeIconMap",
     ],
-    data: () => ({
-      iconMap: {
-        true: {
-          current: "mdi-eye-outline",
-          color: "success",
-        },
-        false: {
-          current: "mdi-filter-outline",
-          color: "grey",
-        },
-      },
-    }),
+    data: () => ({}),
     computed: {
       visibleBreadCrumbs() {
         return this.drillDowns.filter((d) => d.isBreadCrumb === true);
       },
     },
     watch: {
-      addedBreadCrumb(newItem) {
+      selectedBreadCrumb(newItem) {
         var oldItem = _.find(this.drillDowns, { isCurrent: true });
         oldItem = Object.assign(oldItem, {
           isCurrent: false,
           isBreadCrumb: true,
-          icon: this.iconMap[false],
+          icon: this.activeIconMap[false],
           filter: this.selectedFilterValue,
         });
 
         Object.assign(newItem, {
           isCurrent: true,
           isBreadCrumb: true,
-          icon: this.iconMap[true],
+          icon: this.activeIconMap[true],
           sortOrder: oldItem.sortOrder + 10,
         });
         this.$emit("updateDrillDowns", _.orderBy(this.drillDowns, "sortOrder"));
@@ -96,7 +86,7 @@
             isCurrent: false,
             isBreadCrumb: false,
             filter: null,
-            icon: this.iconMap[false],
+            icon: this.activeIconMap[false],
             sortOrder: 0,
           });
           this.$emit("updateDrillDowns", _.orderBy(this.drillDowns, "sortOrder"));
