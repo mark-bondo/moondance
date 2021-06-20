@@ -8,6 +8,39 @@ from django.http import HttpResponse
 
 load_dotenv()
 SQL_DD = {}
+CHART_TYPES = [
+    {"category": "summary", "type": "pie", "icon": "mdi-chart-pie"},
+    {
+        "category": "summary",
+        "type": "donut",
+        "icon": "mdi-chart-donut",
+    },
+    {
+        "category": "phased",
+        "type": "area",
+        "icon": "mdi-chart-areaspline-variant",
+    },
+    {
+        "category": "phased",
+        "type": "line",
+        "icon": "mdi-chart-line",
+    },
+    {
+        "category": "phased",
+        "type": "spline",
+        "icon": "mdi-chart-bell-curve-cumulative",
+    },
+    {
+        "category": "phased",
+        "type": "bar",
+        "icon": "mdi-chart-gantt",
+    },
+    {
+        "category": "phased",
+        "type": "column",
+        "icon": "mdi-chart-bar",
+    },
+]
 
 
 def get_data(name, args={}, replace_dd={}):
@@ -45,10 +78,9 @@ def get_dashboards(request):
 def get_chart(request, id):
     # get chart options
     chart = json.loads(get_data(name="get_chart_options", args={"id": id})[0][0])
-    category = chart["extraOptions"]["category"]
     drillDowns = chart["extraOptions"]["drillDowns"]
     server_params = chart["extraOptions"]["sql"]
-    filters = [""]
+    filters = []
 
     # check for server params
     for d in drillDowns:
@@ -58,23 +90,29 @@ def get_chart(request, id):
             grouping = d["value"]
         d["filter"] = None
 
-    # check for user parameters
-    if request.body != b"":
-        user_params = json.loads(request.body)
+    # check for user parameters and overwrite default server parameters
+    user_params = json.loads(request.body)
+    server_params["grouping"] = (
+        user_params["grouping"]["value"] if "grouping" in user_params else grouping
+    )
 
-        for f in user_params["filters"]:
-            column = f["value"].replace("'", "''")
-            filter = f["filter"].replace("'", "''")
-            filters.append(f"{column}='{filter}'")
+    for f in user_params["filters"]:
+        column = f["value"].replace("'", "''")
+        filter = f["filter"].replace("'", "''")
+        filters.append(f"{column}='{filter}'")
 
-        user_params["filters"] = " AND ".join(filters)
-        user_params["grouping"] = (
-            user_params["grouping"]["value"] if "grouping" in user_params else grouping
-        )
-        server_params.update(user_params)
+    server_params["filters"] = " AND ".join(filters)
 
     # get series data and totals
-    data = get_data(name=f"get_{category}_data", replace_dd=server_params)[0][0]
+    chartCategory = (
+        user_params["chartCategory"]
+        if "chartCategory" in user_params
+        else chart["extraOptions"]["chartCategory"]
+    )
+    data = get_data(
+        name="get_{}_data".format(chartCategory),
+        replace_dd=server_params,
+    )[0][0]
 
     # clean up and format json for HighCharts response
     chart["highCharts"]["series"] = data["data"]

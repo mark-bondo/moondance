@@ -6,8 +6,7 @@ WITH phased AS (
     FROM
         %(table)s
     WHERE
-        processed_date >= '2020-10-01'
-        %(filters)s
+        0=0 %(filters)s
     GROUP BY
         1,
         2

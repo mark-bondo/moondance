@@ -13,20 +13,25 @@
                 <v-icon>mdi-chart-box-outline</v-icon>
               </v-btn>
             </template>
-            <v-list>
-              <v-list-item
-                v-for="c in chartMenu"
-                :key="c.type"
-                @click="() => {}"
-              >
-                <v-list-item-icon
-                  ><v-icon v-text="c.icon"></v-icon
-                ></v-list-item-icon>
-                <v-list-item-content>
-                  <v-list-item-title> {{ c.type }}</v-list-item-title>
-                </v-list-item-content>
-              </v-list-item>
-            </v-list>
+            <v-list-item-group
+              v-model="extraOptions.selectedChartType"
+              active-class="deep-purple--text text--accent-4"
+            >
+              <v-list>
+                <v-list-item
+                  v-for="c in chartMenu"
+                  :key="c.type"
+                  @click="changeChartType(c)"
+                >
+                  <v-list-item-icon
+                    ><v-icon v-text="c.icon"></v-icon
+                  ></v-list-item-icon>
+                  <v-list-item-content>
+                    <v-list-item-title> {{ c.type }}</v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+              </v-list>
+            </v-list-item-group>
           </v-menu>
         </v-toolbar>
       </v-card-title>
@@ -108,24 +113,57 @@
         },
       },
       chartMenu: [
-        { type: "pie", icon: "mdi-chart-pie", isActive: true },
-        { type: "donut", icon: "mdi-chart-donut", isActive: false },
-        { type: "area", icon: "mdi-chart-areaspline-variant", isActive: false },
-        { type: "line", icon: "mdi-chart-line", isActive: false },
         {
+          category: "summary",
+          type: "pie",
+          icon: "mdi-chart-pie",
+          isActive: true,
+        },
+        {
+          category: "summary",
+          type: "donut",
+          icon: "mdi-chart-donut",
+          isActive: false,
+        },
+        {
+          category: "phased",
+          type: "area",
+          icon: "mdi-chart-areaspline-variant",
+          isActive: false,
+        },
+        {
+          category: "phased",
+          type: "line",
+          icon: "mdi-chart-line",
+          isActive: false,
+        },
+        {
+          category: "phased",
           type: "spline",
           icon: "mdi-chart-bell-curve-cumulative",
           isActive: false,
         },
-        { type: "bar", icon: "mdi-chart-gantt", isActive: false },
-        { type: "column", icon: "mdi-chart-bar", isActive: false },
+        {
+          category: "phased",
+          type: "bar",
+          icon: "mdi-chart-gantt",
+          isActive: false,
+        },
+        {
+          category: "phased",
+          type: "column",
+          icon: "mdi-chart-bar",
+          isActive: false,
+        },
       ],
       drillDowns: [],
       selectedFilterValue: null,
       addedBreadCrumb: null,
       extraOptions: {
         title: "Loading Chart",
+        selectedChartType: null,
       },
+      isInitialLoad: true,
       localOptions: {
         title: {
           text: "",
@@ -136,6 +174,7 @@
           style: {
             overflow: "visible",
           },
+          type: null,
         },
         tooltip: {
           hideDelay: 0,
@@ -177,12 +216,23 @@
       this.getData();
     },
     methods: {
+      changeChartType(item) {
+        this.selectedChartType = item.type;
+        if (item.category === this.extraOptions.chartCategory) {
+          this.localOptions.chart.type = item.type;
+        } else {
+          this.extraOptions.chartCategory = item.category;
+          this.getData();
+        }
+      },
       getData() {
         this.localOptions.series = [];
         this.$http
           .post(`chart/${this.chartId}`, {
+            isInitialLoad: this.isInitialLoad,
             filters: _.reject(this.drillDowns, { filter: null }),
             grouping: _.find(this.drillDowns, { isCurrent: true }),
+            chartCategory: this.extraOptions.chartCategory,
           })
           .then((response) => {
             let serverOptions = response.data.highCharts;
@@ -195,7 +245,7 @@
               );
             }
 
-            if (this.extraOptions.category === "phased") {
+            if (this.extraOptions.chartCategory === "phased") {
               serverOptions.series = this.parseDates(serverOptions.series);
             }
 
@@ -235,7 +285,7 @@
         this.menu.show = false;
 
         this.selectedFilterValue =
-          this.extraOptions.category === "phased"
+          this.extraOptions.chartCategory === "phased"
             ? e.point.series.name
             : (this.selectedFilterValue = e.point.name);
 
