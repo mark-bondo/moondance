@@ -489,7 +489,7 @@ SELECT
         WHEN so.sales_channel LIKE 'Farmer%' THEN 'Farmers Market'
         WHEN so.sales_channel LIKE 'Amazon%' THEN 'Amazon'
         WHEN so.sales_channel LIKE 'Shopify%' THEN 'Shopify Website' 
-    END as sales_channel_type
+    END as sales_channel_type,
     so.sales_channel as sales_channel_name,
     so.order_id,
     so.order_line_id,
