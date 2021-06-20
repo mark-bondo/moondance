@@ -1,5 +1,5 @@
 <template>
-  <v-card height="100%">
+  <v-card>
     <v-card-title class="justify-center pa-0">
       <v-toolbar dense dark color="#554e6e">
         <v-spacer></v-spacer>
@@ -48,12 +48,8 @@
         </v-col>
       </v-row>
       <v-row>
-        <v-col cols="12" class="pa-0">
-          <highcharts
-            ref="chartComponent"
-            class="chart"
-            :options="localOptions"
-          ></highcharts>
+        <v-col cols="12">
+          <highcharts :options="localOptions"></highcharts>
           <v-menu
             v-model="menu.show"
             :position-x="menu.x"
@@ -212,9 +208,6 @@
       },
     },
     beforeMount() {
-      this.chartStore = this.$store.state.kpi.dashboard[this.dashboardId][
-        this.chartId
-      ] = {};
       this.getData();
     },
     methods: {

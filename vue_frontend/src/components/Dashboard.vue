@@ -1,18 +1,16 @@
 <template>
   <v-row>
     <v-col
-      v-for="chartId in charts"
+      v-for="chartId in dashboard.charts"
       :key="chartId"
       cols="12"
       xs="12"
       lg="6"
-      class="pa-0"
     >
-      <chart :chartId="chartId" :dashboardId="dashboardId" />
+      <chart :chartId="chartId" :dashboardId="dashboard.id" />
     </v-col>
   </v-row>
 </template>
-
 <script>
   import Chart from "@/components/Chart.vue";
 
@@ -21,20 +19,10 @@
     components: {
       Chart,
     },
-    props: ["dashboardId"],
+    props: ["dashboard"],
     data: function () {
-      return {
-        // charts: [],
-      };
+      return {};
     },
-    computed: {
-      charts() {
-        return this.$store.state.kpi.dashboard[this.dashboardId].charts;
-      },
-    },
-    watch: {},
-    beforeMount() {},
-    methods: {},
   };
 </script>
 
