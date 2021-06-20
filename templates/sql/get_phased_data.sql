@@ -1,6 +1,6 @@
 WITH phased AS (
     SELECT
-        %(grouping)s as name,
+        COALESCE(%(grouping)s, 'None') as name,
         %(xaxis)s as x,
         SUM(%(yaxis)s) as y
     FROM

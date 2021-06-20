@@ -1,6 +1,6 @@
 WITH summary AS (
     SELECT
-        %(grouping)s as name,
+        COALESCE(%(grouping)s, 'None') as name,
         SUM(%(yaxis)s) as y
     FROM
         %(table)s

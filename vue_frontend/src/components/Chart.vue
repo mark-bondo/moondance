@@ -119,12 +119,12 @@
           icon: "mdi-chart-pie",
           isActive: true,
         },
-        {
-          category: "summary",
-          type: "donut",
-          icon: "mdi-chart-donut",
-          isActive: false,
-        },
+        // {
+        //   category: "summary",
+        //   type: "donut",
+        //   icon: "mdi-chart-donut",
+        //   isActive: false,
+        // },
         {
           category: "phased",
           type: "area",
@@ -206,7 +206,10 @@
     }),
     computed: {
       AvailableDrillDowns() {
-        return this.drillDowns.filter((d) => d.isBreadCrumb === false);
+        return _.sortBy(
+          this.drillDowns.filter((d) => d.isBreadCrumb === false),
+          "text"
+        );
       },
     },
     beforeMount() {
@@ -218,18 +221,19 @@
     methods: {
       changeChartType(item) {
         this.selectedChartType = item.type;
-        if (item.category === this.extraOptions.chartCategory) {
-          this.localOptions.chart.type = item.type;
-        } else {
+        this.localOptions.chart.type = item.type;
+
+        if (item.category !== this.extraOptions.chartCategory) {
           this.extraOptions.chartCategory = item.category;
           this.getData();
+        } else {
+          this.extraOptions.chartCategory = item.category;
         }
       },
       getData() {
         this.localOptions.series = [];
         this.$http
           .post(`chart/${this.chartId}`, {
-            isInitialLoad: this.isInitialLoad,
             filters: _.reject(this.drillDowns, { filter: null }),
             grouping: _.find(this.drillDowns, { isCurrent: true }),
             chartCategory: this.extraOptions.chartCategory,
@@ -238,29 +242,32 @@
             let serverOptions = response.data.highCharts;
             this.extraOptions = response.data.extraOptions;
 
-            if (this.drillDowns.length === 0) {
+            if (this.isInitialLoad) {
               this.drillDowns = this.extraOptions.drillDowns;
               this.drillDowns.forEach(
                 (d) => (d.icon = this.iconMap[d.isCurrent])
               );
+
+              _.merge(this.localOptions, serverOptions);
+              this.localOptions.series = [];
             }
 
-            if (this.extraOptions.chartCategory === "phased") {
-              serverOptions.series = this.parseDates(serverOptions.series);
-            }
-
-            serverOptions.series.forEach(
-              (s) => (s.point = this.createPointEvent())
-            );
-
-            _.merge(this.localOptions, serverOptions);
-            this.localOptions.series = [];
-            this.localOptions.plotOptions = Object.assign(
-              {},
-              this.localOptions.plotOptions
-            );
-            serverOptions.series.forEach((s) => this.localOptions.series.push(s));
+            this.parseSeries(serverOptions.series);
+            this.isInitialLoad = false;
           });
+      },
+      parseSeries(series) {
+        let self = this;
+        series =
+          this.extraOptions.chartCategory === "phased"
+            ? this.parseDates(series)
+            : series;
+
+        _.forEach(series, function (s) {
+          self.localOptions.series.push(
+            Object.assign(s, { point: self.createPointEvent() })
+          );
+        });
       },
       createPointEvent() {
         return {

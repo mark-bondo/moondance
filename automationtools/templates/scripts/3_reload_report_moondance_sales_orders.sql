@@ -426,7 +426,8 @@ CREATE TEMP TABLE order_adder ON COMMIT DROP AS
 TRUNCATE TABLE report_moondance.sales_orders;
 INSERT INTO report_moondance.sales_orders (
     source_system,
-    sales_channel,
+    sales_channel_type,
+    sales_channel_name,
     order_id,
     order_line_id,
     order_status,
@@ -484,7 +485,12 @@ INSERT INTO report_moondance.sales_orders (
 
 SELECT
     so.source_system,
-    so.sales_channel,
+    CASE
+        WHEN so.sales_channel LIKE 'Farmer%' THEN 'Farmers Market'
+        WHEN so.sales_channel LIKE 'Amazon%' THEN 'Amazon'
+        WHEN so.sales_channel LIKE 'Shopify%' THEN 'Shopify Website' 
+    END as sales_channel_type
+    so.sales_channel as sales_channel_name,
     so.order_id,
     so.order_line_id,
     so.order_status,
@@ -588,7 +594,7 @@ SELECT
     discount_promotion_name,
     total_discounts_given,
     customer_type,
-    customer_name,
+    INITCAP(customer_name) as customer_name,
     company,
     ship_to_state,
     is_tax_exempt,

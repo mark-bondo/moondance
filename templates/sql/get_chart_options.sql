@@ -65,8 +65,20 @@ SELECT
             ),
             'xAxis',
             JSONB_BUILD_OBJECT(
-                'title', xaxis.name,
+                'title', 
+                JSONB_BUILD_OBJECT(
+                    'text',
+                    xaxis.name
+                ),
                 'type', xaxis.xaxis_type
+            ),
+            'yAxis',
+            JSONB_BUILD_OBJECT(
+                'title', 
+                JSONB_BUILD_OBJECT(
+                    'text',
+                    COALESCE(yaxis.name, INITCAP(REPLACE(yaxis.field, '_', ' ') || ' ' || COALESCE(yaxis.yaxis_prefix, '')))
+                )
             ),
             'plotOptions',
             JSONB_BUILD_OBJECT(

@@ -45,7 +45,7 @@ CHART_TYPES = [
 
 def get_data(name, args={}, replace_dd={}):
     if name not in SQL_DD or os.getenv("NODE_ENV") == "development":
-        with open(f"./templates/sql/{name}.sql", "r") as f:
+        with open(f"templates/sql/{name}.sql", "r") as f:
             SQL_DD[name] = f.read()
 
     sql = SQL_DD[name]
@@ -80,15 +80,15 @@ def get_chart(request, id):
     chart = json.loads(get_data(name="get_chart_options", args={"id": id})[0][0])
     drillDowns = chart["extraOptions"]["drillDowns"]
     server_params = chart["extraOptions"]["sql"]
-    filters = []
+    filters = [""]
 
     # check for server params
     for d in drillDowns:
         if d["filter"]:
-            filters.push(d["filter"])
+            filters.append(d["filter"])
+            d["filter"] = None
         if d["isCurrent"]:
             grouping = d["value"]
-        d["filter"] = None
 
     # check for user parameters and overwrite default server parameters
     user_params = json.loads(request.body)
@@ -116,6 +116,7 @@ def get_chart(request, id):
 
     # clean up and format json for HighCharts response
     chart["highCharts"]["series"] = data["data"]
+    chart["extraOptions"]["chartCategory"] = chartCategory
     chart["extraOptions"].pop("sql")
     chart["extraOptions"]["drillDowns"] = [d for d in drillDowns if d["isVisible"]]
     chart["extraOptions"]["title"] = "{} {}{:,}".format(
