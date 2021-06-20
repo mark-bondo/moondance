@@ -1,91 +1,89 @@
 <template>
-  <v-container>
-    <v-card>
-      <v-card-title class="justify-center pa-0">
-        <v-toolbar dense dark color="#554e6e">
-          <v-spacer></v-spacer>
-          <v-toolbar-title>{{ extraOptions.title }}</v-toolbar-title>
-          <v-spacer></v-spacer>
+  <v-card height="100%">
+    <v-card-title class="justify-center pa-0">
+      <v-toolbar dense dark color="#554e6e">
+        <v-spacer></v-spacer>
+        <v-toolbar-title>{{ extraOptions.title }}</v-toolbar-title>
+        <v-spacer></v-spacer>
 
-          <v-menu left offset-y>
-            <template v-slot:activator="{ on, attrs }">
-              <v-btn icon v-bind="attrs" v-on="on">
-                <v-icon>mdi-chart-box-outline</v-icon>
-              </v-btn>
-            </template>
-            <v-list-item-group
-              v-model="extraOptions.selectedChartType"
-              active-class="deep-purple--text text--accent-4"
-            >
-              <v-list>
-                <v-list-item
-                  v-for="c in chartMenu"
-                  :key="c.type"
-                  @click="changeChartType(c)"
-                >
-                  <v-list-item-icon
-                    ><v-icon v-text="c.icon"></v-icon
-                  ></v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title> {{ c.type }}</v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-list>
-            </v-list-item-group>
-          </v-menu>
-        </v-toolbar>
-      </v-card-title>
-      <v-card-text>
-        <v-row>
-          <v-col cols="12" class="pa-0">
-            <bread-crumbs
-              :AvailableDrillDowns="AvailableDrillDowns"
-              :addedBreadCrumb="addedBreadCrumb"
-              :drillDowns="drillDowns"
-              :selectedFilterValue="selectedFilterValue"
-              @updateDrillDowns="updateDrillDowns"
-            >
-            </bread-crumbs>
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col cols="12" class="pa-0">
-            <highcharts
-              ref="chartComponent"
-              class="chart"
-              :options="localOptions"
-            ></highcharts>
-            <v-menu
-              v-model="menu.show"
-              :position-x="menu.x"
-              :position-y="menu.y"
-              offset-y
-              ><v-card>
-                <v-card-text class="pa-1">
-                  <v-list dense>
-                    <v-subheader>Drill Down Options</v-subheader>
-                    <v-list-item-group color="primary">
-                      <v-list-item
-                        v-for="item in AvailableDrillDowns"
-                        :key="item.value"
-                        @click="drillDownSelected(item)"
-                      >
-                        <v-list-item-content v-if="item.isBreadCrumb === false">
-                          <v-list-item-title
-                            v-text="item.text"
-                          ></v-list-item-title>
-                        </v-list-item-content>
-                      </v-list-item>
-                    </v-list-item-group>
-                    <v-divider></v-divider>
-                  </v-list>
-                </v-card-text> </v-card
-            ></v-menu>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
-  </v-container>
+        <v-menu left offset-y>
+          <template v-slot:activator="{ on, attrs }">
+            <v-btn icon v-bind="attrs" v-on="on">
+              <v-icon>mdi-chart-box-outline</v-icon>
+            </v-btn>
+          </template>
+          <v-list-item-group
+            v-model="extraOptions.selectedChartType"
+            active-class="deep-purple--text text--accent-4"
+          >
+            <v-list>
+              <v-list-item
+                v-for="c in chartMenu"
+                :key="c.type"
+                @click="changeChartType(c)"
+              >
+                <v-list-item-icon
+                  ><v-icon v-text="c.icon"></v-icon
+                ></v-list-item-icon>
+                <v-list-item-content>
+                  <v-list-item-title> {{ c.type }}</v-list-item-title>
+                </v-list-item-content>
+              </v-list-item>
+            </v-list>
+          </v-list-item-group>
+        </v-menu>
+      </v-toolbar>
+    </v-card-title>
+    <v-card-text>
+      <v-row>
+        <v-col cols="12" class="pa-0">
+          <bread-crumbs
+            :AvailableDrillDowns="AvailableDrillDowns"
+            :addedBreadCrumb="addedBreadCrumb"
+            :drillDowns="drillDowns"
+            :selectedFilterValue="selectedFilterValue"
+            @updateDrillDowns="updateDrillDowns"
+          >
+          </bread-crumbs>
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col cols="12" class="pa-0">
+          <highcharts
+            ref="chartComponent"
+            class="chart"
+            :options="localOptions"
+          ></highcharts>
+          <v-menu
+            v-model="menu.show"
+            :position-x="menu.x"
+            :position-y="menu.y"
+            offset-y
+            ><v-card>
+              <v-card-text class="pa-1">
+                <v-list dense>
+                  <v-subheader>Drill Down Options</v-subheader>
+                  <v-list-item-group color="primary">
+                    <v-list-item
+                      v-for="item in AvailableDrillDowns"
+                      :key="item.value"
+                      @click="drillDownSelected(item)"
+                    >
+                      <v-list-item-content v-if="item.isBreadCrumb === false">
+                        <v-list-item-title
+                          v-text="item.text"
+                        ></v-list-item-title>
+                      </v-list-item-content>
+                    </v-list-item>
+                  </v-list-item-group>
+                  <v-divider></v-divider>
+                </v-list>
+              </v-card-text> </v-card
+          ></v-menu>
+        </v-col>
+      </v-row>
+    </v-card-text>
+  </v-card>
 </template>
 
 <script>
@@ -175,6 +173,7 @@
             overflow: "visible",
           },
           type: null,
+          height: "50%",
         },
         tooltip: {
           hideDelay: 0,

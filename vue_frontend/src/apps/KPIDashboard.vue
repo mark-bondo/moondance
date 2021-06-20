@@ -66,17 +66,17 @@
         </v-list>
       </v-navigation-drawer>
 
-      <v-card-text class="ma-0 pa-0">
-        <div v-if="selectedItem.type === 'dashboard'">
-          <dashboard :dashboardId="selectedItem.id"></dashboard>
-        </div>
-        <div v-else-if="selectedItem === 'Product Sales'">
-          <product-sales
-            :commatize="commatize"
-            :getChartData="getChartData"
-          ></product-sales>
-        </div>
-      </v-card-text>
+      <!-- <v-card-text class="ma-0 pa-0"> -->
+      <div v-if="selectedItem.type === 'dashboard'">
+        <dashboard :dashboardId="selectedItem.id"></dashboard>
+      </div>
+      <div v-else-if="selectedItem === 'Product Sales'">
+        <product-sales
+          :commatize="commatize"
+          :getChartData="getChartData"
+        ></product-sales>
+      </div>
+      <!-- </v-card-text> -->
     </v-card>
   </v-app>
 </template>
