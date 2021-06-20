@@ -171,7 +171,6 @@
               this.localOptions.plotOptions
             );
             serverOptions.series.forEach((s) => this.localOptions.series.push(s));
-            this.chartStore.drillDowns = this.drillDowns;
           });
       },
       createPointEvent() {
@@ -209,13 +208,8 @@
       },
       drillDownSelected(newItem) {
         this.addedBreadCrumb = newItem;
-        this.getData();
       },
       updateDrillDowns(d) {
-        // console.log(d);
-        // console.log(this.drillDowns);
-        // console.log(_.intersectionWith(d, this.drillDowns, _.isEqual));
-
         this.drillDowns = d;
         this.getData();
       },

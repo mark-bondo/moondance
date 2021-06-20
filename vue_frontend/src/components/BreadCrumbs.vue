@@ -69,15 +69,8 @@
       visibleBreadCrumbs() {
         return this.drillDowns.filter((d) => d.isBreadCrumb === true);
       },
-      // sortedDrillDowns() {},
     },
     watch: {
-      // drillDowns: {
-      //   deep: true,
-      //   handler(value) {
-      //     this.$emit("updateDrillDowns", _.orderBy(value, "sortOrder"));
-      //   },
-      // },
       addedBreadCrumb(newItem) {
         var oldItem = _.find(this.drillDowns, { isCurrent: true });
         oldItem = Object.assign(oldItem, {
@@ -98,24 +91,6 @@
     },
     beforeMount() {},
     methods: {
-      // addBreadCrumb(newItem) {
-      //   var oldItem = _.find(this.drillDowns, { isCurrent: true });
-      //   oldItem = Object.assign(oldItem, {
-      //     isCurrent: false,
-      //     isBreadCrumb: true,
-      //     icon: this.iconMap[false],
-      //     filter: this.selectedFilterValue,
-      //   });
-
-      //   Object.assign(newItem, {
-      //     isCurrent: true,
-      //     isBreadCrumb: true,
-      //     icon: this.iconMap[true],
-      //     sortOrder: oldItem.sortOrder + 10,
-      //   });
-
-      //   this.drillDowns = _.orderBy(this.drillDowns, "sortOrder");
-      // },
       removeBreadCrumb(removedItem) {
         if (removedItem.isCurrent !== true) {
           Object.assign(removedItem, {
@@ -126,7 +101,6 @@
             sortOrder: 0,
           });
           this.$emit("updateDrillDowns", _.orderBy(this.drillDowns, "sortOrder"));
-          // this.getData();
         }
       },
       breadCrumbMenuClick(newItem, oldItem) {
@@ -144,7 +118,6 @@
           filter: oldItemCopy.filter,
         });
         this.$emit("updateDrillDowns", _.orderBy(this.drillDowns, "sortOrder"));
-        // this.getData();
       },
     },
   };
