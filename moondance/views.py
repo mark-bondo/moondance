@@ -45,7 +45,9 @@ CHART_TYPES = [
 
 def get_data(name, args={}, replace_dd={}):
     if name not in SQL_DD or os.getenv("NODE_ENV") == "development":
-        with open(f"templates/sql/{name}.sql", "r") as f:
+        path = "" if os.getenv("NODE_ENV") == "development" else "moondance/"
+
+        with open(f"{path}templates/sql/{name}.sql", "r") as f:
             SQL_DD[name] = f.read()
 
     sql = SQL_DD[name]
