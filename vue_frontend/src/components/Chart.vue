@@ -1,14 +1,39 @@
 <template>
   <v-container>
     <v-card>
-      <v-card-title class="justify-center">{{
-        extraOptions.title
-      }}</v-card-title>
+      <v-card-title class="justify-center pa-0">
+        <v-toolbar dense dark color="#554e6e">
+          <v-spacer></v-spacer>
+          <v-toolbar-title>{{ extraOptions.title }}</v-toolbar-title>
+          <v-spacer></v-spacer>
+
+          <v-menu left offset-y>
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn icon v-bind="attrs" v-on="on">
+                <v-icon>mdi-chart-box-outline</v-icon>
+              </v-btn>
+            </template>
+            <v-list>
+              <v-list-item
+                v-for="c in chartMenu"
+                :key="c.type"
+                @click="() => {}"
+              >
+                <v-list-item-icon
+                  ><v-icon v-text="c.icon"></v-icon
+                ></v-list-item-icon>
+                <v-list-item-content>
+                  <v-list-item-title> {{ c.type }}</v-list-item-title>
+                </v-list-item-content>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </v-toolbar>
+      </v-card-title>
       <v-card-text>
         <v-row>
           <v-col cols="12" class="pa-0">
             <bread-crumbs
-              :getData="getData"
               :AvailableDrillDowns="AvailableDrillDowns"
               :addedBreadCrumb="addedBreadCrumb"
               :drillDowns="drillDowns"
@@ -31,9 +56,9 @@
               :position-y="menu.y"
               offset-y
               ><v-card>
-                <v-card-text>
+                <v-card-text class="pa-1">
                   <v-list dense>
-                    <v-subheader>Drill Down</v-subheader>
+                    <v-subheader>Drill Down Options</v-subheader>
                     <v-list-item-group color="primary">
                       <v-list-item
                         v-for="item in AvailableDrillDowns"
@@ -47,6 +72,7 @@
                         </v-list-item-content>
                       </v-list-item>
                     </v-list-item-group>
+                    <v-divider></v-divider>
                   </v-list>
                 </v-card-text> </v-card
             ></v-menu>
@@ -74,13 +100,26 @@
       iconMap: {
         true: {
           current: "mdi-eye-outline",
-          color: "green",
+          color: "success",
         },
         false: {
           current: "mdi-filter-outline",
           color: "grey",
         },
       },
+      chartMenu: [
+        { type: "pie", icon: "mdi-chart-pie", isActive: true },
+        { type: "donut", icon: "mdi-chart-donut", isActive: false },
+        { type: "area", icon: "mdi-chart-areaspline-variant", isActive: false },
+        { type: "line", icon: "mdi-chart-line", isActive: false },
+        {
+          type: "spline",
+          icon: "mdi-chart-bell-curve-cumulative",
+          isActive: false,
+        },
+        { type: "bar", icon: "mdi-chart-gantt", isActive: false },
+        { type: "column", icon: "mdi-chart-bar", isActive: false },
+      ],
       drillDowns: [],
       selectedFilterValue: null,
       addedBreadCrumb: null,

@@ -1,5 +1,5 @@
 <template>
-  <v-container class="pa-0">
+  <v-container>
     <v-breadcrumbs :items="visibleBreadCrumbs" class="pa-0">
       <template v-slot:item="{ item }">
         <v-breadcrumbs-item>
@@ -48,7 +48,6 @@
     name: "BreadCrumbs",
     props: [
       "drillDowns",
-      "getData",
       "AvailableDrillDowns",
       "addedBreadCrumb",
       "selectedFilterValue",
@@ -57,7 +56,7 @@
       iconMap: {
         true: {
           current: "mdi-eye-outline",
-          color: "green",
+          color: "success",
         },
         false: {
           current: "mdi-filter-outline",

@@ -2,8 +2,9 @@
   <v-app>
     <v-card height="100%">
       <v-app-bar
-        color="#554e6e"
+        color="#302752"
         dark
+        hide-on-scroll
         style="height: 86.19px; border-radius: 0px"
       >
         <v-app-bar-nav-icon
