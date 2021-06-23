@@ -37,7 +37,7 @@ def get_json_data(name):
 
 
 @login_required
-def render_home(request):
+def home(request):
     return render(request, "home.html", context={})
 
 

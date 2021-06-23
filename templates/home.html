@@ -1,71 +1,12 @@
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>Recipes</title>
-    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">  
-<style>
-body {
-    font-family: Helvetica,"Helvetica Neue",Arial,"Lucida Grande",sans-serif;
-}
-#header, #menu-top {
-    background-color: #554e6e;
-    margin: -8px
-}
+{% load render_bundle from webpack_loader %}
+{% get_static_prefix as STATIC_URL %}
+{% get_media_prefix as MEDIA_URL %}
+{% block title %}{% endblock %}
+{% block extra_style %}
+{% endblock %}
+{% block content %}
+<div id="kpi-dashboard" data-app></div>
+{% render_bundle 'chunk-vendors' %} {% render_bundle 'kpi-dashboard' %}
 
-#header {
-    color: #ffffff;
-    padding: 10px 15px 15px 48px;
-}
-
-.recipe {
-    padding: 15px;
-}
-
-
-.recipe .select2-container{
-    width: 550px !important;
-}
-
-.ag-header-cell, .ag-row-pinned {
-    background-color: #71ac63 !important;
-    color: #FFF !important;
-    font-weight: bold !important;
-}
-
-
-</style>
-</head>
-<body>
-  <div id="app">
-    <v-app>
-
-    </v-app>
-  </div>
-</body>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-<!-- <script src="https://cdn.jsdelivr.net/npm/@ag-grid-enterprise/all-modules@25.0.1/dist/ag-grid-enterprise.min.js"></script> -->
-<script src="https://cdn.jsdelivr.net/npm/vue@2.x"></script>
-<script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
-<script>
-
-
-new Vue({
-  el: '#app',
-  data: {
-    currentRoute: window.location.pathname
-  },
-  computed: {
-    ViewComponent () {
-      return routes[this.currentRoute] //|| NotFound
-    }
-  },
-  render (h) {
-    return h(this.ViewComponent)
-  }
-})
-</script>
-</html>
+{% endblock %}
