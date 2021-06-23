@@ -1,14 +1,14 @@
 <template>
   <v-card>
     <v-card-title class="justify-center pa-0">
-      <v-toolbar dense dark color="#554e6e">
+      <v-toolbar dense class="elevation-0">
         <v-spacer></v-spacer>
         <v-toolbar-title>{{ extraOptions.title }}</v-toolbar-title>
         <v-spacer></v-spacer>
         <v-menu left offset-y>
           <template v-slot:activator="{ on, attrs }">
-            <v-btn icon v-bind="attrs" v-on="on">
-              <v-icon>mdi-chart-box-outline</v-icon>
+            <v-btn icon v-bind="attrs" v-on="on" dark color="#302752">
+              <v-icon large>mdi-chart-box</v-icon>
             </v-btn>
           </template>
           <v-list-item-group
@@ -42,13 +42,13 @@
             :drillDowns="drillDowns"
             :selectedFilterValue="selectedFilterValue"
             :activeIconMap="activeIconMap"
-            @updateDrillDowns="updateDrillDowns"
+            @setDrillDowns="setDrillDowns"
           >
           </bread-crumbs>
         </v-col>
       </v-row>
       <v-row>
-        <v-col cols="12" v-if="localOptions">
+        <v-col cols="12">
           <highcharts :options="localOptions"></highcharts>
           <drill-menu
             :AvailableDrillDowns="AvailableDrillDowns"
@@ -57,6 +57,15 @@
             @setParentItem="setParentItem"
           ></drill-menu>
         </v-col>
+
+        <v-overlay :absolute="true" :value="showOverlay">
+          <v-progress-circular
+            indeterminate
+            :size="70"
+            :width="7"
+            color="deep-purple"
+          ></v-progress-circular
+        ></v-overlay>
       </v-row>
     </v-card-text>
   </v-card>
@@ -69,7 +78,7 @@
 
   export default {
     name: "Chart",
-    props: ["chartId"],
+    props: ["chartId", "selectedDate"],
     components: { BreadCrumbs, DrillMenu },
     data: () => ({
       activeIconMap: {
@@ -82,12 +91,13 @@
           color: "grey",
         },
       },
+      showOverlay: true,
       showDrillMenu: null,
       drillDowns: [],
       selectedFilterValue: null,
       selectedBreadCrumb: null,
       extraOptions: {
-        title: "Loading Chart",
+        title: "",
         selectedChartType: null,
       },
       chartMenu: [],
@@ -128,10 +138,21 @@
         }
       },
       getData() {
+        this.showOverlay = true;
         this.localOptions.series = [];
+        var filters = _.reject(this.drillDowns, { filter: null });
+
+        if (_.has(this.extraOptions, "xAxis")) {
+          filters.push({
+            value: this.extraOptions.xAxis,
+            filter: this.selectedDate.text,
+            type: "xAxis",
+          });
+        }
+
         this.$http
           .post(`chart/${this.chartId}`, {
-            filters: _.reject(this.drillDowns, { filter: null }),
+            filters: filters,
             grouping: _.find(this.drillDowns, { isCurrent: true }),
             chartCategory: this.extraOptions.chartCategory,
           })
@@ -151,6 +172,7 @@
 
             this.parseSeries(serverOptions.series);
             this.isInitialLoad = false;
+            this.showOverlay = false;
           });
       },
       parseSeries(series) {
@@ -185,7 +207,7 @@
         }
         return series;
       },
-      updateDrillDowns(d) {
+      setDrillDowns(d) {
         this.drillDowns = d;
         this.getData();
       },

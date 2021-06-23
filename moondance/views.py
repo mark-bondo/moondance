@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from django.db import connection
 from django.shortcuts import render
@@ -55,6 +56,23 @@ def get_dashboards(request):
     return HttpResponse(json_data, content_type="application/json")
 
 
+def get_date(dte):
+    today = datetime.now()
+
+    if dte == "Today":
+        today = datetime.now().strftime("%Y-%m-%d")
+    elif dte == "This Week":
+        today = today - timedelta(days=today.weekday()).strftime("%Y-%m-%d")
+    elif dte == "This Month":
+        today = today.replace(day=1).strftime("%Y-%m-%d")
+    elif dte == "This Year":
+        today = today.replace(day=1, month=1).strftime("%Y-%m-%d")
+    elif dte == "All Dates":
+        dte = "all"
+
+    return dte
+
+
 @login_required
 def get_chart(request, id):
     # get chart options
@@ -80,6 +98,13 @@ def get_chart(request, id):
     for f in user_params["filters"]:
         column = f["value"].replace("'", "''")
         filter = f["filter"].replace("'", "''")
+
+        if "type" in f:
+            # filter = get_date(filter)
+
+            # if filter == "all":
+            continue
+
         filters.append(f"{column}='{filter}'")
 
     server_params["filters"] = " AND ".join(filters)
@@ -100,9 +125,10 @@ def get_chart(request, id):
     chart["extraOptions"]["chartCategory"] = chartCategory
     chart["extraOptions"].pop("sql")
     chart["extraOptions"]["drillDowns"] = [d for d in drillDowns if d["isVisible"]]
-    chart["extraOptions"]["title"] = "{} {}{:,}".format(
-        chart["extraOptions"]["title"],
-        chart["extraOptions"]["prefix"],
+    chart["extraOptions"]["title"] = "{} by {} {}{:,}".format(
+        chart["highCharts"]["yAxis"]["title"]["text"],
+        chart["highCharts"]["xAxis"]["title"]["text"],
+        chart["highCharts"]["tooltip"]["valuePrefix"],
         int(data["options"]["total"]),
     )
 

@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-navigation-drawer v-model="drawer" absolute bottom temporary app>
+    <v-navigation-drawer v-model="drawer" absolute temporary app>
       <v-list>
         <v-subheader><v-icon>mdi-chart-bar</v-icon>Dashboards</v-subheader>
         <v-list-item-group active-class="deep-purple--text text--accent-4">
@@ -30,14 +30,14 @@
     <v-app-bar color="#302752" dark app>
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
       <v-spacer></v-spacer>
-      <v-toolbar-title
-        ><h2>{{ headerTitle }}</h2></v-toolbar-title
+      <v-toolbar-title>
+        <h2>{{ headerTitle }}</h2></v-toolbar-title
       >
       <v-spacer></v-spacer>
     </v-app-bar>
     <v-main>
       <v-container fluid>
-        <dashboard :charts="selectedItem"></dashboard>
+        <dashboard :charts="selectedCharts"></dashboard>
       </v-container>
     </v-main>
   </v-app>
@@ -56,7 +56,7 @@
     },
     props: [],
     data: () => ({
-      selectedItem: {},
+      selectedCharts: [],
       dashboards: [],
       admin: [{ id: 0, name: "Data Manager", type: "admin" }],
       headerTitle: "Home",
@@ -89,7 +89,7 @@
           this.headerTitle = item.name;
         }
 
-        this.selectedItem = item.charts;
+        this.selectedCharts = item.charts;
       },
     },
   };

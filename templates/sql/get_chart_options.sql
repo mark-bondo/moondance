@@ -27,6 +27,8 @@ SELECT
     JSONB_BUILD_OBJECT(
         'extraOptions',
         JSONB_BUILD_OBJECT(
+            'xAxis',
+            xaxis.field,
             'title', c.title, 
             'prefix', yaxis.yaxis_prefix,
             'drillDowns', drilldowns.fields,
@@ -77,7 +79,7 @@ SELECT
                 'title', 
                 JSONB_BUILD_OBJECT(
                     'text',
-                    COALESCE(yaxis.name, INITCAP(REPLACE(yaxis.field, '_', ' ') || ' ' || COALESCE(yaxis.yaxis_prefix, '')))
+                    COALESCE(yaxis.name, INITCAP(REPLACE(yaxis.field, '_', ' ')))
                 )
             ),
             'plotOptions',

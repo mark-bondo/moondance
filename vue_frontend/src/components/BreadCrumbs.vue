@@ -75,7 +75,7 @@
           icon: this.activeIconMap[true],
           sortOrder: oldItem.sortOrder + 10,
         });
-        this.$emit("updateDrillDowns", _.orderBy(this.drillDowns, "sortOrder"));
+        this.$emit("setDrillDowns", _.orderBy(this.drillDowns, "sortOrder"));
       },
     },
     beforeMount() {},
@@ -89,7 +89,7 @@
             icon: this.activeIconMap[false],
             sortOrder: 0,
           });
-          this.$emit("updateDrillDowns", _.orderBy(this.drillDowns, "sortOrder"));
+          this.$emit("setDrillDowns", _.orderBy(this.drillDowns, "sortOrder"));
         }
       },
       breadCrumbMenuClick(newItem, oldItem) {
@@ -106,7 +106,7 @@
           value: oldItemCopy.value,
           filter: oldItemCopy.filter,
         });
-        this.$emit("updateDrillDowns", _.orderBy(this.drillDowns, "sortOrder"));
+        this.$emit("setDrillDowns", _.orderBy(this.drillDowns, "sortOrder"));
       },
     },
   };
