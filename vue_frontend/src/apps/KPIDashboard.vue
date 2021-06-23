@@ -37,7 +37,7 @@
     </v-app-bar>
     <v-main>
       <v-container fluid>
-        <dashboard :dashboard="selectedItem"></dashboard>
+        <dashboard :charts="selectedItem"></dashboard>
       </v-container>
     </v-main>
   </v-app>
@@ -89,7 +89,7 @@
           this.headerTitle = item.name;
         }
 
-        this.selectedItem = item;
+        this.selectedItem = item.charts;
       },
     },
   };

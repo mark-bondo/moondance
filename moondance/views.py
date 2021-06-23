@@ -7,44 +7,12 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 
 load_dotenv()
-SQL_DD = {}
-CHART_TYPES = [
-    {"category": "summary", "type": "pie", "icon": "mdi-chart-pie"},
-    {
-        "category": "summary",
-        "type": "donut",
-        "icon": "mdi-chart-donut",
-    },
-    {
-        "category": "phased",
-        "type": "area",
-        "icon": "mdi-chart-areaspline-variant",
-    },
-    {
-        "category": "phased",
-        "type": "line",
-        "icon": "mdi-chart-line",
-    },
-    {
-        "category": "phased",
-        "type": "spline",
-        "icon": "mdi-chart-bell-curve-cumulative",
-    },
-    {
-        "category": "phased",
-        "type": "bar",
-        "icon": "mdi-chart-gantt",
-    },
-    {
-        "category": "phased",
-        "type": "column",
-        "icon": "mdi-chart-bar",
-    },
-]
 FILE_PATH = "" if os.getenv("NODE_ENV") == "development" else "moondance/"
+SQL_DD = {}
+JSON_DD = {}
 
 
-def get_data(name, args={}, replace_dd={}):
+def get_sql_data(name, args={}, replace_dd={}):
     if name not in SQL_DD or os.getenv("NODE_ENV") == "development":
         with open(f"{FILE_PATH}templates/sql/{name}.sql", "r") as f:
             SQL_DD[name] = f.read()
@@ -54,13 +22,18 @@ def get_data(name, args={}, replace_dd={}):
     if replace_dd:
         sql = sql % replace_dd
 
-    # print(sql)
-
     with connection.cursor() as cursor:
         cursor.execute(sql, args)
         data = cursor.fetchall()
 
     return data
+
+
+def get_json_data(name):
+    if name not in JSON_DD or os.getenv("NODE_ENV") == "development":
+        with open(f"{FILE_PATH}templates/json/{name}.json", "r") as f:
+            JSON_DD[name] = f.read()
+    return JSON_DD[name]
 
 
 @login_required
@@ -69,8 +42,15 @@ def render_home(request):
 
 
 @login_required
+def get_default_settings(request, name):
+    json_data = get_json_data(name=name)
+
+    return HttpResponse(json_data, content_type="application/json")
+
+
+@login_required
 def get_dashboards(request):
-    json_data = get_data(name="get_dashboards")[0][0]
+    json_data = get_sql_data(name="get_dashboards")[0][0]
 
     return HttpResponse(json_data, content_type="application/json")
 
@@ -78,7 +58,7 @@ def get_dashboards(request):
 @login_required
 def get_chart(request, id):
     # get chart options
-    chart = json.loads(get_data(name="get_chart_options", args={"id": id})[0][0])
+    chart = json.loads(get_sql_data(name="get_chart_options", args={"id": id})[0][0])
     drillDowns = chart["extraOptions"]["drillDowns"]
     server_params = chart["extraOptions"]["sql"]
     filters = [""]
@@ -110,7 +90,7 @@ def get_chart(request, id):
         if "chartCategory" in user_params
         else chart["extraOptions"]["chartCategory"]
     )
-    data = get_data(
+    data = get_sql_data(
         name="get_{}_data".format(chartCategory),
         replace_dd=server_params,
     )[0][0]

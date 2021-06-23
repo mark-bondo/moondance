@@ -48,7 +48,7 @@
         </v-col>
       </v-row>
       <v-row>
-        <v-col cols="12">
+        <v-col cols="12" v-if="localOptions">
           <highcharts :options="localOptions"></highcharts>
           <drill-menu
             :AvailableDrillDowns="AvailableDrillDowns"
@@ -69,7 +69,7 @@
 
   export default {
     name: "Chart",
-    props: ["chartId", "dashboardId"],
+    props: ["chartId"],
     components: { BreadCrumbs, DrillMenu },
     data: () => ({
       activeIconMap: {
@@ -82,50 +82,6 @@
           color: "grey",
         },
       },
-      chartMenu: [
-        {
-          category: "summary",
-          type: "pie",
-          icon: "mdi-chart-pie",
-          isActive: true,
-        },
-        // {
-        //   category: "summary",
-        //   type: "donut",
-        //   icon: "mdi-chart-donut",
-        //   isActive: false,
-        // },
-        {
-          category: "phased",
-          type: "area",
-          icon: "mdi-chart-areaspline-variant",
-          isActive: false,
-        },
-        {
-          category: "phased",
-          type: "line",
-          icon: "mdi-chart-line",
-          isActive: false,
-        },
-        {
-          category: "phased",
-          type: "spline",
-          icon: "mdi-chart-bell-curve-cumulative",
-          isActive: false,
-        },
-        {
-          category: "phased",
-          type: "bar",
-          icon: "mdi-chart-gantt",
-          isActive: false,
-        },
-        {
-          category: "phased",
-          type: "column",
-          icon: "mdi-chart-bar",
-          isActive: false,
-        },
-      ],
       showDrillMenu: null,
       drillDowns: [],
       selectedFilterValue: null,
@@ -134,47 +90,9 @@
         title: "Loading Chart",
         selectedChartType: null,
       },
+      chartMenu: [],
+      localOptions: {},
       isInitialLoad: true,
-      localOptions: {
-        title: {
-          text: "",
-        },
-        credits: false,
-        chart: {
-          backgroundColor: "transparent",
-          style: {
-            overflow: "visible",
-          },
-          type: null,
-          height: "50%",
-        },
-        tooltip: {
-          hideDelay: 0,
-          outside: true,
-          shared: false,
-          valueDecimals: 0,
-          pointFormat: "{series.name}: <b>{point.y}</b><br/>",
-        },
-        plotOptions: {
-          pie: {
-            dataLabels: {
-              enabled: true,
-              format:
-                "<b>{point.name}</b><br>{point.y:,.0f} ({point.percentage:.1f}%)",
-            },
-          },
-        },
-        legend: {
-          enabled: true,
-        },
-        xAxis: {
-          dateTimeLabelFormats: {
-            month: "%b %Y",
-            year: "%Y",
-          },
-        },
-        series: [],
-      },
     }),
     computed: {
       AvailableDrillDowns() {
@@ -185,9 +103,19 @@
       },
     },
     beforeMount() {
-      this.getData();
+      this.getSettings();
     },
     methods: {
+      async getSettings() {
+        this.chartMenu = (
+          await this.$http.get(`default-settings/chartMenu`, {})
+        ).data;
+        this.localOptions = (
+          await this.$http.get(`default-settings/defaultChartOptions`, {})
+        ).data;
+        this.getData();
+      },
+
       changeChartType(item) {
         this.selectedChartType = item.type;
         this.localOptions.chart.type = item.type;

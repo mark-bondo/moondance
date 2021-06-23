@@ -1,0 +1,40 @@
+{
+  "title": {
+    "text": ""
+  },
+  "credits": false,
+  "chart": {
+    "backgroundColor": "transparent",
+    "style": {
+      "overflow": "visible"
+    },
+    "type": null,
+    "height": "50%"
+  },
+  "tooltip": {
+    "hideDelay": 0,
+    "outside": true,
+    "shared": false,
+    "valueDecimals": 0,
+    "pointFormat": "{series.name}: <b>{point.y}</b><br/>"
+  },
+  "plotOptions": {
+    "pie": {
+      "dataLabels": {
+        "enabled": true,
+        "format":
+          "<b>{point.name}</b><br>{point.y:,.0f} ({point.percentage:.1f}%)"
+      }
+    }
+  },
+  "legend": {
+    "enabled": true
+  },
+  "xAxis": {
+    "dateTimeLabelFormats": {
+      "month": "%b %Y",
+      "year": "%Y"
+    }
+  },
+  "series": []
+}

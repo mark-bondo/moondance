@@ -1,0 +1,33 @@
+[
+    {
+      "category": "summary",
+      "type": "pie",
+      "icon": "mdi-chart-pie"
+    },
+    {
+      "category": "phased",
+      "type": "area",
+      "icon": "mdi-chart-areaspline-variant"
+    },
+    {
+      "category": "phased",
+      "type": "line",
+      "icon": "mdi-chart-line"
+    },
+    {
+      "category": "phased",
+      "type": "spline",
+      "icon": "mdi-chart-bell-curve-cumulative"
+    },
+    {
+      "category": "phased",
+      "type": "bar",
+      "icon": "mdi-chart-gantt"
+    },
+    {
+      "category": "phased",
+      "type": "column",
+      "icon": "mdi-chart-bar"
+
+    }
+]
