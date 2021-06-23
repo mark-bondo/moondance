@@ -9,7 +9,8 @@ WITH drilldowns AS (
                 'isCurrent', is_default,
                 'isBreadCrumb', is_default,
                 'sortOrder', 0,
-                'filter', CASE WHEN filter IS NOT NULL THEN field || filter END
+                'filter', CASE WHEN filter IS NOT NULL THEN field || filter END,
+                'type', 'grouping'
             )
             ORDER BY COALESCE(name, field)
          ) fields

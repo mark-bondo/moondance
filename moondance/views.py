@@ -23,6 +23,8 @@ def get_sql_data(name, args={}, replace_dd={}):
     if replace_dd:
         sql = sql % replace_dd
 
+    # print(sql)
+
     with connection.cursor() as cursor:
         cursor.execute(sql, args)
         data = cursor.fetchall()
@@ -58,19 +60,18 @@ def get_dashboards(request):
 
 def get_date(dte):
     today = datetime.now()
+    end = today + timedelta(days=1)
 
     if dte == "Today":
-        today = datetime.now().strftime("%Y-%m-%d")
+        start = datetime.now()
     elif dte == "This Week":
-        today = today - timedelta(days=today.weekday()).strftime("%Y-%m-%d")
+        start = today - timedelta(days=today.weekday())
     elif dte == "This Month":
-        today = today.replace(day=1).strftime("%Y-%m-%d")
+        start = today.replace(day=1)
     elif dte == "This Year":
-        today = today.replace(day=1, month=1).strftime("%Y-%m-%d")
-    elif dte == "All Dates":
-        dte = "all"
+        start = today.replace(day=1, month=1)
 
-    return dte
+    return (start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
 
 
 @login_required
@@ -96,18 +97,19 @@ def get_chart(request, id):
     )
 
     for f in user_params["filters"]:
-        column = f["value"].replace("'", "''")
-        filter = f["filter"].replace("'", "''")
-
-        if "type" in f:
-            # filter = get_date(filter)
-
-            # if filter == "all":
+        if f["type"] == "grouping":
+            column = f["value"].replace("'", "''")
+            filter = f["filter"].replace("'", "''")
+            filters.append(f"{column}='{filter}'")
+        elif f["type"] == "xaxis" and f["filter"] != "All Dates":
+            column = chart["extraOptions"]["xAxis"] if "value" not in f else f["value"]
+            start, end = get_date(f["filter"])
+            filters.append(f"{column} BETWEEN '{start}' AND '{end}'")
+        else:
             continue
 
-        filters.append(f"{column}='{filter}'")
-
     server_params["filters"] = " AND ".join(filters)
+    print(server_params["filters"])
 
     # get series data and totals
     chartCategory = (

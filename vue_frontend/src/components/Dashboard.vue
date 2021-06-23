@@ -3,7 +3,7 @@
     <v-row class="mb-3">
       <v-tabs
         v-show="charts.length !== 0"
-        v-model="selectedDate"
+        v-model="dateFilter"
         centered
         center-active
         color="green"
@@ -13,7 +13,7 @@
     </v-row>
     <v-row>
       <v-col v-for="chartId in charts" :key="chartId" cols="12" xs="12" lg="6">
-        <chart :chartId="chartId" :selectedDate="selectedDate" />
+        <chart :chartId="chartId" :dateFilter="dateTabs[dateFilter]" />
       </v-col>
     </v-row>
   </div>
@@ -28,7 +28,7 @@
     props: ["charts"],
     data: () => ({
       dateTabs: ["Today", "This Week", "This Month", "This Year", "All Dates"],
-      selectedDate: 2,
+      dateFilter: 2,
     }),
   };
 </script>

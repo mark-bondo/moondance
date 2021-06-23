@@ -78,7 +78,7 @@
 
   export default {
     name: "Chart",
-    props: ["chartId", "selectedDate"],
+    props: ["chartId", "dateFilter"],
     components: { BreadCrumbs, DrillMenu },
     data: () => ({
       activeIconMap: {
@@ -112,6 +112,11 @@
         );
       },
     },
+    watch: {
+      dateFilter() {
+        this.getData();
+      },
+    },
     beforeMount() {
       this.getSettings();
     },
@@ -142,13 +147,11 @@
         this.localOptions.series = [];
         var filters = _.reject(this.drillDowns, { filter: null });
 
-        if (_.has(this.extraOptions, "xAxis")) {
-          filters.push({
-            value: this.extraOptions.xAxis,
-            filter: this.selectedDate.text,
-            type: "xAxis",
-          });
-        }
+        filters.push({
+          value: this.extraOptions.xAxis,
+          filter: this.dateFilter,
+          type: "xaxis",
+        });
 
         this.$http
           .post(`chart/${this.chartId}`, {
