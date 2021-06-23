@@ -3,12 +3,12 @@
     <v-row class="mb-3">
       <v-tabs
         v-show="charts.length !== 0"
-        v-model="selectedDate.id"
+        v-model="selectedDate"
         centered
         center-active
         color="green"
       >
-        <v-tab v-for="d in dateTabs" :key="d.id">{{ d.text }}</v-tab>
+        <v-tab v-for="(item, index) in dateTabs" :key="index">{{ item }}</v-tab>
       </v-tabs>
     </v-row>
     <v-row>
@@ -27,14 +27,8 @@
     },
     props: ["charts"],
     data: () => ({
-      dateTabs: [
-        { id: 1, text: "Today" },
-        { id: 2, text: "This Week" },
-        { id: 3, text: "This Month" },
-        { id: 4, text: "This Year" },
-        { id: 5, text: "All Dates" },
-      ],
-      selectedDate: { id: 2, text: "This Week" },
+      dateTabs: ["Today", "This Week", "This Month", "This Year", "All Dates"],
+      selectedDate: 2,
     }),
   };
 </script>
