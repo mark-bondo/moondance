@@ -46,7 +46,6 @@
 <script>
   // import ProductSales from "@/components/KPIDashboard/ProductSales.vue";
   import Dashboard from "@/components/Dashboard.vue";
-  // import _ from "lodash";
 
   export default {
     name: "KPIDashboard",

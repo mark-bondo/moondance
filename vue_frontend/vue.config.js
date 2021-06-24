@@ -27,7 +27,16 @@ module.exports = {
                     },
                 },
             });
+        
+        // config
+        //     .plugin('html')
+        //     .tap(args => {
+        //         args[0].title = 'MyApp title';
+        //         args[0].meta = {viewport: 'width=device-width,initial-scale=1,user-scalable=no'};
 
+        //     return args;
+        // })
+        
         Object.keys(pages).forEach(page => {
             config.plugins.delete(`html-${page}`);
             config.plugins.delete(`preload-${page}`);

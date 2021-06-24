@@ -51,7 +51,6 @@
         <v-col cols="12">
           <highcharts
             :options="localOptions"
-            class="chartText"
             v-if="!isInitialLoad"
           ></highcharts>
           <drill-menu
@@ -225,7 +224,4 @@
   };
 </script>
 <style>
-  .chartText text {
-    font-size: 1.2em;
-  }
 </style>

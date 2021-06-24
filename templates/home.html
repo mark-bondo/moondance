@@ -1,12 +1,16 @@
-{% load static %}
-{% load render_bundle from webpack_loader %}
-{% get_static_prefix as STATIC_URL %}
-{% get_media_prefix as MEDIA_URL %}
-{% block title %}{% endblock %}
-{% block extra_style %}
-{% endblock %}
-{% block content %}
-<div id="kpi-dashboard" data-app></div>
-{% render_bundle 'chunk-vendors' %} {% render_bundle 'kpi-dashboard' %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta  name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, shrink-to-fit=no">
+    {% load static %}
+    {% load render_bundle from webpack_loader %}
+    {% get_static_prefix as STATIC_URL %}
+    {% get_media_prefix as MEDIA_URL %}
+</head>
+<body>
+    <div id="kpi-dashboard" data-app></div>
+    {% render_bundle 'chunk-vendors' %} {% render_bundle 'kpi-dashboard' %}
+</body>
+</html>
 
-{% endblock %}
+
