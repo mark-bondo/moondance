@@ -43,4 +43,5 @@
 
 
 <style>
+  @import "https://code.highcharts.com/css/highcharts.css";
 </style>
