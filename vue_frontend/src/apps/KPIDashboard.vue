@@ -27,7 +27,7 @@
         </v-list-item-group>
       </v-list>
     </v-navigation-drawer>
-    <v-app-bar color="#302752" dark app>
+    <v-app-bar color="#302752" dark hide-on-scroll app>
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
       <v-spacer></v-spacer>
       <v-toolbar-title>
@@ -36,7 +36,7 @@
       <v-spacer></v-spacer>
     </v-app-bar>
     <v-main>
-      <v-container fluid>
+      <v-container fluid :class="{ 'pa-0': $vuetify.breakpoint.xs }">
         <dashboard :charts="selectedCharts"></dashboard>
       </v-container>
     </v-main>
