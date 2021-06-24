@@ -1,1 +1,1 @@
-.v-breadcrumbs li:nth-child(2n){padding:0}.big-text{font-size:18px}.med-text{font-size:16px}
+@import url(https://code.highcharts.com/css/highcharts.css);.v-breadcrumbs li:nth-child(2n){padding:0}.chartText text{font-size:1.2em}.big-text{font-size:18px}.med-text{font-size:16px}
