@@ -58,31 +58,59 @@ def get_dashboards(request):
     return HttpResponse(json_data, content_type="application/json")
 
 
-def get_date(dte):
+def get_xaxis_fields(dte):
     today = datetime.now()
-    end = today + timedelta(days=1)
+    end_date = today + timedelta(days=1)
 
     if dte == "Today":
-        start = datetime.now()
+        start_date = datetime.now()
+        date_grouping = "hour"
     elif dte == "This Week":
-        start = today - timedelta(days=today.weekday())
+        start_date = today - timedelta(days=today.weekday())
+        date_grouping = "day"
     elif dte == "This Month":
-        start = today.replace(day=1)
-    elif dte == "This Year":
-        start = today.replace(day=1, month=1)
+        start_date = today.replace(day=1)
+        date_grouping = "day"
+    elif dte == "This Quarter":
+        if today.month < 4:
+            m = 1
+        elif today.month < 7:
+            m = 4
+        elif today.month < 10:
+            m = 7
+        else:
+            m = 10
 
-    return (start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+        start_date = today.replace(day=1, month=m)
+        date_grouping = "week"
+        print(start_date)
+    elif dte == "This Year":
+        start_date = today.replace(day=1, month=1)
+        date_grouping = "month"
+    elif dte == "All Dates":
+        start_date = datetime.now()
+        date_grouping = "month"
+
+    return {
+        "start_date": start_date.strftime("%Y-%m-%d"),
+        "end_date": end_date.strftime("%Y-%m-%d"),
+        "date_grouping": "DATE_TRUNC('{}', {})".format(date_grouping, "%(xaxis)s"),
+    }
+
+
+def quote_sql(value):
+    return value.replace("'", "''").replace(r"%", r"%%")
 
 
 @login_required
 def get_chart(request, id):
-    # get chart options
+    # get server chart options and sql
     chart = json.loads(get_sql_data(name="get_chart_options", args={"id": id})[0][0])
     drillDowns = chart["extraOptions"]["drillDowns"]
     server_params = chart["extraOptions"]["sql"]
     filters = [""]
 
-    # check for server params
+    # prepopulate sql using server params
     for d in drillDowns:
         if d["filter"]:
             filters.append(d["filter"])
@@ -90,26 +118,38 @@ def get_chart(request, id):
         if d["isCurrent"]:
             grouping = d["value"]
 
-    # check for user parameters and overwrite default server parameters
+    # overwrite server parameters with user parameters
     user_params = json.loads(request.body)
     server_params["grouping"] = (
         user_params["grouping"]["value"] if "grouping" in user_params else grouping
     )
 
+    # parse filters and resolve x-axis grouping
     for f in user_params["filters"]:
         if f["type"] == "grouping":
-            column = f["value"].replace("'", "''")
-            filter = f["filter"].replace("'", "''")
+            column = quote_sql(f["value"])
+            filter = quote_sql(f["filter"])
             filters.append(f"{column}='{filter}'")
-        elif f["type"] == "xaxis" and f["filter"] != "All Dates":
+        elif f["type"] == "xaxis":
+            xaxis = get_xaxis_fields(f["filter"])
+            server_params["xaxis"] = xaxis["date_grouping"] % server_params
+
+            # don't apply a date filter for all dates
+            if f["filter"] == "All Dates":
+                continue
+
             column = chart["extraOptions"]["xAxis"] if "value" not in f else f["value"]
-            start, end = get_date(f["filter"])
-            filters.append(f"{column} BETWEEN '{start}' AND '{end}'")
+            filters.append(
+                "{} BETWEEN '{}' AND '{}'".format(
+                    column,
+                    xaxis["start_date"],
+                    xaxis["end_date"],
+                )
+            )
         else:
             continue
 
     server_params["filters"] = " AND ".join(filters)
-    print(server_params["filters"])
 
     # get series data and totals
     chartCategory = (

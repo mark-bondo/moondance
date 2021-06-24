@@ -5,6 +5,7 @@
         v-show="charts.length !== 0"
         v-model="dateFilter"
         centered
+        show-arrows
         center-active
         color="green"
       >
@@ -27,7 +28,14 @@
     },
     props: ["charts"],
     data: () => ({
-      dateTabs: ["Today", "This Week", "This Month", "This Year", "All Dates"],
+      dateTabs: [
+        "Today",
+        "This Week",
+        "This Month",
+        "This Quarter",
+        "This Year",
+        "All Dates",
+      ],
       dateFilter: 2,
     }),
   };
