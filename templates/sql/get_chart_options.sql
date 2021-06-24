@@ -82,15 +82,6 @@ SELECT
                     'text',
                     COALESCE(yaxis.name, INITCAP(REPLACE(yaxis.field, '_', ' ')))
                 )
-            ),
-            'plotOptions',
-            JSONB_BUILD_OBJECT(
-                'pie', JSONB_BUILD_OBJECT(
-                    'dataLabels', JSONB_BUILD_OBJECT(
-                        'enabled', true,
-                        'format', '<b>{point.name}</b><br>' || yaxis.yaxis_prefix || '{point.y:,.0f} ({point.percentage:.1f}%%)'
-                    )
-                )
             )
         )
     ) as json

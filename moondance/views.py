@@ -167,9 +167,8 @@ def get_chart(request, id):
     chart["extraOptions"]["chartCategory"] = chartCategory
     chart["extraOptions"].pop("sql")
     chart["extraOptions"]["drillDowns"] = [d for d in drillDowns if d["isVisible"]]
-    chart["extraOptions"]["title"] = "{} by {} {}{:,}".format(
+    chart["extraOptions"]["title"] = "{} {}{:,}".format(
         chart["highCharts"]["yAxis"]["title"]["text"],
-        chart["highCharts"]["xAxis"]["title"]["text"],
         chart["highCharts"]["tooltip"]["valuePrefix"],
         int(data["options"]["total"]),
     )
