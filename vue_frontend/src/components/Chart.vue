@@ -17,7 +17,7 @@
           >
             <v-list>
               <v-list-item
-                v-for="c in chartMenu"
+                v-for="c in chartTypeChoices"
                 :key="c.type"
                 @click="changeChartType(c)"
               >
@@ -37,12 +37,12 @@
       <v-row>
         <v-col cols="12" class="pa-0">
           <bread-crumbs
-            :AvailableDrillDowns="AvailableDrillDowns"
+            :drillItems="drillItems"
             :selectedBreadCrumb="selectedBreadCrumb"
-            :drillDowns="drillDowns"
+            :fields="fields"
             :selectedFilterValue="selectedFilterValue"
             :activeIconMap="activeIconMap"
-            @setDrillDowns="setDrillDowns"
+            @setFields="setFields"
           >
           </bread-crumbs>
         </v-col>
@@ -54,14 +54,14 @@
             v-if="!isInitialLoad"
           ></highcharts>
           <drill-menu
-            :AvailableDrillDowns="AvailableDrillDowns"
-            :showDrillMenu="showDrillMenu"
+            :drillItems="drillItems"
+            :selectedDrillItem="selectedDrillItem"
             :chartCategory="extraOptions.chartCategory"
             @setParentItem="setParentItem"
           ></drill-menu>
         </v-col>
 
-        <v-overlay :absolute="true" :value="showOverlay">
+        <v-overlay :absolute="true" :value="isLoading">
           <v-progress-circular
             indeterminate
             :size="70"
@@ -84,6 +84,15 @@
     props: ["chartId", "dateFilter"],
     components: { BreadCrumbs, DrillMenu },
     data: () => ({
+      isInitialLoad: true,
+      isLoading: true,
+      localOptions: {},
+      extraOptions: {},
+      chartTypeChoices: [],
+      fields: [],
+      selectedDrillItem: null,
+      selectedFilterValue: null,
+      selectedBreadCrumb: null,
       activeIconMap: {
         true: {
           current: "mdi-eye-outline",
@@ -94,23 +103,11 @@
           color: "grey",
         },
       },
-      showOverlay: true,
-      showDrillMenu: null,
-      drillDowns: [],
-      selectedFilterValue: null,
-      selectedBreadCrumb: null,
-      extraOptions: {
-        title: "",
-        selectedChartType: null,
-      },
-      chartMenu: [],
-      localOptions: {},
-      isInitialLoad: true,
     }),
     computed: {
-      AvailableDrillDowns() {
+      drillItems() {
         return _.sortBy(
-          this.drillDowns.filter((d) => d.isBreadCrumb === false),
+          this.fields.filter((d) => d.isBreadCrumb === false),
           "text"
         );
       },
@@ -125,8 +122,8 @@
     },
     methods: {
       async getSettings() {
-        this.chartMenu = (
-          await this.$http.get(`default-settings/chartMenu`, {})
+        this.chartTypeChoices = (
+          await this.$http.get(`default-settings/chartTypeChoices`, {})
         ).data;
         this.localOptions = (
           await this.$http.get(`default-settings/defaultChartOptions`, {})
@@ -146,9 +143,9 @@
         }
       },
       getData() {
-        this.showOverlay = true;
+        this.isLoading = true;
         this.localOptions.series = [];
-        var filters = _.reject(this.drillDowns, { filter: null });
+        var filters = _.reject(this.fields, { filter: null });
 
         filters.push({
           value: this.extraOptions.xAxis,
@@ -159,7 +156,7 @@
         this.$http
           .post(`chart/${this.chartId}`, {
             filters: filters,
-            grouping: _.find(this.drillDowns, { isCurrent: true }),
+            grouping: _.find(this.fields, { isCurrent: true }),
             chartCategory: this.extraOptions.chartCategory,
           })
           .then((response) => {
@@ -167,8 +164,8 @@
             this.extraOptions = response.data.extraOptions;
 
             if (this.isInitialLoad) {
-              this.drillDowns = this.extraOptions.drillDowns;
-              this.drillDowns.forEach(
+              this.fields = this.extraOptions.fields;
+              this.fields.forEach(
                 (d) => (d.icon = this.activeIconMap[d.isCurrent])
               );
 
@@ -178,7 +175,7 @@
 
             this.parseSeries(serverOptions.series);
             this.isInitialLoad = false;
-            this.showOverlay = false;
+            this.isLoading = false;
           });
       },
       parseSeries(series) {
@@ -198,7 +195,7 @@
         return {
           events: {
             click: (e) => {
-              this.showDrillMenu = e;
+              this.selectedDrillItem = e;
             },
           },
         };
@@ -213,8 +210,8 @@
         }
         return series;
       },
-      setDrillDowns(d) {
-        this.drillDowns = d;
+      setFields(d) {
+        this.fields = d;
         this.getData();
       },
       setParentItem(item) {

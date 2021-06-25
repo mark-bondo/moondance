@@ -14,18 +14,20 @@ CREATE TEMP TABLE order_line_taxes ON COMMIT DROP AS
     WITH tax_detail AS (
         SELECT
             jsonb_array_elements(line_items)->>'id' as order_line_id,
-            jsonb_array_elements(jsonb_array_elements(line_items)->'tax_lines')->>'title' as tax_types
+            jsonb_array_elements(jsonb_array_elements(line_items)->'tax_lines')->>'title' as tax_types,
+            (jsonb_array_elements(jsonb_array_elements(line_items)->'tax_lines')->>'price')::NUMERIC as taxes_collected
         FROM
             shopify.shopify_sales_order
     )
 
     SELECT
         order_line_id::BIGINT as order_line_id,
+        SUM(taxes_collected) as taxes_collected,
         (ARRAY_REMOVE(ARRAY_AGG(DISTINCT tax_types ORDER BY tax_types), 'North Carolina State Tax'))[1] as county
     FROM
         tax_detail
-    WHERE
-        tax_types <> 'Sales tax'
+    --WHERE
+      --  tax_types <> 'Sales tax'
     GROUP BY
         order_line_id::BIGINT
 ;
@@ -85,6 +87,23 @@ WITH shopify_line_items AS (
     GROUP BY
         order_line_id
 )
+, shipping_tax_collected AS (
+    WITH lines AS (
+        SELECT
+            id as order_id,
+            ((jsonb_array_elements((jsonb_array_elements(shipping_lines)->'tax_lines')))->>'price')::NUMERIC as tax_collected
+        FROM
+            shopify.shopify_sales_order
+    )
+    
+    SELECT
+        order_id,
+        SUM(tax_collected) as tax_collected
+    FROM
+        lines
+    GROUP BY
+        order_id
+)
 , shipping_paid AS (
     SELECT
         order_id,
@@ -127,18 +146,20 @@ WITH shopify_line_items AS (
     )
 
     SELECT
-
         shipping_line.order_line_id,
-        --line_weight / total_weight as allocated_weight,
-        (shipping_line.shipping_collected * (line_weight / total_weight))::NUMERIC(16, 2) as shipping_collected,
+        (shipping_line.shipping_collected * (line_weight / total_weight)) as shipping_collected,
+        (tax.tax_collected * (line_weight / total_weight)) as shipping_tax_collected,
         (
             COALESCE(shipping_paid.amount, shipping_easy.shipping_fees) * (line_weight / total_weight)
-        )::NUMERIC(16, 2) as shipping_cost
+        ) as shipping_cost
     FROM
         shipping_total JOIN
         shipping_line ON shipping_total.order_id = shipping_line.order_id LEFT JOIN
         shipping_paid ON shipping_total.order_id = shipping_paid.order_id LEFT JOIN
-        shipping_easy ON shipping_total.order_id = shipping_easy.order_id
+        shipping_easy ON shipping_total.order_id = shipping_easy.order_id LEFT JOIN
+        shipping_tax_collected tax ON 
+            shipping_total.order_id = tax.order_id AND
+            tax.tax_collected <> 0
 )
 , amazon_fees AS (
     WITH events AS (
@@ -218,6 +239,7 @@ SELECT
         ) * ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0))
     ) as net_sales,
     shopify_shipping_allocation.shipping_collected as shipping_collected,
+    shopify_shipping_allocation.shipping_tax_collected,
     shopify_shipping_allocation.shipping_cost as shipping_cost,
     (
         COALESCE(
@@ -312,6 +334,7 @@ SELECT
 	END as quantity,
     (sl."ItemPrice"->>'Amount')::NUMERIC as net_sales,
     NULL::NUMERIC as shipping_collected,
+    NULL::NUMERIC as shipping_tax_collected,
     NULL::NUMERIC as shipping_cost,
     (
         COALESCE(
@@ -480,7 +503,8 @@ INSERT INTO report_moondance.sales_orders (
     state_tax_rate,
     total_county_transit_tax,
     total_county_base_tax,
-    total_state_tax  
+    total_state_tax,
+    taxes_collected
 )
 
 SELECT
@@ -607,7 +631,7 @@ SELECT
     cost_type,
     1::NUMERIC /order_count.order_line_count::NUMERIC as order_count,
     CASE
-        WHEN customer_type = 'Wholesale' THEN NULL
+        WHEN customer_type = 'Wholesale' OR so.source_system = 'Amazon' THEN NULL
         WHEN so.sales_channel = 'Farmers Market - Durham' THEN 'Durham County Tax'
         WHEN so.sales_channel = 'Farmers Market - Wake Forest' THEN 'Wake County Tax' 
         ELSE order_line_taxes.county
@@ -618,7 +642,8 @@ SELECT
     state_tax.base_rate as state_tax_rate,
     (county_tax.transit_rate/100::NUMERIC) * (COALESCE(so.net_sales, 0) + COALESCE(so.shipping_collected, 0)) as total_county_transit_tax,
     (county_tax.base_rate/100::NUMERIC)  * (COALESCE(so.net_sales, 0) + COALESCE(so.shipping_collected, 0)) as total_county_base_tax,
-    (state_tax.base_rate/100::NUMERIC)  * (COALESCE(so.net_sales, 0) + COALESCE(so.shipping_collected, 0)) as total_state_tax   
+    (state_tax.base_rate/100::NUMERIC)  * (COALESCE(so.net_sales, 0) + COALESCE(so.shipping_collected, 0)) as total_state_tax,
+    COALESCE(order_line_taxes.taxes_collected, 0) + COALESCE(so.shipping_tax_collected, 0) as taxes_collected
 FROM
     sales_orders so LEFT JOIN
     adder_rates adder_line ON
@@ -631,12 +656,12 @@ FROM
         so.sales_channel = order_count.sales_channel AND
         so.order_id = order_count.order_id LEFT JOIN
     order_line_taxes ON 
-        so.source_system != 'Amazon' AND
-        so.customer_type = 'Retail' AND
+        --so.source_system != 'Amazon' AND
+        --so.customer_type = 'Retail' AND
         so.order_line_id = order_line_taxes.order_line_id LEFT JOIN
     public.accounting_tax_rate_county county_tax ON
         CASE
-            WHEN customer_type = 'Wholesale' THEN NULL
+            WHEN customer_type = 'Wholesale' OR so.source_system = 'Amazon' THEN NULL
             WHEN so.sales_channel = 'Farmers Market - Durham' THEN 'Durham County Tax'
             WHEN so.sales_channel = 'Farmers Market - Wake Forest' THEN 'Wake County Tax' 
             ELSE order_line_taxes.county

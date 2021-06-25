@@ -106,17 +106,17 @@ def quote_sql(value):
 def get_chart(request, id):
     # get server chart options and sql
     chart = json.loads(get_sql_data(name="get_chart_options", args={"id": id})[0][0])
-    drillDowns = chart["extraOptions"]["drillDowns"]
+    fields = chart["extraOptions"]["fields"]
     server_params = chart["extraOptions"]["sql"]
     filters = [""]
 
     # prepopulate sql using server params
-    for d in drillDowns:
-        if d["filter"]:
-            filters.append(d["filter"])
-            d["filter"] = None
-        if d["isCurrent"]:
-            grouping = d["value"]
+    for f in fields:
+        if f["filter"]:
+            filters.append(f["filter"])
+            f["filter"] = None
+        if f["isCurrent"]:
+            grouping = f["value"]
 
     # overwrite server parameters with user parameters
     user_params = json.loads(request.body)
@@ -166,7 +166,7 @@ def get_chart(request, id):
     chart["highCharts"]["series"] = data["data"]
     chart["extraOptions"]["chartCategory"] = chartCategory
     chart["extraOptions"].pop("sql")
-    chart["extraOptions"]["drillDowns"] = [d for d in drillDowns if d["isVisible"]]
+    chart["extraOptions"]["fields"] = [d for d in fields if d["isVisible"]]
     chart["extraOptions"]["title"] = "{} {}{:,}".format(
         chart["highCharts"]["yAxis"]["title"]["text"],
         chart["highCharts"]["tooltip"]["valuePrefix"],

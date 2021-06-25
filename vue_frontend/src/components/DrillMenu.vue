@@ -6,7 +6,7 @@
           <v-subheader>Drill Down Options</v-subheader>
           <v-list-item-group color="primary">
             <v-list-item
-              v-for="item in AvailableDrillDowns"
+              v-for="item in drillItems"
               :key="item.value"
               @click="drillDownSelected(item)"
             >
@@ -24,7 +24,7 @@
 <script>
   export default {
     name: "DrillMenu",
-    props: ["AvailableDrillDowns", "showDrillMenu", "chartCategory"],
+    props: ["drillItems", "selectedDrillItem", "chartCategory"],
     data: () => ({
       menu: {
         show: false,
@@ -33,7 +33,7 @@
       },
     }),
     watch: {
-      showDrillMenu(e) {
+      selectedDrillItem(e) {
         this.menu.show = false;
         let selectedFilterValue =
           this.chartCategory === "phased" ? e.point.series.name : e.point.name;

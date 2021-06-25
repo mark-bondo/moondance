@@ -32,7 +32,7 @@ SELECT
             xaxis.field,
             'title', c.title, 
             'prefix', yaxis.yaxis_prefix,
-            'drillDowns', drilldowns.fields,
+            'fields', drilldowns.fields,
             'chartCategory', CASE
                             WHEN c.type IN ('pie', 'donut') THEN 'summary'
                             ELSE 'phased'

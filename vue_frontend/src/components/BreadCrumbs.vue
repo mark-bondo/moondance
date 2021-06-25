@@ -23,7 +23,7 @@
             </template>
             <v-list>
               <v-list-item
-                v-for="(i, index) in AvailableDrillDowns"
+                v-for="(i, index) in drillItems"
                 :key="i.value"
                 :value="index"
                 @click="breadCrumbMenuClick(i, item)"
@@ -47,8 +47,8 @@
   export default {
     name: "BreadCrumbs",
     props: [
-      "drillDowns",
-      "AvailableDrillDowns",
+      "fields",
+      "drillItems",
       "selectedBreadCrumb",
       "selectedFilterValue",
       "activeIconMap",
@@ -56,12 +56,12 @@
     data: () => ({}),
     computed: {
       visibleBreadCrumbs() {
-        return this.drillDowns.filter((d) => d.isBreadCrumb === true);
+        return this.fields.filter((d) => d.isBreadCrumb === true);
       },
     },
     watch: {
       selectedBreadCrumb(newItem) {
-        var oldItem = _.find(this.drillDowns, { isCurrent: true });
+        var oldItem = _.find(this.fields, { isCurrent: true });
         oldItem = Object.assign(oldItem, {
           isCurrent: false,
           isBreadCrumb: true,
@@ -75,7 +75,7 @@
           icon: this.activeIconMap[true],
           sortOrder: oldItem.sortOrder + 10,
         });
-        this.$emit("setDrillDowns", _.orderBy(this.drillDowns, "sortOrder"));
+        this.$emit("setFields", _.orderBy(this.fields, "sortOrder"));
       },
     },
     beforeMount() {},
@@ -89,7 +89,7 @@
             icon: this.activeIconMap[false],
             sortOrder: 0,
           });
-          this.$emit("setDrillDowns", _.orderBy(this.drillDowns, "sortOrder"));
+          this.$emit("setFields", _.orderBy(this.fields, "sortOrder"));
         }
       },
       breadCrumbMenuClick(newItem, oldItem) {
@@ -106,7 +106,7 @@
           value: oldItemCopy.value,
           filter: oldItemCopy.filter,
         });
-        this.$emit("setDrillDowns", _.orderBy(this.drillDowns, "sortOrder"));
+        this.$emit("setFields", _.orderBy(this.fields, "sortOrder"));
       },
     },
   };
