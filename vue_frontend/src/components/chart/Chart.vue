@@ -3,8 +3,6 @@
     <v-card-title class="justify-center pa-0">
       <chart-toolbar
         :extraOptions="extraOptions"
-        :localOptions="localOptions"
-        :fields="fields"
         :chartTypeChoices="chartTypeChoices"
         @setChartType="setChartType"
       >
@@ -34,7 +32,8 @@
             :drillItems="drillItems"
             :selectedDrillItem="selectedDrillItem"
             :chartCategory="extraOptions.chartCategory"
-            @setParentItem="setParentItem"
+            @setBreadCrumb="setBreadCrumb"
+            @setFilterValue="setFilterValue"
           ></drill-menu>
         </v-col>
 
@@ -188,12 +187,11 @@
           this.getData();
         }
       },
-      setParentItem(item) {
-        this[item.name] = item.value;
-
-        if (item.refreshData) {
-          this.getData();
-        }
+      setFilterValue(item) {
+        this.selectedFilterValue = item;
+      },
+      setBreadCrumb(item) {
+        this.selectedBreadCrumb = item;
       },
     },
   };

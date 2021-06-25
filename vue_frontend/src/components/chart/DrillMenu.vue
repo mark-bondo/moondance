@@ -43,19 +43,12 @@
           y: e.clientY,
           show: true,
         };
-
-        this.$emit("setParentItem", {
-          name: "selectedFilterValue",
-          value: selectedFilterValue,
-        });
+        this.$emit("setFilterValue", selectedFilterValue);
       },
     },
     methods: {
-      drillDownSelected(newItem) {
-        this.$emit("setParentItem", {
-          name: "selectedBreadCrumb",
-          value: newItem,
-        });
+      drillDownSelected(selectedBreadCrumb) {
+        this.$emit("setBreadCrumb", selectedBreadCrumb);
       },
     },
   };

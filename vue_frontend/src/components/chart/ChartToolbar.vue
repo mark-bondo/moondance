@@ -31,7 +31,7 @@
 <script>
   export default {
     name: "Chart",
-    props: ["chartTypeChoices", "localOptions", "extraOptions", "fields"],
+    props: ["chartTypeChoices", "extraOptions"],
     data: () => ({
       selectedChartType: {},
     }),
