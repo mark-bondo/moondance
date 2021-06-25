@@ -1,5 +1,10 @@
 [
     {
+      "category": "table",
+      "type": "table",
+      "icon": "mdi-table"
+    },
+    {
       "category": "summary",
       "type": "pie",
       "icon": "mdi-chart-pie"

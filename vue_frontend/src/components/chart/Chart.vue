@@ -23,7 +23,7 @@
         </v-col>
       </v-row>
       <v-row>
-        <v-col cols="12">
+        <v-col cols="12" v-if="this.extraOptions.chartCategory !== 'table'">
           <highcharts
             :options="localOptions"
             v-if="!isInitialLoad"
@@ -35,6 +35,15 @@
             @setBreadCrumb="setBreadCrumb"
             @setFilterValue="setFilterValue"
           ></drill-menu>
+        </v-col>
+        <v-col cols="12" v-else>
+          <v-data-table
+            dense
+            :headers="test"
+            :items="localOptions.series"
+            item-key="value"
+            class="elevation-1"
+          ></v-data-table>
         </v-col>
 
         <v-overlay :absolute="true" :value="isLoading">
@@ -64,6 +73,7 @@
       isInitialLoad: true,
       isLoading: true,
       localOptions: {},
+      test: [{ value: "customer_type" }, { value: "product_type" }],
       extraOptions: {},
       chartTypeChoices: [],
       fields: [],
@@ -138,7 +148,11 @@
               this.localOptions.series = [];
             }
 
-            this.parseSeries(serverOptions.series);
+            if (this.extraOptions.chartCategory !== "table") {
+              this.parseSeries(serverOptions.series);
+            } else {
+              self.localOptions.series = serverOptions.series;
+            }
             this.isInitialLoad = false;
             this.isLoading = false;
           });

@@ -23,8 +23,6 @@ def get_sql_data(name, args={}, replace_dd={}):
     if replace_dd:
         sql = sql % replace_dd
 
-    # print(sql)
-
     with connection.cursor() as cursor:
         cursor.execute(sql, args)
         data = cursor.fetchall()
@@ -150,6 +148,8 @@ def get_chart(request, id):
             continue
 
     server_params["filters"] = " AND ".join(filters)
+    field_list = [d for d in fields if d["isVisible"]]
+    server_params["fields"] = ",".join([f["value"] for f in field_list])
 
     # get series data and totals
     chartCategory = (
@@ -164,9 +164,10 @@ def get_chart(request, id):
 
     # clean up and format json for HighCharts response
     chart["highCharts"]["series"] = data["data"]
+    # chart["extraOptions"]["tableHeaders"] = chartCategory
     chart["extraOptions"]["chartCategory"] = chartCategory
     chart["extraOptions"].pop("sql")
-    chart["extraOptions"]["fields"] = [d for d in fields if d["isVisible"]]
+    chart["extraOptions"]["fields"] = field_list
     chart["extraOptions"]["title"] = "{} {}{:,}".format(
         chart["highCharts"]["yAxis"]["title"]["text"],
         chart["highCharts"]["tooltip"]["valuePrefix"],
