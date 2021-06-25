@@ -1,37 +1,14 @@
 <template>
   <v-card>
     <v-card-title class="justify-center pa-0">
-      <v-toolbar dense class="elevation-0">
-        <v-spacer></v-spacer>
-        <v-toolbar-title>{{ extraOptions.title }}</v-toolbar-title>
-        <v-spacer></v-spacer>
-        <v-menu left offset-y>
-          <template v-slot:activator="{ on, attrs }">
-            <v-btn icon v-bind="attrs" v-on="on" dark color="#302752">
-              <v-icon large>mdi-chart-box</v-icon>
-            </v-btn>
-          </template>
-          <v-list-item-group
-            v-model="extraOptions.selectedChartType"
-            active-class="deep-purple--text text--accent-4"
-          >
-            <v-list>
-              <v-list-item
-                v-for="c in chartTypeChoices"
-                :key="c.type"
-                @click="changeChartType(c)"
-              >
-                <v-list-item-icon
-                  ><v-icon v-text="c.icon"></v-icon
-                ></v-list-item-icon>
-                <v-list-item-content>
-                  <v-list-item-title> {{ c.type }}</v-list-item-title>
-                </v-list-item-content>
-              </v-list-item>
-            </v-list>
-          </v-list-item-group>
-        </v-menu>
-      </v-toolbar>
+      <chart-toolbar
+        :extraOptions="extraOptions"
+        :localOptions="localOptions"
+        :fields="fields"
+        :chartTypeChoices="chartTypeChoices"
+        @setChartType="setChartType"
+      >
+      </chart-toolbar>
     </v-card-title>
     <v-card-text>
       <v-row>
@@ -76,13 +53,14 @@
 
 <script>
   import _ from "lodash";
-  import BreadCrumbs from "@/components/BreadCrumbs.vue";
-  import DrillMenu from "@/components/DrillMenu.vue";
+  import BreadCrumbs from "@/components/chart/BreadCrumbs.vue";
+  import DrillMenu from "@/components/chart/DrillMenu.vue";
+  import ChartToolbar from "@/components/chart/ChartToolbar.vue";
 
   export default {
     name: "Chart",
     props: ["chartId", "dateFilter"],
-    components: { BreadCrumbs, DrillMenu },
+    components: { BreadCrumbs, DrillMenu, ChartToolbar },
     data: () => ({
       isInitialLoad: true,
       isLoading: true,
@@ -129,18 +107,6 @@
           await this.$http.get(`default-settings/defaultChartOptions`, {})
         ).data;
         this.getData();
-      },
-
-      changeChartType(item) {
-        this.selectedChartType = item.type;
-        this.localOptions.chart.type = item.type;
-
-        if (item.category !== this.extraOptions.chartCategory) {
-          this.extraOptions.chartCategory = item.category;
-          this.getData();
-        } else {
-          this.extraOptions.chartCategory = item.category;
-        }
       },
       getData() {
         this.isLoading = true;
@@ -214,8 +180,20 @@
         this.fields = d;
         this.getData();
       },
+      setChartType(item) {
+        this.localOptions.chart.type = item.type;
+        this.extraOptions.chartCategory = item.category;
+
+        if (item.refreshData) {
+          this.getData();
+        }
+      },
       setParentItem(item) {
         this[item.name] = item.value;
+
+        if (item.refreshData) {
+          this.getData();
+        }
       },
     },
   };
