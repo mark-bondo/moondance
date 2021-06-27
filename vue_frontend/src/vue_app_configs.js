@@ -10,8 +10,8 @@ import HighchartsVue from 'highcharts-vue'
 import Highcharts from 'highcharts';
 import axios from 'axios'
 import '@mdi/font/css/materialdesignicons.css'
-
 import KPIDashboard from "./apps/KPIDashboard.vue"
+
 
 Highcharts.setOptions({
     title: {

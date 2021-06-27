@@ -56,12 +56,12 @@
     data: () => ({}),
     computed: {
       visibleBreadCrumbs() {
-        return this.fields.filter((d) => d.isBreadCrumb === true);
+        return _.filter(this.fields, { isBreadCrumb: true, type: "grouping" });
       },
     },
     watch: {
       selectedBreadCrumb(newItem) {
-        var oldItem = _.find(this.fields, { isCurrent: true });
+        var oldItem = _.find(this.fields, { isCurrent: true, type: "grouping" });
         oldItem = Object.assign(oldItem, {
           isCurrent: false,
           isBreadCrumb: true,
@@ -73,9 +73,9 @@
           isCurrent: true,
           isBreadCrumb: true,
           icon: this.activeIconMap[true],
-          sortOrder: oldItem.sortOrder + 10,
+          sort: oldItem.sort + 10,
         });
-        this.$emit("setFields", _.orderBy(this.fields, "sortOrder"));
+        this.$emit("setFields", _.orderBy(this.fields, "sort"));
       },
     },
     beforeMount() {},
@@ -87,9 +87,9 @@
             isBreadCrumb: false,
             filter: null,
             icon: this.activeIconMap[false],
-            sortOrder: 0,
+            sort: 0,
           });
-          this.$emit("setFields", _.orderBy(this.fields, "sortOrder"));
+          this.$emit("setFields", _.orderBy(this.fields, "sort"));
         }
       },
       breadCrumbMenuClick(newItem, oldItem) {
@@ -106,7 +106,7 @@
           value: oldItemCopy.value,
           filter: oldItemCopy.filter,
         });
-        this.$emit("setFields", _.orderBy(this.fields, "sortOrder"));
+        this.$emit("setFields", _.orderBy(this.fields, "sort"));
       },
     },
   };

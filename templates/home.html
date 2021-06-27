@@ -6,6 +6,8 @@
     {% load render_bundle from webpack_loader %}
     {% get_static_prefix as STATIC_URL %}
     {% get_media_prefix as MEDIA_URL %}
+    <link rel="stylesheet" href="https://unpkg.com/ag-grid-community/dist/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://unpkg.com/ag-grid-community/dist/styles/ag-theme-alpine.css">
 </head>
 <body>
     <div id="kpi-dashboard" data-app></div>

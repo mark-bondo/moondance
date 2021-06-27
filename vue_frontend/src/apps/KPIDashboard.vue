@@ -2,7 +2,7 @@
   <v-app>
     <v-navigation-drawer v-model="drawer" absolute temporary app>
       <v-list>
-        <v-subheader><v-icon>mdi-chart-bar</v-icon>Dashboards</v-subheader>
+        <v-subheader> <v-icon>mdi-chart-bar</v-icon>Dashboards</v-subheader>
         <v-list-item-group active-class="deep-purple--text text--accent-4">
           <v-list-item
             v-for="item in dashboards"
@@ -29,16 +29,21 @@
     </v-navigation-drawer>
     <v-app-bar color="#302752" dark hide-on-scroll app>
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
+      <v-img
+        class="mt-1 hidden-sm-and-down"
+        src="/static/site-wide/logo-large-white.png"
+        max-width="220"
+      ></v-img>
       <v-spacer></v-spacer>
+
       <v-toolbar-title>
         <h2>{{ headerTitle }}</h2></v-toolbar-title
       >
       <v-spacer></v-spacer>
+      <span style="width: 220px" class="hidden-sm-and-down"></span>
     </v-app-bar>
     <v-main>
-      <v-container fluid :class="{ 'pa-0': $vuetify.breakpoint.xs }">
-        <dashboard :charts="selectedCharts"></dashboard>
-      </v-container>
+      <dashboard :charts="selectedCharts"></dashboard>
     </v-main>
   </v-app>
 </template>

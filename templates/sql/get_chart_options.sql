@@ -7,17 +7,16 @@ WITH drilldowns AS (
                 'text', COALESCE(name, REPLACE(INITCAP(field), '_', ' ')),
                 'isVisible', is_visible,
                 'isCurrent', is_default,
-                'isBreadCrumb', is_default,
-                'sortOrder', 0,
+                'isBreadCrumb', CASE WHEN "type" = 'grouping' THEN is_default ELSE FALSE END,
+                'sort', 0,
                 'filter', CASE WHEN filter IS NOT NULL THEN field || filter END,
-                'type', 'grouping'
+                'type', "type"
             )
             ORDER BY COALESCE(name, field)
          ) fields
     FROM
         public.automationtools_chart_options
     WHERE
-        type = 'grouping' AND
         chart_id = %(id)s
     GROUP BY
         chart_id

@@ -149,7 +149,7 @@ def get_chart(request, id):
 
     server_params["filters"] = " AND ".join(filters)
     field_list = [d for d in fields if d["isVisible"]]
-    server_params["fields"] = ",".join([f["value"] for f in field_list])
+    server_params["table_fields"] = server_params["grouping"]
 
     # get series data and totals
     chartCategory = (
@@ -164,7 +164,6 @@ def get_chart(request, id):
 
     # clean up and format json for HighCharts response
     chart["highCharts"]["series"] = data["data"]
-    # chart["extraOptions"]["tableHeaders"] = chartCategory
     chart["extraOptions"]["chartCategory"] = chartCategory
     chart["extraOptions"].pop("sql")
     chart["extraOptions"]["fields"] = field_list

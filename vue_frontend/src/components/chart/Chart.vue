@@ -23,7 +23,7 @@
         </v-col>
       </v-row>
       <v-row>
-        <v-col cols="12" v-if="this.extraOptions.chartCategory !== 'table'">
+        <v-col cols="12" v-if="extraOptions.chartCategory !== 'table'">
           <highcharts
             :options="localOptions"
             v-if="!isInitialLoad"
@@ -36,14 +36,14 @@
             @setFilterValue="setFilterValue"
           ></drill-menu>
         </v-col>
-        <v-col cols="12" v-else>
-          <v-data-table
-            dense
-            :headers="test"
-            :items="localOptions.series"
-            item-key="value"
-            class="elevation-1"
-          ></v-data-table>
+        <v-col cols="12" v-else-if="extraOptions.chartCategory == 'table'">
+          <ag-grid-vue
+            style="width: 400px; height: 400px"
+            class="ag-theme-alpine"
+            :columnDefs="tableHeaders"
+            :rowData="localOptions.series"
+          >
+          </ag-grid-vue>
         </v-col>
 
         <v-overlay :absolute="true" :value="isLoading">
@@ -60,15 +60,18 @@
 </template>
 
 <script>
+  /* App sass */
   import _ from "lodash";
   import BreadCrumbs from "@/components/chart/BreadCrumbs.vue";
   import DrillMenu from "@/components/chart/DrillMenu.vue";
   import ChartToolbar from "@/components/chart/ChartToolbar.vue";
 
+  import { AgGridVue } from "ag-grid-vue";
+
   export default {
     name: "Chart",
     props: ["chartId", "dateFilter"],
-    components: { BreadCrumbs, DrillMenu, ChartToolbar },
+    components: { BreadCrumbs, DrillMenu, ChartToolbar, AgGridVue },
     data: () => ({
       isInitialLoad: true,
       isLoading: true,
@@ -92,9 +95,25 @@
       },
     }),
     computed: {
+      tableHeaders() {
+        var fields = [];
+
+        _.forEach(this.fields, function (f) {
+          if (f.isCurrent === true && f.type !== "xaxis") {
+            fields.push({ headerName: f.text, field: f.value });
+          }
+        });
+
+        return fields;
+
+        // return _.sortBy(
+        //   _.reject(_.filter(this.fields, { isCurrent: true }), { type: "xaxis" }),
+        //   ["type", "order"]
+        // );
+      },
       drillItems() {
         return _.sortBy(
-          this.fields.filter((d) => d.isBreadCrumb === false),
+          _.filter(this.fields, { isBreadCrumb: false, type: "grouping" }),
           "text"
         );
       },
@@ -131,7 +150,7 @@
         this.$http
           .post(`chart/${this.chartId}`, {
             filters: filters,
-            grouping: _.find(this.fields, { isCurrent: true }),
+            grouping: _.find(this.fields, { isCurrent: true, type: "grouping" }),
             chartCategory: this.extraOptions.chartCategory,
           })
           .then((response) => {
@@ -151,7 +170,7 @@
             if (this.extraOptions.chartCategory !== "table") {
               this.parseSeries(serverOptions.series);
             } else {
-              self.localOptions.series = serverOptions.series;
+              this.localOptions.series = serverOptions.series;
             }
             this.isInitialLoad = false;
             this.isLoading = false;
