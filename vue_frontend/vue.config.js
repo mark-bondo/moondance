@@ -11,7 +11,7 @@ module.exports = {
     pages: pages,
     filenameHashing: false,
     productionSourceMap: false,
-    publicPath: process.env.NODE_ENV === 'production' ?
+    publicPath: process.env.DB_HOST !== '127.0.0.1' ?
         '' : 'http://127.0.0.1:8080',
     outputDir: '../moondance/static/vue/',
 

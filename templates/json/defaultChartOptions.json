@@ -4,7 +4,8 @@
     "style": {
       "overflow": "visible"
     },
-    "type": null
+    "type": null,
+    "height": "50%"
   },
   "tooltip": {
     "hideDelay": 0,

@@ -1,23 +1,27 @@
 <template>
-  <div>
-    <v-row class="mb-3">
-      <v-tabs
-        v-show="charts.length !== 0"
-        v-model="dateFilter"
-        centered
-        show-arrows
-        center-active
-        color="green"
-      >
-        <v-tab v-for="(item, index) in dateTabs" :key="index">{{ item }}</v-tab>
-      </v-tabs>
+  <v-container fluid>
+    <v-row>
+      <v-col>
+        <v-tabs
+          v-show="charts.length !== 0"
+          v-model="dateFilter"
+          centered
+          show-arrows
+          center-active
+          color="green"
+        >
+          <v-tab v-for="(item, index) in dateTabs" :key="index">{{
+            item
+          }}</v-tab>
+        </v-tabs>
+      </v-col>
     </v-row>
     <v-row>
       <v-col v-for="chartId in charts" :key="chartId" cols="12" xs="12" lg="6">
         <chart :chartId="chartId" :dateFilter="dateTabs[dateFilter]" />
       </v-col>
     </v-row>
-  </div>
+  </v-container>
 </template>
 <script>
   import Chart from "@/components/chart/Chart.vue";

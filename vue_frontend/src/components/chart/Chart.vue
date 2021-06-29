@@ -25,6 +25,12 @@
       <v-row>
         <v-col cols="12" v-if="extraOptions.chartCategory !== 'table'">
           <highcharts
+            style="
+              min-width: 400px;
+              min-height: 400px;
+              height: 100%;
+              width: 100%;
+            "
             :options="localOptions"
             v-if="!isInitialLoad"
           ></highcharts>
@@ -38,7 +44,12 @@
         </v-col>
         <v-col cols="12" v-else-if="extraOptions.chartCategory == 'table'">
           <ag-grid-vue
-            style="width: 400px; height: 400px"
+            style="
+              min-width: 400px;
+              min-height: 450px;
+              height: 100%;
+              width: 100%;
+            "
             class="ag-theme-alpine"
             :columnDefs="tableHeaders"
             :rowData="localOptions.series"

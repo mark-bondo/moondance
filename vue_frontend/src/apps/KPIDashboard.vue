@@ -42,6 +42,7 @@
       <v-spacer></v-spacer>
       <span style="width: 220px" class="hidden-sm-and-down"></span>
     </v-app-bar>
+
     <v-main>
       <dashboard :charts="selectedCharts"></dashboard>
     </v-main>
