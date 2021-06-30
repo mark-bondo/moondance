@@ -81,7 +81,6 @@ def get_xaxis_fields(dte):
 
         start_date = today.replace(day=1, month=m)
         date_grouping = "week"
-        print(start_date)
     elif dte == "This Year":
         start_date = today.replace(day=1, month=1)
         date_grouping = "month"

@@ -27,9 +27,8 @@ SELECT
     JSONB_BUILD_OBJECT(
         'extraOptions',
         JSONB_BUILD_OBJECT(
-            'xAxis',
-            xaxis.field,
-            'title', c.title, 
+            'xAxis', xaxis.field,
+            'title', c.title,
             'prefix', yaxis.yaxis_prefix,
             'fields', drilldowns.fields,
             'chartCategory', CASE
@@ -69,8 +68,7 @@ SELECT
             JSONB_BUILD_OBJECT(
                 'title', 
                 JSONB_BUILD_OBJECT(
-                    'text',
-                    xaxis.name
+                    'text', COALESCE(xaxis.name, REPLACE(INITCAP(xaxis.field), '_', ' '))
                 ),
                 'type', xaxis.xaxis_type
             ),
