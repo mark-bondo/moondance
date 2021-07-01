@@ -6,8 +6,8 @@ import _ from 'lodash'
 import Vue from 'vue'
 import store from "@/store"
 import vuetify from '@/plugins/vuetify'
-import HighchartsVue from 'highcharts-vue'
 import Highcharts from 'highcharts';
+import HighchartsVue from 'highcharts-vue'
 import axios from 'axios'
 import '@mdi/font/css/materialdesignicons.css'
 import KPIDashboard from "./apps/KPIDashboard.vue"

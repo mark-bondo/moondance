@@ -57,7 +57,11 @@
           </ag-grid-vue>
         </v-col>
 
-        <v-overlay :absolute="true" :value="isLoading">
+        <v-overlay
+          :absolute="true"
+          :value="isLoading"
+          style="min-width: 400px; min-height: 450px; height: 100%; width: 100%"
+        >
           <v-progress-circular
             indeterminate
             :size="70"
@@ -116,11 +120,6 @@
         });
 
         return fields;
-
-        // return _.sortBy(
-        //   _.reject(_.filter(this.fields, { isCurrent: true }), { type: "xaxis" }),
-        //   ["type", "order"]
-        // );
       },
       drillItems() {
         return _.sortBy(
@@ -185,7 +184,7 @@
             }
             this.isInitialLoad = false;
             this.isLoading = false;
-          });
+            });
       },
       parseSeries(series) {
         let self = this;
