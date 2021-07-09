@@ -1,5 +1,8 @@
 import json
 import os
+import io
+from wsgiref.util import FileWrapper
+from xlsxwriter.workbook import Workbook
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from django.db import connection
@@ -35,6 +38,98 @@ def get_json_data(name):
         with open(f"{FILE_PATH}templates/json/{name}.json", "r") as f:
             JSON_DD[name] = f.read()
     return JSON_DD[name]
+
+
+def get_wholesale_form(request):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            WITH skus AS (
+                SELECT
+                    id,
+                    handle,
+                    tags,
+                    status,
+                    title,
+                    images,
+                    product_type,
+                    jsonb_array_elements(variants) as v
+                FROM
+                    shopify.shopify_product
+            )
+
+            SELECT
+                COALESCE(product_type, 'Other') as product_type,
+                (
+                    CASE
+                        WHEN title = '' THEN v->>'title' 
+                        ELSE title
+                    END || 
+                    CASE
+                        WHEN COALESCE((v->>'option1'), 'Default Title') = 'Default Title' THEN ''
+                        ELSE ' - ' || (v->>'option1')
+                    END ||
+                    CASE
+                        WHEN COALESCE((v->>'option2'), 'Default Title') = 'Default Title' THEN ''
+                        ELSE ' - ' || (v->>'option2')
+                    END ||
+                    CASE
+                        WHEN COALESCE((v->>'option3'), 'Default Title') = 'Default Title' THEN ''
+                        ELSE ' - ' || (v->>'option3')
+                    END
+                ) as description,
+                v->>'sku' as SKU,
+                v->>'barcode' as UPC,
+                (v->>'price')::NUMERIC(16, 2) as retail_price,
+                ((v->>'price')::NUMERIC(16, 2) * 0.60)::NUMERIC(16, 2) as wholesale_price,
+                'https:/moondancesoaps.com/' || handle as url
+            FROM
+                skus
+            WHERE
+                status = 'active'
+            ORDER BY
+                1,2
+                
+        """
+        )
+        data = cursor.fetchall()
+        headers = [c[0].replace("_", " ").title() for c in cursor.description]
+
+    today = datetime.now().strftime("%B-%d-%Y")
+    name = f"MoonDance Soaps Wholesale Order Form {today}"
+    output = io.BytesIO()
+    workbook = Workbook(
+        output,
+        {
+            "in_memory": False,
+            "constant_memory": True,
+            "default_date_format": "m/d/yyyy",
+            "remove_timezone": True,
+        },
+    )
+    bold = workbook.add_format({"bold": True})
+    ws = workbook.add_worksheet("order sheet")
+    ws.write(0, 0, "MoonDance Soaps", bold)
+    ws.write(1, 0, "Wholesale Order Form", bold)
+    ws.write(2, 0, today)
+    ws.write_row(4, 0, headers, bold)
+    start_row = 5
+
+    for r, row in enumerate(data, start_row):
+        ws.write_row(r, 0, row)
+
+    workbook.close()
+
+    mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    response = HttpResponse(FixedFileWrapper(output), content_type=mime)
+    response["Content-Disposition"] = f'attachment; filename="{name}.xlsx"'
+    return response
+
+
+class FixedFileWrapper(FileWrapper):
+    def __iter__(self):
+        self.filelike.seek(0)
+        return self
 
 
 @login_required

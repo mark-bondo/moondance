@@ -32,6 +32,7 @@ sqlparse==0.4.1
 toml==0.10.1
 typed-ast==1.4.1
 urllib3==1.25.10
+xlsxwriter
 virtualenv==16.7.9
 virtualenv-clone==0.5.3
 wrapt==1.12.1
