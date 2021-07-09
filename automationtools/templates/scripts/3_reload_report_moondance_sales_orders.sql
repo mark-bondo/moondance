@@ -36,39 +36,49 @@ CREATE TEMP TABLE order_line_taxes ON COMMIT DROP AS
 CREATE TEMP TABLE sales_orders ON COMMIT DROP AS
 WITH shopify_line_items AS (
     SELECT
-        jsonb_array_elements(line_items) as line_json,
+        jsonb_array_elements(so.line_items) as line_json,
         CASE
-            WHEN source_name = 'sell-on-amazon' THEN 'Amazon FBM'
-            WHEN source_name IN ('279941', '580111', 'web', 'shopify_draft_order') or customer->>'tags' LIKE '%wholesaler%' THEN 'Shopify Website'
-            WHEN location_id::BIGINT = 61831086229 THEN 'Farmers Market - Wake Forest'
-            WHEN source_name IN ('android', 'pos', 'iphone') OR location_id::BIGINT = 61830463637 THEN 'Farmers Market - Durham'
-            ELSE source_name
+            WHEN so.source_name = 'sell-on-amazon' THEN 'Amazon FBM'
+            WHEN 
+                so.source_name IN ('279941', '580111', 'web', 'shopify_draft_order') 
+                OR 
+                COALESCE(c.tags, so.customer->>'tags') ILIKE '%wholesale%' 
+                OR 
+                so.tags ILIKE '%wholesale%' 
+                THEN 'Shopify Website'
+            WHEN so.location_id::BIGINT = 61831086229 THEN 'Farmers Market - Wake Forest'
+            WHEN so.source_name IN ('android', 'pos', 'iphone') OR so.location_id::BIGINT = 61830463637 THEN 'Farmers Market - Durham'
+            ELSE so.source_name
         END as sales_channel,
-        customer,
-        shipping_address,
-        id,
-        closed_at,
-        created_at,
-        updated_at,
-        number,
-        note,
-        financial_status,
-        total_discounts,
-        total_line_items_price,
-        name,
-        processed_at,
-        order_number,
-        discount_applications,
-        fulfillment_status,
-        tags,
-        refunds,
-        total_weight,
-        reference,
-        (total_shipping_price_set->'shop_money'->>'amount')::NUMERIC(16, 2) as shipping_collected
+        so.customer,
+        so.shipping_address,
+        so.id,
+        so.closed_at,
+        so.created_at,
+        so.updated_at,
+        so.number,
+        so.note,
+        so.financial_status,
+        so.total_discounts,
+        so.total_line_items_price,
+        so.name,
+        so.processed_at,
+        so.order_number,
+        so.discount_applications,
+        so.fulfillment_status,
+        CASE
+            WHEN COALESCE(c.tags, so.customer->>'tags') ILIKE '%wholesale%' OR so.tags ILIKE '%wholesale%' THEN 'Wholesale'
+            ELSE 'Retail'
+        END as customer_type,
+        so.refunds,
+        so.total_weight,
+        so.reference,
+        (so.total_shipping_price_set->'shop_money'->>'amount')::NUMERIC(16, 2) as shipping_collected
     FROM
-        shopify.shopify_sales_order
+        shopify.shopify_sales_order so
+        LEFT JOIN shopify.shopify_customer c ON (so.customer->>'id')::BIGINT = c.id 
     WHERE
-        financial_status NOT IN ('voided', 'refunded')
+        so.financial_status NOT IN ('voided', 'refunded')
 )
 , shopify_refunds AS (
     WITH lines AS (
@@ -105,13 +115,17 @@ WITH shopify_line_items AS (
         order_id
 )
 , shipping_paid AS (
-    SELECT
+    SELECT 
+        DISTINCT ON (order_id)
         order_id,
         (regexp_matches(message, '[0-9]+\.?[0-9]*'))[1]::NUMERIC(16, 2) as amount
     FROM
         shopify.shopify_order_events
     WHERE
         verb = 'shipping_label_created_success'
+    ORDER BY
+        order_id,
+        created_at DESC
 )
 , shipping_easy AS (
     SELECT
@@ -264,12 +278,12 @@ SELECT
     amazon_fees.total_fees as sales_channel_fees,
     discount_applications->0->>'title' as discount_promotion_name,
     (line_json->'discount_allocations'->0->>'amount')::NUMERIC as total_discounts_given,
-    CASE
-        WHEN customer->>'tags' ILIKE '%wholesaler%' THEN 'Wholesale'
-        ELSE 'Retail'
-    END as customer_type,
+    so.customer_type,
     COALESCE((customer->>'first_name') || ' ' || (customer->>'last_name'), 'Unknown') as customer_name,
-    customer->'default_address'->>'company' as company,
+    COALESCE(
+        NULLIF(customer->'default_address'->>'company', ''), 
+        CASE WHEN so.customer_type = 'Wholesale' THEN COALESCE((customer->>'first_name') || ' ' || (customer->>'last_name'), 'Unknown') END
+    ) as company,
     CASE
         WHEN sales_channel LIKE 'Farmers Market%' AND shipping_address->>'province' IS NULL THEN 'North Carolina'
         WHEN shipping_address->>'province' IS NULL THEN 'North Carolina' -- pickup

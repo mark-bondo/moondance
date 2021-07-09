@@ -112,7 +112,7 @@ def get_chart(request, id):
         if f["filter"]:
             filters.append(f["filter"])
             f["filter"] = None
-        if f["isCurrent"]:
+        if f["isCurrent"] and f["type"] == "grouping":
             grouping = f["value"]
 
     # overwrite server parameters with user parameters
