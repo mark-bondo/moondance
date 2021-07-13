@@ -9,11 +9,18 @@ from django.views.decorators.csrf import csrf_exempt
 def product_hook(request, action):
     item = json.loads(request.body)
 
-    if item.action == "delete":
-        products = Shopify_Product.objects.filter(id=item.id)
-
-        for p in products:
-            p._active = False
-            p.save()
+    if item["action"] == "delete":
+        with connection.cursor() as cursor:
+            sql = """
+                UPDATE
+                    shopify.shopify_product
+                SET
+                    _active = FALSE,
+                    _updated = NOW()
+                WHERE
+                    id = %s
+                ;
+            """
+            cursor.execute(sql, item["id"])
 
     return HttpResponse(item["id"])
