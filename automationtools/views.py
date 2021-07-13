@@ -10,7 +10,7 @@ def product_hook(request, action):
     item = json.loads(request.body)
 
     with open("test.json", "wb") as w:
-        w.write(request)
+        w.write(request.headers)
 
     if item.action == "delete":
         products = Shopify_Product.objects.filter(id=item.id)
