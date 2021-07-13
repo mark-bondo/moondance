@@ -7,16 +7,16 @@ from django.views.decorators.csrf import csrf_exempt
 
 @csrf_exempt
 def product_hook(request, action):
-    # item = json.loads(request.body)
+    item = json.loads(request.body)
 
     with open("test.json", "wb") as w:
-        w.write(request.body)
+        w.write(request)
 
-    # if item.action == "delete":
-    #     products = Shopify_Product.objects.filter(id=item.id)
+    if item.action == "delete":
+        products = Shopify_Product.objects.filter(id=item.id)
 
-    #     for p in products:
-    #         p._active = False
-    #         p.save()
+        for p in products:
+            p._active = False
+            p.save()
 
-    return HttpResponse("thanks")
+    return HttpResponse(item["id"])
