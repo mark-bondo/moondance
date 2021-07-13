@@ -1,5 +1,6 @@
 import json
 from django.db import connection
+from django.http.response import HttpResponse
 from integration.models import Shopify_Product
 from django.views.decorators.csrf import csrf_exempt
 
@@ -17,3 +18,5 @@ def product_hook(request, action):
     #     for p in products:
     #         p._active = False
     #         p.save()
+
+    return HttpResponse("thanks")
