@@ -15,6 +15,7 @@ from operations.views import (
 urlpatterns = [
     path("", home),
     path("data-manager/", admin.site.urls),
+    path("automationtools/", include("automationtools.urls")),
     path("operations/", include("operations.urls")),
     path("select2/", include("django_select2.urls")),
     path("product/", get_products),
