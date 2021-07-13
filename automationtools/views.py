@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 def product_hook(request, action):
     item = json.loads(request.body)
 
-    if item["action"] == "delete":
+    if action == "delete":
         with connection.cursor() as cursor:
             sql = """
                 UPDATE
