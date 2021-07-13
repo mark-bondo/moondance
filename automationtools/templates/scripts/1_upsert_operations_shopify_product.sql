@@ -13,7 +13,6 @@ INSERT INTO public.integration_shopify_product (
     barcode,
     tags,
     handle,
-    product_id,
     _active,
     _created,
     _last_updated,
@@ -23,6 +22,9 @@ INSERT INTO public.integration_shopify_product (
 
 WITH skus AS (
     SELECT
+        _active,
+        created_at,
+        updated_at,
         id,
         handle,
         tags,
@@ -72,15 +74,13 @@ SELECT
     v->>'barcode' as barcode,
     skus.tags,
     skus.handle,
-    p.id as product_id,
-    TRUE as _active,
-    NOW() as _created,
-    NOW() as _last_updated,
+    _active,
+    created_at as _created,
+    updated_at as _last_updated,
     1 as _created_by_id,
     1 as _last_updated_by_id
 FROM
-    skus LEFT JOIN 
-    public.operations_product p ON skus.v->>'sku' = p.sku
+    skus
 ON CONFLICT (variant_id)
 DO UPDATE
     SET 
@@ -97,5 +97,6 @@ DO UPDATE
         barcode = EXCLUDED.barcode,
         tags = EXCLUDED.tags,
         handle = EXCLUDED.handle,
-        product_id = EXCLUDED.product_id
+        _last_updated = EXCLUDED._last_updated,
+        _active = EXCLUDED._active
 ;
