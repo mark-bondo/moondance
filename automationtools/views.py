@@ -21,6 +21,6 @@ def product_hook(request, action):
                     id = %s
                 ;
             """
-            cursor.execute(sql, item["id"])
+            cursor.execute(sql, [item["id"]])
 
     return HttpResponse(item["id"])
