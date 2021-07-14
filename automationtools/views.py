@@ -1,26 +1,34 @@
 import json
 from django.db import connection
 from django.http.response import HttpResponse
-from integration.models import Shopify_Product
 from django.views.decorators.csrf import csrf_exempt
 
 
 @csrf_exempt
-def product_hook(request, action):
+def product_hook(request, object, action):
     item = json.loads(request.body)
+
+    object_map = {
+        "product": "shopify.shopify_product",
+        "order": "shopify.shopify_sales_order",
+        "customer": "shopify.shopify_customer",
+    }
 
     if action == "delete":
         with connection.cursor() as cursor:
             sql = """
                 UPDATE
-                    shopify.shopify_product
+                    %(table)s
                 SET
                     _active = FALSE,
-                    _updated = NOW()
+                    _last_updated = NOW()
                 WHERE
-                    id = %s
+                    id = %(id)s
                 ;
-            """
-            cursor.execute(sql, [item["id"]])
+            """ % {
+                "id": int(item["id"]),
+                "table": object_map[object],
+            }
+            cursor.execute(sql)
 
     return HttpResponse(item["id"])

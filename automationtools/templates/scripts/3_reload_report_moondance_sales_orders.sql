@@ -526,9 +526,14 @@ SELECT
     CASE
         WHEN so.sales_channel LIKE 'Farmer%' THEN 'Farmers Market'
         WHEN so.sales_channel LIKE 'Amazon%' THEN 'Amazon'
-        WHEN so.sales_channel LIKE 'Shopify%' THEN 'Shopify Website' 
+        WHEN so.customer_type = 'Wholesale' THEN 'Wholesale'
+        WHEN so.sales_channel LIKE 'Shopify%' THEN 'Shopify Retail'
     END as sales_channel_type,
-    so.sales_channel as sales_channel_name,
+    CASE
+         WHEN so.customer_type = 'Wholesale' THEN 'Wholesale'
+         WHEN so.sales_channel LIKE 'Shopify%' THEN 'Shopify Retail'
+         ELSE so.sales_channel 
+    END as sales_channel_name,
     so.order_id,
     so.order_line_id,
     so.order_status,

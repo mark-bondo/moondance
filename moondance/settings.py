@@ -186,3 +186,7 @@ CACHES = {
 
 # Tell select2 which cache configuration to use:
 SELECT2_CACHE_BACKEND = "select2"
+
+LOGIN_URL = "data-manager/login"
+LOGOUT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
