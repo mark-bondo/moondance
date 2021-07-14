@@ -51,7 +51,8 @@
               width: 100%;
             "
             class="ag-theme-alpine"
-            :columnDefs="tableHeaders"
+            :columnDefs="columnDefs"
+            :defaultColDef="defaultColDef"
             :rowData="localOptions.series"
           >
           </ag-grid-vue>
@@ -90,8 +91,11 @@
     data: () => ({
       isInitialLoad: true,
       isLoading: true,
+      defaultColDef: {
+        resizable: true,
+        sortable: true,
+      },
       localOptions: {},
-      test: [{ value: "customer_type" }, { value: "product_type" }],
       extraOptions: {},
       chartTypeChoices: [],
       fields: [],
@@ -110,15 +114,21 @@
       },
     }),
     computed: {
-      tableHeaders() {
+      columnDefs() {
         var fields = [];
+        var self = this;
 
-        _.forEach(this.fields, function (f) {
+        _.forEach(_.sortBy(this.fields, "type"), function (f) {
           if (f.isCurrent === true && f.type !== "xaxis") {
-            fields.push({ headerName: f.text, field: f.value });
+            var field = { headerName: f.text, field: f.value };
+
+            if (f.type === "yaxis") {
+              field.valueFormatter = (params) =>
+                self.currencyFormatter(params.value, self.extraOptions.prefix);
+            }
+            fields.push(field);
           }
         });
-
         return fields;
       },
       drillItems() {
@@ -145,6 +155,11 @@
           await this.$http.get(`default-settings/defaultChartOptions`, {})
         ).data;
         this.getData();
+      },
+      currencyFormatter(currency, sign) {
+        var sansDec = currency.toFixed(0);
+        var formatted = sansDec.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return sign + `${formatted}`;
       },
       getData() {
         this.isLoading = true;
@@ -184,7 +199,7 @@
             }
             this.isInitialLoad = false;
             this.isLoading = false;
-            });
+          });
       },
       parseSeries(series) {
         let self = this;

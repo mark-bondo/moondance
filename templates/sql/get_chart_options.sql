@@ -55,6 +55,18 @@ SELECT
             JSONB_BUILD_OBJECT(
                 'enabled', c.show_legend
             ),
+            'plotOptions',
+            JSONB_BUILD_OBJECT(
+                'pie',
+                JSONB_BUILD_OBJECT(
+                    'minSize', 120,
+                    'dataLabels',
+                    JSONB_BUILD_OBJECT(
+                        'enabled', TRUE,
+                        'format', '<b>{point.name}</b><br>' || yaxis.yaxis_prefix || '{point.y:,.0f}'
+                    )
+                )
+            ),
             'tooltip',
             JSONB_BUILD_OBJECT(
                 'valuePrefix', yaxis.yaxis_prefix,

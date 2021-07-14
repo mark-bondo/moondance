@@ -17,7 +17,6 @@
   "plotOptions": {
     "pie": {
       "dataLabels": {
-        "distance": 10,
         "enabled": true,
         "format":
           "<b>{point.name}</b><br>{point.y:,.0f}"

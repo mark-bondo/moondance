@@ -39,15 +39,14 @@ WITH shopify_line_items AS (
         jsonb_array_elements(so.line_items) as line_json,
         CASE
             WHEN so.source_name = 'sell-on-amazon' THEN 'Amazon FBM'
-            WHEN 
-                so.source_name IN ('279941', '580111', 'web', 'shopify_draft_order') 
-                OR 
-                COALESCE(c.tags, so.customer->>'tags') ILIKE '%wholesale%' 
-                OR 
-                so.tags ILIKE '%wholesale%' 
-                THEN 'Shopify Website'
+            WHEN COALESCE(c.tags, so.customer->>'tags') ILIKE '%wholesale%' OR so.tags ILIKE '%wholesale%' THEN 'Wholesale'
             WHEN so.location_id::BIGINT = 61831086229 THEN 'Farmers Market - Wake Forest'
-            WHEN so.source_name IN ('android', 'pos', 'iphone') OR so.location_id::BIGINT = 61830463637 THEN 'Farmers Market - Durham'
+            WHEN 
+                (so.source_name IN ('android', 'pos', 'iphone') AND EXTRACT('DOW' FROM so.processed_at::DATE) = 6) 
+                OR 
+                so.location_id::BIGINT = 61830463637 
+                THEN 'Farmers Market - Durham'
+            WHEN so.source_name IN ('279941', '580111', 'web', 'shopify_draft_order', 'android', 'pos', 'iphone') THEN 'Shopify Retail'
             ELSE so.source_name
         END as sales_channel,
         so.customer,
@@ -220,23 +219,23 @@ SELECT
     INITCAP(COALESCE((line_json->>'fulfillment_status'), 'unfulfilled')) as fulfillment_status,  
     name as order_number,
     CASE 
-        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'POS Custom Sales' 
-        WHEN sales_channel = 'Shopify Website' and p.sku IS NULL THEN 'Shopify Custom Sales' 
+        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'Custom Sales' 
+        WHEN sales_channel = 'Shopify Retail' and p.sku IS NULL THEN 'Custom Sales' 
         ELSE pcode.family 
     END as product_family,
     CASE 
-        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'POS Custom Sales' 
-        WHEN sales_channel = 'Shopify Website' and p.sku IS NULL THEN 'Shopify Custom Sales' 
+        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'Custom Sales' 
+        WHEN sales_channel = 'Shopify Retail' and p.sku IS NULL THEN 'Custom Sales' 
         ELSE pcode.category 
     END as product_category,
     CASE 
-        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'POS Custom Sales' 
-        WHEN sales_channel = 'Shopify Website' and p.sku IS NULL THEN 'Shopify Custom Sales' 
+        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'Custom Sales' 
+        WHEN sales_channel = 'Shopify Retail' and p.sku IS NULL THEN 'Custom Sales' 
         ELSE p.sku 
     END as product_sku,
     CASE 
-        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'POS Custom Sales' 
-        WHEN sales_channel = 'Shopify Website' and p.sku IS NULL THEN 'Shopify Custom Sales' 
+        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'Custom Sales' 
+        WHEN sales_channel = 'Shopify Retail' and p.sku IS NULL THEN 'Custom Sales' 
         ELSE p.description 
     END as product_description,
     (line_json->>'variant_id') as source_product_id,
@@ -526,14 +525,9 @@ SELECT
     CASE
         WHEN so.sales_channel LIKE 'Farmer%' THEN 'Farmers Market'
         WHEN so.sales_channel LIKE 'Amazon%' THEN 'Amazon'
-        WHEN so.customer_type = 'Wholesale' THEN 'Wholesale'
-        WHEN so.sales_channel LIKE 'Shopify%' THEN 'Shopify Retail'
+        ELSE so.sales_channel
     END as sales_channel_type,
-    CASE
-         WHEN so.customer_type = 'Wholesale' THEN 'Wholesale'
-         WHEN so.sales_channel LIKE 'Shopify%' THEN 'Shopify Retail'
-         ELSE so.sales_channel 
-    END as sales_channel_name,
+    so.sales_channel as sales_channel_name,
     so.order_id,
     so.order_line_id,
     so.order_status,

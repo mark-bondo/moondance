@@ -261,8 +261,9 @@ def get_chart(request, id):
     chart["extraOptions"]["chartCategory"] = chartCategory
     chart["extraOptions"].pop("sql")
     chart["extraOptions"]["fields"] = field_list
-    chart["extraOptions"]["title"] = "{} {}{:,}".format(
+    chart["extraOptions"]["title"] = "{} by {} {}{:,}".format(
         chart["highCharts"]["yAxis"]["title"]["text"],
+        [f["text"] for f in fields if f["value"] == server_params["grouping"]][0],
         chart["highCharts"]["tooltip"]["valuePrefix"],
         int(data["options"]["total"]),
     )
