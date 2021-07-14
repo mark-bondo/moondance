@@ -1,4 +1,5 @@
 import psycopg2
+import os
 import contextlib
 
 ESCAPE_LIST = [("\b", "\\b"), ("\n", "\\n"), ("\r", "\\r"), ("\t", "\\t")]
@@ -57,4 +58,4 @@ def insert_data(object_dd, db_string):
             cursor.copy_expert(sql, open(object_dd["file_name"], "r", encoding="utf-8"))
 
         conn.commit()
-        # os.remove(object_dd["file_name"])
+        os.remove(object_dd["file_name"])

@@ -14,8 +14,8 @@ def product_hook(request, object, action):
         "customer": "shopify.shopify_customer",
     }
 
-    with open("test.json", "w") as w:
-        w.write(str(request.META))
+    # with open("test.json", "w") as w:
+    #     w.write(str(request.META))
 
     if action == "delete":
         with connection.cursor() as cursor:

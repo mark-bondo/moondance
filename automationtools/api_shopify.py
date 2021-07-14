@@ -159,7 +159,7 @@ class Shopify_API(object):
                 ),
             )
 
-            # w.write("\t".join(self.object_dd["table_columns"]))
+            w.write("\t".join(self.object_dd["table_columns"]))
             w.write("\n")
 
             while True:

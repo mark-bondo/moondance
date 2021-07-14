@@ -107,6 +107,7 @@ def cli():
             command="products",
             request_parameters={
                 "updated_at_min": interval["start_datetime"],
+                "limit": 100,
             },
         )
 
@@ -115,15 +116,22 @@ def cli():
             request_parameters={
                 "updated_at_min": interval["start_datetime"],
                 "status": "any",
+                "limit": 100,
             },
         )
 
-        sync_shopify(command="sync_shopify_order_events", request_parameters={})
+        sync_shopify(
+            command="sync_shopify_order_events",
+            request_parameters={
+                "limit": 100,
+            },
+        )
 
         sync_shopify(
             command="customers",
             request_parameters={
                 "updated_at_min": interval["start_datetime"],
+                "limit": 100,
             },
         )
 
@@ -170,18 +178,26 @@ def cli():
         sync_shopify(
             command="sales_orders",
             request_parameters={
+                "status": "any",
                 "updated_at_min": interval["start_datetime"],
+                "limit": 100,
             },
         )
 
     if args.sync_shopify_order_events:
-        sync_shopify(command="sync_shopify_order_events", request_parameters={})
+        sync_shopify(
+            command="sync_shopify_order_events",
+            request_parameters={
+                "limit": 100,
+            },
+        )
 
     if args.sync_shopify_customers:
         sync_shopify(
             command="customers",
             request_parameters={
                 "updated_at_min": interval["start_datetime"],
+                "limit": 100,
             },
         )
 
