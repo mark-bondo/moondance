@@ -219,23 +219,23 @@ SELECT
     INITCAP(COALESCE((line_json->>'fulfillment_status'), 'unfulfilled')) as fulfillment_status,  
     name as order_number,
     CASE 
-        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'Custom Sales' 
-        WHEN sales_channel = 'Shopify Retail' and p.sku IS NULL THEN 'Custom Sales' 
+        WHEN sales_channel LIKE 'Farmers Market%' AND COALESCE(p.id, psku.id) IS NULL THEN 'Farmers Market Sales' 
+        WHEN sales_channel = 'Shopify Retail' AND COALESCE(p.id, psku.id) IS NULL THEN 'Shopify Custom Sales' 
         ELSE pcode.family 
     END as product_family,
     CASE 
-        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'Custom Sales' 
-        WHEN sales_channel = 'Shopify Retail' and p.sku IS NULL THEN 'Custom Sales' 
+        WHEN sales_channel LIKE 'Farmers Market%' AND COALESCE(p.id, psku.id) IS NULL THEN 'Farmers Market Sales' 
+        WHEN sales_channel = 'Shopify Retail' AND COALESCE(p.id, psku.id) IS NULL THEN 'Shopify Custom Sales' 
         ELSE pcode.category 
     END as product_category,
     CASE 
-        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'Custom Sales' 
-        WHEN sales_channel = 'Shopify Retail' and p.sku IS NULL THEN 'Custom Sales' 
+        WHEN sales_channel LIKE 'Farmers Market%' AND COALESCE(p.id, psku.id) IS NULL THEN 'Farmers Market Sales' 
+        WHEN sales_channel = 'Shopify Retail' AND COALESCE(p.id, psku.id) IS NULL THEN 'Shopify Custom Sales' 
         ELSE p.sku 
     END as product_sku,
     CASE 
-        WHEN sales_channel LIKE 'Farmers Market%' and p.sku IS NULL THEN 'Custom Sales' 
-        WHEN sales_channel = 'Shopify Retail' and p.sku IS NULL THEN 'Custom Sales' 
+        WHEN sales_channel LIKE 'Farmers Market%' AND COALESCE(p.id, psku.id) IS NULL THEN 'Farmers Market Sales' 
+        WHEN sales_channel = 'Shopify Retail' AND COALESCE(p.id, psku.id) IS NULL THEN 'Shopify Custom Sales' 
         ELSE p.description 
     END as product_description,
     (line_json->>'variant_id') as source_product_id,
@@ -307,8 +307,9 @@ FROM
         line_json->>'name' = missing.product_description AND
         missing.source_system = 'Shopify' AND
         sp.id IS NULL LEFT JOIN
+    public.operations_product psku ON so.line_json->>'sku' = psku.sku LEFT JOIN
     public.operations_product p ON COALESCE(sp.product_id, missing.product_id) = p.id LEFT JOIN
-    public.operations_product_code pcode ON p.product_code_id = pcode.id LEFT JOIN
+    public.operations_product_code pcode ON COALESCE(p.product_code_id, psku.product_code_id) = pcode.id LEFT JOIN
     shopify_refunds refunds ON (line_json->>'id') = refunds.order_line_id LEFT JOIN
     shopify_shipping_allocation ON (line_json->>'id') = shopify_shipping_allocation.order_line_id LEFT JOIN
     amazon_fees ON 

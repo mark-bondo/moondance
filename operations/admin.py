@@ -271,7 +271,9 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     def save_model(self, request, obj, form, change):
         obj = set_meta_fields(request, obj, form, change)
         freight = (
-            obj.product_code.freight_factor_percentage if obj.project_code else 0
+            obj.product_code.freight_factor_percentage
+            if obj.product_code and obj.product_code.freight_factor_percentage
+            else 0
         ) / decimal.Decimal(100)
         obj.unit_freight_cost = (obj.unit_material_cost or 0) * freight
         obj.save()
