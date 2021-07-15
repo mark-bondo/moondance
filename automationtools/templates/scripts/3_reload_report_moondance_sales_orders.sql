@@ -231,12 +231,12 @@ SELECT
     CASE 
         WHEN sales_channel LIKE 'Farmers Market%' AND COALESCE(p.id, psku.id) IS NULL THEN 'Farmers Market Sales' 
         WHEN sales_channel = 'Shopify Retail' AND COALESCE(p.id, psku.id) IS NULL THEN 'Shopify Custom Sales' 
-        ELSE p.sku 
+        ELSE COALESCE(p.sku, psku.sku) 
     END as product_sku,
     CASE 
         WHEN sales_channel LIKE 'Farmers Market%' AND COALESCE(p.id, psku.id) IS NULL THEN 'Farmers Market Sales' 
         WHEN sales_channel = 'Shopify Retail' AND COALESCE(p.id, psku.id) IS NULL THEN 'Shopify Custom Sales' 
-        ELSE p.description 
+        ELSE COALESCE(p.description, psku.description, line_json->>'name') 
     END as product_description,
     (line_json->>'variant_id') as source_product_id,
     COALESCE(sp.shopify_sku::TEXT, (line_json->>'sku')) as source_product_sku,

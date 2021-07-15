@@ -275,7 +275,8 @@ class Recipe_Line(MetaModel):
 class Order_Cost_Overlay(MetaModel):
     history = HistoricalRecords()
     sales_channel_list = (
-        ("Shopify Website", "Shopify Website"),
+        ("Shopify Retail", "Shopify Retail"),
+        ("Wholesale", "Wholesale"),
         ("Amazon FBA", "Amazon FBA"),
         ("Amazon FBM", "Amazon FBM"),
         ("Farmers Market - Wake Forest", "Farmers Market - Wake Forest"),
