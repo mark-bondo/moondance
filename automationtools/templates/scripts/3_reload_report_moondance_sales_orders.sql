@@ -26,8 +26,6 @@ CREATE TEMP TABLE order_line_taxes ON COMMIT DROP AS
         (ARRAY_REMOVE(ARRAY_AGG(DISTINCT tax_types ORDER BY tax_types), 'North Carolina State Tax'))[1] as county
     FROM
         tax_detail
-    --WHERE
-      --  tax_types <> 'Sales tax'
     GROUP BY
         order_line_id::BIGINT
 ;
@@ -114,7 +112,7 @@ WITH shopify_line_items AS (
         order_id
 )
 , shipping_paid AS (
-    SELECT 
+    SELECT
         DISTINCT ON (order_id)
         order_id,
         (regexp_matches(message, '[0-9]+\.?[0-9]*'))[1]::NUMERIC(16, 2) as amount
@@ -134,7 +132,7 @@ WITH shopify_line_items AS (
         shopify.shipping_easy_orders easy JOIN
         shopify.shopify_sales_order so ON '#' || easy."Order Number" = so.name
     GROUP BY
-        so.id    
+        so.id
 )
 , shopify_shipping_allocation AS (
     WITH shipping_line AS (
@@ -216,28 +214,12 @@ SELECT
         WHEN fulfillment_status IN ('fulfilled') THEN 'Shipped'
         ELSE 'Pending'
     END as order_status,
-    INITCAP(COALESCE((line_json->>'fulfillment_status'), 'unfulfilled')) as fulfillment_status,  
+    INITCAP(COALESCE((line_json->>'fulfillment_status'), 'unfulfilled')) as fulfillment_status,
     name as order_number,
-    CASE 
-        WHEN sales_channel LIKE 'Farmers Market%' AND COALESCE(p.id, psku.id) IS NULL THEN 'Farmers Market Sales' 
-        WHEN sales_channel = 'Shopify Retail' AND COALESCE(p.id, psku.id) IS NULL THEN 'Shopify Custom Sales' 
-        ELSE pcode.family 
-    END as product_family,
-    CASE 
-        WHEN sales_channel LIKE 'Farmers Market%' AND COALESCE(p.id, psku.id) IS NULL THEN 'Farmers Market Sales' 
-        WHEN sales_channel = 'Shopify Retail' AND COALESCE(p.id, psku.id) IS NULL THEN 'Shopify Custom Sales' 
-        ELSE pcode.category 
-    END as product_category,
-    CASE 
-        WHEN sales_channel LIKE 'Farmers Market%' AND COALESCE(p.id, psku.id) IS NULL THEN 'Farmers Market Sales' 
-        WHEN sales_channel = 'Shopify Retail' AND COALESCE(p.id, psku.id) IS NULL THEN 'Shopify Custom Sales' 
-        ELSE COALESCE(p.sku, psku.sku) 
-    END as product_sku,
-    CASE 
-        WHEN sales_channel LIKE 'Farmers Market%' AND COALESCE(p.id, psku.id) IS NULL THEN 'Farmers Market Sales' 
-        WHEN sales_channel = 'Shopify Retail' AND COALESCE(p.id, psku.id) IS NULL THEN 'Shopify Custom Sales' 
-        ELSE COALESCE(p.description, psku.description, line_json->>'name') 
-    END as product_description,
+    pcode.family as product_family,
+    pcode.category as product_category,
+    COALESCE(p.sku, psku.sku) as product_sku,
+    COALESCE(p.description, psku.description, line_json->>'name') as product_description,
     (line_json->>'variant_id') as source_product_id,
     COALESCE(sp.shopify_sku::TEXT, (line_json->>'sku')) as source_product_sku,
     line_json->>'name' as source_product_name,
@@ -270,7 +252,7 @@ SELECT
             (SELECT percent FROM default_costs WHERE type = 'labor') * (line_json->>'price')::NUMERIC
         ) *
         (
-            (line_json->>'quantity')::NUMERIC - 
+            (line_json->>'quantity')::NUMERIC -
             COALESCE(refunds.quantity, 0)
         )
     ) as direct_labor,
@@ -293,7 +275,7 @@ SELECT
     created_at::TIMESTAMP WITH TIME ZONE as date_created,
     updated_at::TIMESTAMP WITH TIME ZONE as date_last_updated,
     processed_at::TIMESTAMP WITH TIME ZONE as processed_date,
-    DATE_PART('YEAR', processed_at::TIMESTAMP WITH TIME ZONE)::INTEGER as processed_year,
+    DATE_PART('YEAR', processed_at)::INTEGER as processed_year,
     DATE_PART('MONTH', processed_at::TIMESTAMP WITH TIME ZONE)::INTEGER as processed_month,
     DATE_TRUNC('MONTH', processed_at::TIMESTAMP WITH TIME ZONE)::DATE as processed_period,
     CASE
@@ -534,10 +516,27 @@ SELECT
     so.order_status,
     so.fulfillment_status,
     so.order_number,
-    so.product_family,
-    so.product_category,
-    so.product_sku,
-    so.product_description,
+
+    CASE 
+        WHEN so.sales_channel LIKE 'Farmers Market%' AND so.product_sku IS NULL THEN 'Farmers Market Sales'
+        WHEN so.sales_channel = 'Shopify Retail' AND so.product_sku IS NULL THEN 'Shopify Custom Sales'
+        ELSE so.product_family
+    END as product_family,
+    CASE 
+        WHEN so.sales_channel LIKE 'Farmers Market%' AND so.product_sku IS NULL THEN 'Farmers Market Sales'
+        WHEN so.sales_channel = 'Shopify Retail' AND so.product_sku IS NULL THEN 'Shopify Custom Sales'
+        ELSE so.product_category
+    END as product_category,
+    CASE 
+        WHEN so.sales_channel LIKE 'Farmers Market%' AND so.product_sku IS NULL THEN 'Farmers Market Sales'
+        WHEN so.sales_channel = 'Shopify Retail' AND so.product_sku IS NULL THEN 'Shopify Custom Sales'
+        ELSE so.product_sku
+    END as product_sku,
+    CASE 
+        WHEN so.sales_channel LIKE 'Farmers Market%' AND so.product_sku IS NULL THEN 'Farmers Market Sales' 
+        WHEN so.sales_channel = 'Shopify Retail' AND so.product_sku IS NULL THEN 'Shopify Custom Sales' 
+        ELSE so.product_description
+    END as product_description,
     so.source_product_id,
     so.source_product_sku,
     so.source_product_name,
@@ -636,8 +635,8 @@ SELECT
     company,
     ship_to_state,
     is_tax_exempt,
-    date_created,
-    date_last_updated,
+    date_created::DATE as date_created,
+    date_last_updated::DATE as date_last_updated,
     processed_date::DATE as processed_date,
     processed_year,
     processed_month,
