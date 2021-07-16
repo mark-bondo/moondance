@@ -27,7 +27,18 @@ SELECT
     JSONB_BUILD_OBJECT(
         'extraOptions',
         JSONB_BUILD_OBJECT(
-            'xAxis', xaxis.field,
+            'xAxis', JSONB_BUILD_OBJECT(
+                'title', JSONB_BUILD_OBJECT(
+                    'field', xaxis.field,
+                    'text', COALESCE(xaxis.name, REPLACE(INITCAP(xaxis.field), '_', ' '))
+                )
+            ),
+            'yAxis', JSONB_BUILD_OBJECT(
+                'title', JSONB_BUILD_OBJECT(
+                    'field', yaxis.field,
+                    'text', COALESCE(yaxis.name, REPLACE(INITCAP(yaxis.field), '_', ' '))
+                )
+            ),
             'title', c.title,
             'prefix', yaxis.yaxis_prefix,
             'fields', drilldowns.fields,
@@ -80,7 +91,8 @@ SELECT
             JSONB_BUILD_OBJECT(
                 'title', 
                 JSONB_BUILD_OBJECT(
-                    'text', COALESCE(xaxis.name, REPLACE(INITCAP(xaxis.field), '_', ' '))
+                    'text', 
+                    null--COALESCE(xaxis.name, REPLACE(INITCAP(xaxis.field), '_', ' '))
                 ),
                 'type', xaxis.xaxis_type
             ),
@@ -89,7 +101,7 @@ SELECT
                 'title', 
                 JSONB_BUILD_OBJECT(
                     'text',
-                    COALESCE(yaxis.name, INITCAP(REPLACE(yaxis.field, '_', ' ')))
+                    null --COALESCE(yaxis.name, INITCAP(REPLACE(yaxis.field, '_', ' ')))
                 )
             )
         )

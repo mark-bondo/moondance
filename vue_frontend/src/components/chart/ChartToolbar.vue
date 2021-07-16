@@ -1,11 +1,21 @@
 <template>
   <v-toolbar dense class="elevation-0">
     <v-spacer></v-spacer>
-    <v-toolbar-title>{{ extraOptions.title }}</v-toolbar-title>
+
+    <v-toolbar-text>
+      <span>
+        {{ extraOptions.yAxis.title.text }}
+      </span>
+      <span> by </span>
+      <span>
+        {{ extraOptions.xAxis.title.text }}
+      </span>
+      <span> {{ extraOptions.total }} </span>
+    </v-toolbar-text>
     <v-spacer></v-spacer>
     <v-menu left offset-y>
       <template v-slot:activator="{ on, attrs }">
-        <v-btn icon v-bind="attrs" v-on="on" dark color="#302752">
+        <v-btn icon v-bind="attrs" v-on="on" dark color="success">
           <v-icon large>mdi-chart-box</v-icon>
         </v-btn>
       </template>
@@ -55,4 +65,9 @@
     methods: {},
   };
 </script>
+<style>
+  .chip-header {
+    height: 35px !important;
+  }
+</style>
 

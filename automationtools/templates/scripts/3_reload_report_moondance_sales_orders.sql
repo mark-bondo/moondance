@@ -47,26 +47,39 @@ WITH shopify_line_items AS (
             WHEN so.source_name IN ('279941', '580111', 'web', 'shopify_draft_order', 'android', 'pos', 'iphone') THEN 'Shopify Retail'
             ELSE so.source_name
         END as sales_channel,
-        so.customer,
+        COALESCE((customer->>'first_name') || ' ' || (customer->>'last_name'), 'Unknown') as customer_name,
+        COALESCE(
+            NULLIF(customer->'default_address'->>'company', ''), 
+            CASE 
+                WHEN COALESCE(c.tags, so.customer->>'tags') ILIKE '%wholesale%' OR so.tags ILIKE '%wholesale%' THEN COALESCE((customer->>'first_name') || ' ' || (customer->>'last_name'), 'Unknown') 
+            END
+        ) as company,
+        CASE
+            WHEN COALESCE(c.tags, so.customer->>'tags') ILIKE '%wholesale%' OR so.tags ILIKE '%wholesale%' THEN 'Wholesale'
+            ELSE 'Retail'
+        END as customer_type,
         so.shipping_address,
         so.id,
         so.closed_at,
         so.created_at,
         so.updated_at,
+        so.created_at as date_created,
+        so.updated_at as date_last_updated,
+        so.processed_at as processed_date,
+        DATE_PART('YEAR', so.processed_at)::INTEGER as processed_year,
+        DATE_PART('MONTH', so.processed_at)::INTEGER as processed_month,
+        DATE_TRUNC('MONTH', so.processed_at)::DATE as processed_period,
         so.number,
         so.note,
-        so.financial_status,
-        so.total_discounts,
-        so.total_line_items_price,
-        so.name,
-        so.processed_at,
-        so.order_number,
-        so.discount_applications,
-        so.fulfillment_status,
         CASE
-            WHEN COALESCE(c.tags, so.customer->>'tags') ILIKE '%wholesale%' OR so.tags ILIKE '%wholesale%' THEN 'Wholesale'
-            ELSE 'Retail'
-        END as customer_type,
+            WHEN financial_status IN ('pending') THEN 'Pending'
+            WHEN fulfillment_status IN ('fulfilled') THEN 'Shipped'
+            ELSE 'Pending'
+        END as order_status,
+        COALESCE((customer->>'tax_exempt')::BOOLEAN, FALSE) as is_tax_exempt,
+        so.total_discounts,
+        so.name as order_number,
+        so.discount_applications->0->>'title' as discount_promotion_name,
         so.refunds,
         so.total_weight,
         so.reference,
@@ -203,19 +216,15 @@ WITH shopify_line_items AS (
 
 SELECT
     CASE
-        WHEN sales_channel = 'Amazon FBM' THEN 'Amazon'
+        WHEN so.sales_channel = 'Amazon FBM' THEN 'Amazon'
         ELSE 'Shopify'
     END as source_system,
-    sales_channel,
+    so.sales_channel,
     so.id::TEXT as order_id,
     (line_json->>'id')::BIGINT as order_line_id,
-    CASE
-        WHEN financial_status IN ('pending') THEN 'Pending'
-        WHEN fulfillment_status IN ('fulfilled') THEN 'Shipped'
-        ELSE 'Pending'
-    END as order_status,
+    so.order_status,
     INITCAP(COALESCE((line_json->>'fulfillment_status'), 'unfulfilled')) as fulfillment_status,
-    name as order_number,
+    so.order_number,
     pcode.family as product_family,
     pcode.category as product_category,
     COALESCE(p.sku, psku.sku) as product_sku,
@@ -224,19 +233,19 @@ SELECT
     COALESCE(sp.shopify_sku::TEXT, (line_json->>'sku')) as source_product_sku,
     line_json->>'name' as source_product_name,
     CASE
-		WHEN ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0))::INTEGER = 0 THEN NULL
-		ELSE ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0))::INTEGER
-	END as quantity,
+        WHEN ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0))::INTEGER = 0 THEN NULL
+        ELSE ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0))::INTEGER
+    END as quantity,
     (
         (
             (line_json->>'price')::NUMERIC -
             COALESCE(((line_json->'discount_allocations'->0->>'amount')::NUMERIC/(line_json->>'quantity')::NUMERIC), 0)
         ) * ((line_json->>'quantity')::NUMERIC - COALESCE(refunds.quantity, 0))
     ) as net_sales,
-    shopify_shipping_allocation.shipping_collected as shipping_collected,
+    shopify_shipping_allocation.shipping_collected,
     shopify_shipping_allocation.shipping_tax_collected,
     shopify_shipping_allocation.shipping_cost as shipping_cost,
-    (
+   (
         COALESCE(
             p.unit_material_cost + COALESCE(p.unit_freight_cost, 0),
             (SELECT percent FROM default_costs WHERE type = 'materials') * (line_json->>'price')::NUMERIC
@@ -257,44 +266,41 @@ SELECT
         )
     ) as direct_labor,
     amazon_fees.total_fees as sales_channel_fees,
-    discount_applications->0->>'title' as discount_promotion_name,
+    so.discount_promotion_name,
     (line_json->'discount_allocations'->0->>'amount')::NUMERIC as total_discounts_given,
     so.customer_type,
-    COALESCE((customer->>'first_name') || ' ' || (customer->>'last_name'), 'Unknown') as customer_name,
-    COALESCE(
-        NULLIF(customer->'default_address'->>'company', ''), 
-        CASE WHEN so.customer_type = 'Wholesale' THEN COALESCE((customer->>'first_name') || ' ' || (customer->>'last_name'), 'Unknown') END
-    ) as company,
+    so.customer_name,
+    so.company,
     CASE
         WHEN sales_channel LIKE 'Farmers Market%' AND shipping_address->>'province' IS NULL THEN 'North Carolina'
         WHEN shipping_address->>'province' IS NULL THEN 'North Carolina' -- pickup
         WHEN shipping_address->>'province' = 'NC' THEN 'North Carolina'
         ELSE shipping_address->>'province'
     END as ship_to_state,
-    COALESCE((customer->>'tax_exempt')::BOOLEAN, FALSE) as is_tax_exempt,
-    created_at::TIMESTAMP WITH TIME ZONE as date_created,
-    updated_at::TIMESTAMP WITH TIME ZONE as date_last_updated,
-    processed_at::TIMESTAMP WITH TIME ZONE as processed_date,
-    DATE_PART('YEAR', processed_at)::INTEGER as processed_year,
-    DATE_PART('MONTH', processed_at::TIMESTAMP WITH TIME ZONE)::INTEGER as processed_month,
-    DATE_TRUNC('MONTH', processed_at::TIMESTAMP WITH TIME ZONE)::DATE as processed_period,
+    so.is_tax_exempt,
+    so.date_created,
+    so.date_last_updated,
+    so.processed_date,
+    so.processed_year,
+    so.processed_month,
+    so.processed_period,
     CASE
         WHEN p.unit_material_cost IS NULL THEN 'Product Cost'
         ELSE 'Average Cost'
     END as cost_type
 FROM
-    shopify_line_items so LEFT JOIN
-    public.integration_shopify_product sp ON (so.line_json->>'variant_id') = sp.variant_id::TEXT LEFT JOIN
-    public.integration_product_missing_sku missing ON
+    shopify_line_items so 
+    LEFT JOIN public.integration_shopify_product sp ON (so.line_json->>'variant_id') = sp.variant_id::TEXT 
+    LEFT JOIN public.integration_product_missing_sku missing ON
         line_json->>'name' = missing.product_description AND
         missing.source_system = 'Shopify' AND
-        sp.id IS NULL LEFT JOIN
-    public.operations_product psku ON so.line_json->>'sku' = psku.sku LEFT JOIN
-    public.operations_product p ON COALESCE(sp.product_id, missing.product_id) = p.id LEFT JOIN
-    public.operations_product_code pcode ON COALESCE(p.product_code_id, psku.product_code_id) = pcode.id LEFT JOIN
-    shopify_refunds refunds ON (line_json->>'id') = refunds.order_line_id LEFT JOIN
-    shopify_shipping_allocation ON (line_json->>'id') = shopify_shipping_allocation.order_line_id LEFT JOIN
-    amazon_fees ON 
+        sp.id IS NULL 
+    LEFT JOIN public.operations_product psku ON so.line_json->>'sku' = psku.sku 
+    LEFT JOIN public.operations_product p ON COALESCE(sp.product_id, missing.product_id) = p.id 
+    LEFT JOIN public.operations_product_code pcode ON COALESCE(p.product_code_id, psku.product_code_id) = pcode.id 
+    LEFT JOIN shopify_refunds refunds ON (line_json->>'id') = refunds.order_line_id 
+    LEFT JOIN shopify_shipping_allocation ON (line_json->>'id') = shopify_shipping_allocation.order_line_id 
+    LEFT JOIN amazon_fees ON 
         so.reference = amazon_fees."AmazonOrderId" AND
         p.id = amazon_fees.product_id
         

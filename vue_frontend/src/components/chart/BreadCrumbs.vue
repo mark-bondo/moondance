@@ -5,10 +5,9 @@
         <v-breadcrumbs-item>
           <v-menu offset-y :disabled="!(item.isCurrent === true)">
             <template v-slot:activator="{ on, attrs }">
-              <v-chip
+              <v-btn
                 class="ma-2"
-                label
-                text-color="white"
+                small
                 :color="item.icon.color"
                 :value="item.value"
                 @click="removeBreadCrumb(item)"
@@ -19,7 +18,7 @@
                 <span v-else>{{ item.text }}</span>
 
                 <v-icon class="ml-1" v-text="item.icon.current"></v-icon>
-              </v-chip>
+              </v-btn>
             </template>
             <v-list>
               <v-list-item
@@ -75,7 +74,7 @@
           icon: this.activeIconMap[true],
           sort: oldItem.sort + 10,
         });
-        this.$emit("setFields", _.orderBy(this.fields, "sort"));
+        this.$emit("setFields", _.orderBy(this.fields, ["type", "sort"]));
       },
     },
     beforeMount() {},
@@ -106,7 +105,7 @@
           value: oldItemCopy.value,
           filter: oldItemCopy.filter,
         });
-        this.$emit("setFields", _.orderBy(this.fields, "sort"));
+        this.$emit("setFields", _.orderBy(this.fields, ["type", "sort"]));
       },
     },
   };

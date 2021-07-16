@@ -52,6 +52,7 @@
 <script>
   // import ProductSales from "@/components/KPIDashboard/ProductSales.vue";
   import Dashboard from "@/components/Dashboard.vue";
+  import _ from "lodash";
 
   export default {
     name: "KPIDashboard",
@@ -84,6 +85,8 @@
           this.$_.forEach(response.data, function (d) {
             self.dashboards.push(d);
           });
+
+          this.selectedCharts = _.find(self.dashboards, { id: 1 }).charts;
         });
       },
       menuActionClick(item) {

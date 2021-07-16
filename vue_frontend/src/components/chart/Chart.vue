@@ -23,30 +23,34 @@
         </v-col>
       </v-row>
       <v-row>
-        <v-col cols="12" v-if="extraOptions.chartCategory !== 'table'">
-          <highcharts
-            style="
-              min-width: 400px;
-              min-height: 400px;
-              height: 100%;
-              width: 100%;
-            "
-            :options="localOptions"
-            v-if="!isInitialLoad"
-          ></highcharts>
-          <drill-menu
-            :drillItems="drillItems"
-            :selectedDrillItem="selectedDrillItem"
-            :chartCategory="extraOptions.chartCategory"
-            @setBreadCrumb="setBreadCrumb"
-            @setFilterValue="setFilterValue"
-          ></drill-menu>
+        <v-col v-if="extraOptions.chartCategory !== 'table'">
+          <v-row>
+            <v-col>
+              <highcharts
+                style="
+                  min-width: 400px;
+                  min-height: 400px;
+                  height: 100%;
+                  width: 100%;
+                "
+                :options="localOptions"
+                v-if="!isInitialLoad"
+              ></highcharts>
+              <drill-menu
+                :drillItems="drillItems"
+                :selectedDrillItem="selectedDrillItem"
+                :chartCategory="extraOptions.chartCategory"
+                @setBreadCrumb="setBreadCrumb"
+                @setFilterValue="setFilterValue"
+              ></drill-menu>
+            </v-col>
+          </v-row>
         </v-col>
         <v-col cols="12" v-else-if="extraOptions.chartCategory == 'table'">
           <ag-grid-vue
             style="
               min-width: 400px;
-              min-height: 450px;
+              min-height: 400px;
               height: 100%;
               width: 100%;
             "
@@ -54,14 +58,32 @@
             :columnDefs="columnDefs"
             :defaultColDef="defaultColDef"
             :rowData="localOptions.series"
+            :enableRangeSelection="true"
+            :applyColumnDefOrder="true"
           >
           </ag-grid-vue>
         </v-col>
-
+        <v-col v-else>
+          <div
+            style="
+              min-width: 400px;
+              min-height: 400px;
+              height: 100%;
+              width: 100%;
+            "
+          ></div>
+        </v-col>
         <v-overlay
           :absolute="true"
           :value="isLoading"
-          style="min-width: 400px; min-height: 450px; height: 100%; width: 100%"
+          style="
+            min-width: 400px;
+            min-height: 400px;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+          "
         >
           <v-progress-circular
             indeterminate
@@ -76,13 +98,13 @@
 </template>
 
 <script>
-  /* App sass */
   import _ from "lodash";
   import BreadCrumbs from "@/components/chart/BreadCrumbs.vue";
   import DrillMenu from "@/components/chart/DrillMenu.vue";
   import ChartToolbar from "@/components/chart/ChartToolbar.vue";
 
   import { AgGridVue } from "ag-grid-vue";
+  // import "ag-grid-enterprise";
 
   export default {
     name: "Chart",
@@ -94,6 +116,8 @@
       defaultColDef: {
         resizable: true,
         sortable: true,
+        suppressMenu: true,
+        floatingFilter: true,
       },
       localOptions: {},
       extraOptions: {},
@@ -122,10 +146,21 @@
           if (f.isCurrent === true && f.type !== "xaxis") {
             var field = { headerName: f.text, field: f.value };
 
-            if (f.type === "yaxis") {
-              field.valueFormatter = (params) =>
-                self.currencyFormatter(params.value, self.extraOptions.prefix);
+            switch (f.type) {
+              case "grouping":
+                field.filter = "agTextColumnFilter";
+                break;
+              case "yaxis":
+                field.filter = "agNumberColumnFilter";
+                field.type = "rightAligned";
+                field.valueFormatter = (params) =>
+                  self.currencyFormatter(params.value, self.extraOptions.prefix);
+                break;
+              case "xaxis":
+                field.filter = "agDateColumnFilter";
+                break;
             }
+
             fields.push(field);
           }
         });
@@ -254,5 +289,8 @@
     },
   };
 </script>
-<style>
+<style type="sass">
+  .vert-text {
+    transform: rotate(-90deg);
+  }
 </style>
