@@ -506,7 +506,8 @@ INSERT INTO report_moondance.sales_orders (
     total_county_transit_tax,
     total_county_base_tax,
     total_state_tax,
-    taxes_collected
+    taxes_collected,
+    total_gross_sales
 )
 
 SELECT
@@ -580,7 +581,7 @@ SELECT
 			COALESCE(order_adder.adder_sales_channel_fees, 0)
 		) / quantity
     ) as unit_cost,
-    so.net_sales,
+    NULLIF(so.net_sales, 0) as net_sales,
     so.shipping_collected,
     so.shipping_cost,
     (
@@ -620,7 +621,7 @@ SELECT
 			COALESCE(order_adder.adder_sales_channel_fees, 0)
         )
     ) as product_margin,
-    (
+    NULLIF(
         COALESCE(so.net_sales, 0) +
         COALESCE(so.shipping_collected, 0) -
         (
@@ -633,7 +634,7 @@ SELECT
             COALESCE(order_adder.adder_fullfilment_cost, 0) +
 			COALESCE(order_adder.adder_sales_channel_fees, 0)
         )
-    ) as gross_profit,
+    , 0) as gross_profit,
     discount_promotion_name,
     total_discounts_given,
     customer_type,
@@ -662,7 +663,16 @@ SELECT
     (county_tax.transit_rate/100::NUMERIC) * (COALESCE(so.net_sales, 0) + COALESCE(so.shipping_collected, 0)) as total_county_transit_tax,
     (county_tax.base_rate/100::NUMERIC)  * (COALESCE(so.net_sales, 0) + COALESCE(so.shipping_collected, 0)) as total_county_base_tax,
     (state_tax.base_rate/100::NUMERIC)  * (COALESCE(so.net_sales, 0) + COALESCE(so.shipping_collected, 0)) as total_state_tax,
-    COALESCE(order_line_taxes.taxes_collected, 0) + COALESCE(so.shipping_tax_collected, 0) as taxes_collected
+    NULLIF(
+        COALESCE(order_line_taxes.taxes_collected, 0) + 
+        COALESCE(so.shipping_tax_collected, 0) 
+    , 0) as taxes_collected,
+    NULLIF(
+        COALESCE(so.net_sales, 0) +
+        COALESCE(so.shipping_collected, 0) +
+        COALESCE(order_line_taxes.taxes_collected, 0) + 
+        COALESCE(so.shipping_tax_collected, 0)
+    , 0) as total_gross_sales
 FROM
     sales_orders so LEFT JOIN
     adder_rates adder_line ON
