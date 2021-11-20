@@ -13,9 +13,7 @@ from api_amazon import Amazon_API
 LOGGING_CONFIG = {
     "version": 1,
     "formatters": {
-        "simple": {
-            "format": "%(levelname)s\t%(name)s\t%(asctime)s\t%(module)s@%(lineno)s\t%(message)s"
-        },
+        "simple": {"format": "%(levelname)s\t%(name)s\t%(asctime)s\t%(module)s@%(lineno)s\t%(message)s"},
     },
     "handlers": {
         "cli_handler": {
@@ -85,6 +83,11 @@ def create_parser():
     parser.add_argument(
         "--time-interval",
         type=str,
+        help="format is {number} {time_period}, e.g., 5 days, 3 years, etc",
+    )
+    parser.add_argument(
+        "--date-range",
+        type=str,
         help='Date range to pull in for orders using format "YYYY-MM-DD to YYYY-MM-DD"',
     )
     parser.add_argument(
@@ -100,7 +103,18 @@ def cli():
     parser = create_parser()
     args = parser.parse_args()
 
-    interval = set_interval(args.time_interval)
+    if args.date_range:
+        date_range = [
+            datetime.datetime.strptime(x.strip(), "%Y-%m-%d").isoformat()
+            for x in args.date_range.lower().split(" to ")
+        ]
+
+        interval = {
+            "start_datetime": date_range[0],
+            "end_datetime": date_range[1],
+        }
+    else:
+        interval = set_interval(args.time_interval)
 
     if args.sync_all:
         sync_shopify(
@@ -216,8 +230,8 @@ def cli():
             command="sales_order_lines",
             request_parameters={
                 "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
-                "LastUpdatedBefore": interval["end_datetime"],
-                "LastUpdatedAfter": interval["start_datetime"],
+                # "LastUpdatedBefore": interval["end_datetime"],
+                # "LastUpdatedAfter": interval["start_datetime"],
             },
         )
 
@@ -292,16 +306,12 @@ def rebuild_sales_orders():
             with contextlib.closing(conn.cursor()) as cursor:
                 for file_name in os.listdir(script_path):
                     try:
-                        logger.info(
-                            f"rebuilding sales orders script {file_name}: starting execution"
-                        )
+                        logger.info(f"rebuilding sales orders script {file_name}: starting execution")
                         with open(f"{script_path}/{file_name}", "r") as f:
                             sql = f.read()
                             cursor.execute(sql)
                             conn.commit()
-                        logger.info(
-                            f"rebuilding sales orders script {file_name}: completed execution"
-                        )
+                        logger.info(f"rebuilding sales orders script {file_name}: completed execution")
                     except Exception:
                         logger.error(
                             f"rebuilding sales orders script {file_name}: failed execution",

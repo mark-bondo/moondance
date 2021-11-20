@@ -379,6 +379,107 @@ FROM
 WHERE
     sh."OrderStatus" <> 'Canceled' AND
     shopify.id IS NULL -- don't double count between shopify and amazon
+
+UNION ALL
+
+SELECT
+    'Nexternal' as source_system,
+    CASE
+        WHEN customer_type = 'Business' THEN 'Wholesale' 
+        ELSE 'Nexternal Retail'
+    END as sales_channel,
+    order_number::TEXT as order_id,
+    order_line as order_line_id,
+    order_line_status,
+    order_line_status as fulfillment_status,
+    order_number::TEXT as order_number,
+    pcode.family as product_family,
+    pcode.category as product_category,
+    product_sku as product_sku,
+    COALESCE(item.description, product_name) as product_description,
+    product_sku as source_product_id,
+    product_sku as source_product_sku,
+    product_name as source_product_name,
+    quantity,
+    extended_price as net_sales,
+    shipping_rate as shipping_collected,
+    NULL::NUMERIC as shipping_tax_collected,
+    NULL::NUMERIC as shipping_cost,
+    NULL::NUMERIC as material_cost,
+    NULL::NUMERIC as direct_labor,
+    NULL::NUMERIC as sales_channel_fees,
+    NULL::TEXT as discount_promotion_name,
+    NULL::NUMERIC as total_discounts_given,
+    CASE
+        WHEN customer_type = 'Business' THEN 'Wholesale' 
+        ELSE 'Retail'
+    END as customer_type,
+    NULL::TEXT as customer_name,
+    NULL::TEXT as company,
+    ship_to_state,
+    CASE
+        WHEN sales_tax_rate = 0 THEN TRUE
+        ELSE FALSE
+    END as is_tax_exempt,
+    so._created as date_created,
+    so._updated as date_last_updated,
+    datetime_ordered::DATE as processed_date,
+    DATE_PART('YEAR', datetime_ordered)::INTEGER as processed_year,
+    DATE_PART('MONTH', datetime_ordered)::INTEGER as processed_month,
+    DATE_TRUNC('MONTH', datetime_ordered)::DATE as processed_period,
+    CASE
+        WHEN item.unit_material_cost IS NULL THEN 'Product Cost'
+        ELSE 'Average Cost'
+    END as cost_type
+FROM
+    nexternal.sales_order so
+    LEFT JOIN public.operations_product item ON so.product_sku = item.sku
+    LEFT JOIN public.operations_product_code pcode ON item.product_code_id = pcode.id
+WHERE
+    datetime_ordered >= '2019-01-01' AND
+    order_status != 'Canceled'
+
+UNION ALL
+
+SELECT
+    'Excel' as source_system,
+    'Farmers Market - Durham' as sales_channel,
+    NULL::TEXT as order_id,
+    NULL::INTEGER as order_line_id,
+    NULL::TEXT as order_line_status,
+    NULL::TEXT as fulfillment_status,
+    NULL::TEXT as order_number,
+    NULL::TEXT as product_family,
+    NULL::TEXT as product_category,
+    NULL::TEXT as product_sku,
+    NULL::TEXT as product_description,
+    NULL::TEXT as source_product_id,
+    NULL::TEXT as source_product_sku,
+    NULL::TEXT as source_product_name,
+    NULL::NUMERIC as quantity,
+    total_sales as net_sales,
+    NULL::NUMERIC as shipping_collected,
+    NULL::NUMERIC as shipping_tax_collected,
+    NULL::NUMERIC as shipping_cost,
+    NULL::NUMERIC as material_cost,
+    NULL::NUMERIC as direct_labor,
+    NULL::NUMERIC as sales_channel_fees,
+    NULL::TEXT as discount_promotion_name,
+    NULL::NUMERIC as total_discounts_given,
+    'Retail' as customer_type,
+    NULL::TEXT as customer_name,
+    NULL::TEXT as company,
+    'North Carolina' as ship_to_state,
+    FALSE as is_tax_exempt,
+    _created as date_created,
+    _created as date_last_updated,
+    date_shipped as processed_date,
+    DATE_PART('YEAR', date_shipped)::INTEGER as processed_year,
+    DATE_PART('MONTH', date_shipped)::INTEGER as processed_month,
+    DATE_TRUNC('MONTH', date_shipped)::DATE as processed_period,
+    'Average Cost' as cost_type
+FROM
+    public.accounting_farmers_market_sales_history
 ;
 
 CREATE TEMP TABLE order_count ON COMMIT DROP AS
@@ -513,8 +614,9 @@ INSERT INTO report_moondance.sales_orders (
 SELECT
     so.source_system,
     CASE
-        WHEN so.sales_channel LIKE 'Farmer%' THEN 'Farmers Market'
-        WHEN so.sales_channel LIKE 'Amazon%' THEN 'Amazon'
+        WHEN so.sales_channel ILIKE 'Farmer%' THEN 'Farmers Market'
+        WHEN so.sales_channel ILIKE 'Amazon%' THEN 'Amazon'
+        WHEN so.sales_channel ILIKE ANY(ARRAY['%Shopify%', '%Nexternal%']) THEN 'Online Store'
         ELSE so.sales_channel
     END as sales_channel_type,
     so.sales_channel as sales_channel_name,
