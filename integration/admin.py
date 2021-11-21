@@ -4,6 +4,7 @@ from simple_history.admin import SimpleHistoryAdmin
 from .models import (
     Shopify_Product,
     Amazon_Product,
+    Nexternal_Product,
     Product_Missing_SKU,
 )
 
@@ -64,6 +65,34 @@ class Shopify_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         return qs
 
 
+@admin.register(Nexternal_Product)
+class Nexternal_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
+    model = Nexternal_Product
+    list_display = [
+        "sku",
+        "product",
+        "sku_description",
+    ]
+    fields = (
+        "sku",
+        "sku_description",
+        "product",
+    )
+    list_editable = [
+        "product",
+    ]
+    autocomplete_fields = [
+        "product",
+    ]
+    search_fields = [
+        "sku",
+        "sku_description",
+    ]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("product")
+
+
 @admin.register(Amazon_Product)
 class Amazon_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Amazon_Product
@@ -83,10 +112,13 @@ class Amazon_Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     autocomplete_fields = [
         "product",
     ]
+    search_fields = [
+        "asin",
+        "sku_description",
+    ]
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request).prefetch_related("product")
-        return qs
+        return super().get_queryset(request).prefetch_related("product")
 
 
 @admin.register(Product_Missing_SKU)

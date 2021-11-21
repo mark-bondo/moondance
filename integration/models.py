@@ -4,6 +4,31 @@ from simple_history.models import HistoricalRecords
 from operations.models import Product
 
 
+class Nexternal_Product(MetaModel):
+    history = HistoricalRecords()
+
+    sku = models.CharField(max_length=200, unique=True)
+    sku_description = models.CharField(max_length=200)
+    product = models.ForeignKey(
+        Product,
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="nexternal_product_product_fk",
+    )
+
+    def __str__(self):
+        return "{}".format(self.sku_description)
+
+    class Meta:
+        verbose_name = "Nexternal Product"
+        verbose_name_plural = "Nexternal Products"
+        ordering = (
+            "product__sku",
+            "sku",
+        )
+
+
 class Amazon_Product(MetaModel):
     history = HistoricalRecords()
 
@@ -70,6 +95,7 @@ class Product_Missing_SKU(MetaModel):
     source_system_choices = (
         ("Amazon", "Amazon"),
         ("Shopify", "Shopify"),
+        ("Nexternal", "Nexternal"),
     )
     source_system = models.CharField(max_length=200, choices=source_system_choices)
     product_description = models.CharField(max_length=200)
