@@ -437,7 +437,8 @@ FROM
     LEFT JOIN public.operations_product_code pcode ON item.product_code_id = pcode.id
 WHERE
     datetime_ordered >= '2019-01-01' AND
-    order_status != 'Canceled'
+    order_status != 'Canceled' AND
+    COALESCE(product_name, '') NOT LIKE '% Insert'
 
 UNION ALL
 
