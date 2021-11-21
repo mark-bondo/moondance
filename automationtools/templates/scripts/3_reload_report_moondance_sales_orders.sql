@@ -388,11 +388,11 @@ SELECT
         WHEN customer_type = 'Business' THEN 'Wholesale' 
         ELSE 'Nexternal Retail'
     END as sales_channel,
-    order_number::TEXT as order_id,
+    so.order_number::TEXT as order_id,
     order_line as order_line_id,
     order_line_status,
     order_line_status as fulfillment_status,
-    order_number::TEXT as order_number,
+    so.order_number::TEXT as order_number,
     pcode.family as product_family,
     pcode.category as product_category,
     product_sku as product_sku,
@@ -402,7 +402,10 @@ SELECT
     product_name as source_product_name,
     quantity,
     extended_price as net_sales,
-    shipping_rate as shipping_collected,
+    (
+        so.shipping_rate *
+        (so.total_weight / NULLIF(shipping.total_weight, 0) )
+    ) as shipping_collected,
     NULL::NUMERIC as shipping_tax_collected,
     NULL::NUMERIC as shipping_cost,
     NULL::NUMERIC as material_cost,
@@ -435,10 +438,19 @@ FROM
     nexternal.sales_order so
     LEFT JOIN public.operations_product item ON so.product_sku = item.sku
     LEFT JOIN public.operations_product_code pcode ON item.product_code_id = pcode.id
+    LEFT JOIN (
+        SELECT
+            order_number,
+            SUM(total_weight) as total_weight
+        FROM
+            nexternal.sales_order
+        GROUP BY
+            order_number
+    ) shipping ON so.order_number = shipping.order_number
 WHERE
     datetime_ordered >= '2019-01-01' AND
     order_status != 'Canceled' AND
-    COALESCE(product_name, '') NOT LIKE '% Insert'
+    product_name NOT LIKE '% Insert'
 
 UNION ALL
 
@@ -598,6 +610,7 @@ INSERT INTO report_moondance.sales_orders (
     processed_year,
     processed_month,
     processed_period,
+    processed_week_number,
     cost_type,
     order_count,
     county_tax_name,
@@ -617,7 +630,7 @@ SELECT
     CASE
         WHEN so.sales_channel ILIKE 'Farmer%' THEN 'Farmers Market'
         WHEN so.sales_channel ILIKE 'Amazon%' THEN 'Amazon'
-        WHEN so.sales_channel ILIKE ANY(ARRAY['%Shopify%', '%Nexternal%']) THEN 'Online Store'
+        WHEN so.sales_channel ILIKE ANY(ARRAY['%Shopify%', '%Nexternal%']) THEN 'Online Retail'
         ELSE so.sales_channel
     END as sales_channel_type,
     so.sales_channel as sales_channel_name,
@@ -751,6 +764,7 @@ SELECT
     processed_year,
     processed_month,
     processed_period,
+    TO_CHAR(processed_date, 'W')::INTEGER as processed_week_number,
     cost_type,
     1::NUMERIC /order_count.order_line_count::NUMERIC as order_count,
     CASE
