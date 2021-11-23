@@ -44,7 +44,7 @@ WITH shopify_line_items AS (
                 OR 
                 so.location_id::BIGINT = 61830463637 
                 THEN 'Farmers Market - Durham'
-            WHEN so.source_name IN ('279941', '580111', 'web', 'shopify_draft_order', 'android', 'pos', 'iphone') THEN 'Shopify Retail'
+            WHEN so.source_name IN ('279941', '580111', 'web', 'shopify_draft_order', 'android', 'pos', 'iphone') THEN 'Online Retail'
             ELSE so.source_name
         END as sales_channel,
         COALESCE((customer->>'first_name') || ' ' || (customer->>'last_name'), 'Unknown') as customer_name,
@@ -386,7 +386,7 @@ SELECT
     'Nexternal' as source_system,
     CASE
         WHEN customer_type = 'Business' THEN 'Wholesale' 
-        ELSE 'Nexternal Retail'
+        ELSE 'Online Retail'
     END as sales_channel,
     so.order_number::TEXT as order_id,
     order_line as order_line_id,
