@@ -466,13 +466,21 @@ FROM
         END = COALESCE(state_tax.order_line_id, state_tax.order_id) AND
         so.source_system = 'Shopify' AND
         state_tax.tax_type = 'State Tax'
+    LEFT JOIN public.integration_amazon_product amazon_product ON
+        so.product_id = amazon_product.asin AND
+        so.sales_channel_name LIKE 'Amazon%'
     LEFT JOIN public.integration_shopify_product shopify_product ON 
         so.product_id = shopify_product.variant_id::TEXT AND
         so.sales_channel_name NOT LIKE 'Amazon%'
     LEFT JOIN public.integration_product_missing_sku missing ON
         so.product_description_full = missing.product_description AND
-        so.source_system = missing.source_system AND
-        shopify_product.id IS NULL 
-    LEFT JOIN public.operations_product product ON COALESCE(shopify_product.product_id, missing.product_id) = product.id 
+        so.source_system = missing.source_system
+    LEFT JOIN public.operations_product product ON 
+        COALESCE(amazon_product.product_id, shopify_product.product_id, missing.product_id) = product.id
+        OR
+        (
+            COALESCE(amazon_product.product_id, shopify_product.product_id, missing.product_id) IS NULL AND
+            so.product_sku = product.sku
+        )
     LEFT JOIN public.operations_product_code pcode ON product.product_code_id = pcode.id 
 ;
