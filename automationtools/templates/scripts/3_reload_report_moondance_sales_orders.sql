@@ -287,7 +287,7 @@ SELECT
     so.ship_to_state,
     refunds.created_at as date_created,
     so.date_last_updated,
-    refunds.processed_at as date_processed,
+    refunds.processed_at::DATE as date_processed,
     so.tags,
     so.customer_id
 FROM
@@ -330,7 +330,7 @@ SELECT
     so.ship_to_state,
     so.date_created,
     so.date_last_updated,
-    so.date_processed,
+    so.date_processed::DATE as date_processed,
     so.tags,
     so.customer_id
 FROM
@@ -362,7 +362,7 @@ SELECT
     NULL::TEXT as ship_to_state,
     date_created,
     date_last_updated,
-    date_processed,
+    date_processed::DATE as date_processed,
     NULL::TEXT as tags,
     NULL::TEXT as customer_id
 FROM
