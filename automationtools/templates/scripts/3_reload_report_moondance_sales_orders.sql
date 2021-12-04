@@ -198,6 +198,76 @@ WITH shopify_line_items AS (
     GROUP BY
         order_line_id
 )
+, amazon_events AS (
+    WITH events AS (
+        SELECT
+            "FinancialEvents" as event,
+            "AmazonOrderId" as order_id,
+            "PostedDate" as date_processed,
+            (jsonb_array_elements("ShipmentItemList")->>'OrderItemId')::BIGINT as order_line_id,
+            jsonb_array_elements(jsonb_array_elements("ShipmentItemList")->'ItemFeeList') as item_fee_list,
+            jsonb_array_elements(jsonb_array_elements("ShipmentItemList")->'ItemChargeList') as item_charge_list
+        FROM
+            amazon.amazon_financial_events
+    )
+
+    SELECT
+        --events.item_fee_list->>'FeeType' as fee_type,
+        --events.item_charge_list->>'ChargeType' as charge_type,
+        events.event,
+        events.order_id,
+        events.order_line_id,
+        events.date_processed,
+        sh."FulfillmentChannel" as fulfillment_channel,
+        sh."OrderStatus" as order_status,
+        sl."ASIN" as product_id,
+        sl."SellerSKU" as product_sku,
+        sl."Title" as product_description_full,
+        sh._created as date_created,
+        sh."LastUpdateDate" as date_last_updated,
+        SUM(
+            CASE
+                WHEN (item_charge_list->'ChargeAmount'->>'CurrencyAmount')::NUMERIC < 0 THEN -1
+                ELSE 1
+            END * NULLIF(sl."QuantityOrdered", 0)::NUMERIC 
+        ) as quantity,
+        SUM(
+            CASE
+                WHEN events.item_charge_list->>'ChargeType' NOT ILIKE '%tax%' THEN (events.item_charge_list->'ChargeAmount'->>'CurrencyAmount')::NUMERIC 
+            END
+        ) as net_sales,
+        SUM(
+            CASE
+                WHEN events.item_charge_list->>'ChargeType' ILIKE '%tax%' THEN (events.item_charge_list->'ChargeAmount'->>'CurrencyAmount')::NUMERIC 
+            END
+        ) as tax_collected_state,
+        -SUM(
+            (events.item_fee_list->'FeeAmount'->>'CurrencyAmount')::NUMERIC
+        ) as sales_channel_fees
+    FROM
+        events
+        LEFT JOIN amazon.amazon_sales_order_line sl ON events.order_line_id = sl."OrderItemId"
+        LEFT JOIN amazon.amazon_sales_order sh ON sl."AmazonOrderId" = sh."AmazonOrderId"
+        LEFT JOIN public.integration_amazon_product i ON sl."ASIN" = i.asin
+    WHERE
+        COALESCE(events.item_fee_list->'FeeAmount'->>'CurrencyAmount', '0')::NUMERIC <> 0
+        OR
+        COALESCE(events.item_charge_list->'ChargeAmount'->'CurrencyAmount', '0')::NUMERIC <> 0
+    GROUP BY
+        --events.item_fee_list->>'FeeType',
+        --events.item_charge_list->>'ChargeType',
+        events.event,
+        events.order_id,
+        events.order_line_id,
+        events.date_processed,
+        sh."FulfillmentChannel",
+        sh."OrderStatus",
+        sl."ASIN",
+        sl."SellerSKU",
+        sl."Title",
+        sh._created,
+        sh."LastUpdateDate"
+)
 
 /* REFUNDS */
 SELECT
@@ -212,6 +282,7 @@ SELECT
     (line_json->>'name') as product_description_full,
     -(refunds.refund_line_items->>'quantity')::NUMERIC as quantity,
     -(refunds.refund_line_items->>'subtotal')::NUMERIC as net_sales,
+    NULL::NUMERIC as tax_collected_state,
     NULL::NUMERIC as sales_channel_fees,
     so.ship_to_state,
     refunds.created_at as date_created,
@@ -254,6 +325,7 @@ SELECT
             COALESCE(discounts.amount / (line_json->>'quantity')::NUMERIC, 0)
         ) * (line_json->>'quantity')::INTEGER
     ) as net_sales,
+    NULL::NUMERIC as tax_collected_state,
     NULL::NUMERIC as sales_channel_fees,
     so.ship_to_state,
     so.date_created,
@@ -270,58 +342,31 @@ UNION ALL
 SELECT
     'Amazon' as source_system,
     CASE
-        WHEN "FulfillmentChannel" = 'AFN' THEN 'Amazon FBA'
-        WHEN "FulfillmentChannel" = 'MFN' THEN 'Amazon FBM'
+        WHEN fulfillment_channel = 'AFN' THEN 'Amazon FBA'
+        WHEN fulfillment_channel = 'MFN' THEN 'Amazon FBM'
     END as sales_channel_name,
-    sl."AmazonOrderId" as order_id,
-    sl."OrderItemId"::TEXT as order_line_id,
+    order_id,
+    order_line_id::TEXT as order_line_id,
     CASE
-        WHEN "OrderStatus" IN ('Pending', 'Unshipped') THEN 'pending'
-        WHEN "OrderStatus" IN ('Shipped') THEN 'shipped'
+        WHEN order_status IN ('Pending', 'Unshipped') THEN 'pending'
+        WHEN order_status IN ('Shipped') THEN 'shipped'
     END as order_status,
-    sl."AmazonOrderId" as order_number,
-    sl."ASIN" as product_id,
-    sl."SellerSKU" as product_sku,
-    sl."Title" as product_description_full,
-    NULLIF(sl."QuantityOrdered", 0) as quantity,
-    (sl."ItemPrice"->>'Amount')::NUMERIC as net_sales,
-    amazon_fees.total_fees::NUMERIC as sales_channel_fees,
+    order_id as order_number,
+    product_id,
+    product_sku,
+    product_description_full,
+    quantity,
+    net_sales,
+    tax_collected_state,
+    sales_channel_fees,
     NULL::TEXT as ship_to_state,
-    sh._created as date_created,
-    sh."LastUpdateDate" as date_last_updated,
-    sh."PurchaseDate" as processed_date,
+    date_created,
+    date_last_updated,
+    date_processed,
     NULL::TEXT as tags,
     NULL::TEXT as customer_id
 FROM
-    amazon.amazon_sales_order sh 
-    JOIN amazon.amazon_sales_order_line sl ON sh."AmazonOrderId" = sl."AmazonOrderId" 
-    LEFT JOIN (
-        WITH events AS (
-            SELECT
-                "FinancialEvents" as event,
-                "AmazonOrderId",
-                (jsonb_array_elements("ShipmentItemList")->>'OrderItemId')::BIGINT as "OrderItemId",
-                -(jsonb_array_elements(jsonb_array_elements("ShipmentItemList")->'ItemFeeList')->'FeeAmount'->>'CurrencyAmount')::NUMERIC(16, 2) as fees
-            FROM
-                amazon.amazon_financial_events
-        )
-    
-        SELECT
-            events."AmazonOrderId",
-            events."OrderItemId",
-            i.product_id,
-            SUM(fees) as total_fees
-        FROM
-            events
-            JOIN amazon.amazon_sales_order_line line ON events."OrderItemId" = line."OrderItemId"
-            JOIN public.integration_amazon_product i ON line."ASIN" = i.asin
-        WHERE
-            fees != 0
-        GROUP BY
-            events."AmazonOrderId",
-            events."OrderItemId",
-            i.product_id
-    ) amazon_fees ON sl."OrderItemId" = amazon_fees."OrderItemId"
+    amazon_events
 ;
 
 
