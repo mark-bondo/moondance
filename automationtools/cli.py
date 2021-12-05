@@ -116,71 +116,7 @@ def cli():
     else:
         interval = set_interval(args.time_interval)
 
-    if args.sync_all:
-        sync_shopify(
-            command="products",
-            request_parameters={
-                "updated_at_min": interval["start_datetime"],
-                "limit": 100,
-            },
-        )
-
-        sync_shopify(
-            command="sales_orders",
-            request_parameters={
-                "updated_at_min": interval["start_datetime"],
-                "status": "any",
-                "limit": 100,
-            },
-        )
-
-        sync_shopify(
-            command="sync_shopify_order_events",
-            request_parameters={
-                "limit": 100,
-            },
-        )
-
-        sync_shopify(
-            command="customers",
-            request_parameters={
-                "updated_at_min": interval["start_datetime"],
-                "limit": 100,
-            },
-        )
-
-        sync_amazon(
-            command="sales_orders",
-            request_parameters={
-                "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
-                "LastUpdatedBefore": interval["end_datetime"],
-                "LastUpdatedAfter": interval["start_datetime"],
-            },
-        )
-
-        sync_amazon(
-            command="sales_order_lines",
-            request_parameters={
-                "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
-                "LastUpdatedBefore": interval["end_datetime"],
-                "LastUpdatedAfter": interval["start_datetime"],
-            },
-        )
-
-        sync_amazon(
-            command="financial_events",
-            request_parameters={
-                "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
-                "PostedBefore": interval["end_datetime"],
-                "PostedAfter": interval["start_datetime"],
-            },
-        )
-
-        rebuild_sales_orders()
-
-        sys.exit()
-
-    if args.sync_shopify_products:
+    if args.sync_shopify_products or args.sync_all:
         sync_shopify(
             command="products",
             request_parameters={
@@ -188,7 +124,7 @@ def cli():
             },
         )
 
-    if args.sync_shopify_sales:
+    if args.sync_shopify_sales or args.sync_all:
         sync_shopify(
             command="sales_orders",
             request_parameters={
@@ -198,7 +134,7 @@ def cli():
             },
         )
 
-    if args.sync_shopify_order_events:
+    if args.sync_shopify_order_events or args.sync_all:
         sync_shopify(
             command="sync_shopify_order_events",
             request_parameters={
@@ -206,7 +142,7 @@ def cli():
             },
         )
 
-    if args.sync_shopify_customers:
+    if args.sync_shopify_customers or args.sync_all:
         sync_shopify(
             command="customers",
             request_parameters={
@@ -215,7 +151,7 @@ def cli():
             },
         )
 
-    if args.sync_amazon_sales:
+    if args.sync_amazon_sales or args.sync_all:
         sync_amazon(
             command="sales_orders",
             request_parameters={
@@ -225,27 +161,33 @@ def cli():
             },
         )
 
-    if args.sync_amazon_sales_lines:
+    if args.sync_amazon_sales_lines or args.sync_all:
         sync_amazon(
             command="sales_order_lines",
-            request_parameters={
-                "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
-                # "LastUpdatedBefore": interval["end_datetime"],
-                # "LastUpdatedAfter": interval["start_datetime"],
-            },
+            request_parameters={"MarketplaceIds": AMAZON_MARKETPLACE_IDS},
         )
 
-    if args.sync_amazon_financial_events:
+    if args.sync_amazon_financial_events or args.sync_all:
+        # sync_amazon(
+        #     command="financial_events_shipments",
+        #     request_parameters={
+        #         "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
+        #         "PostedBefore": interval["end_datetime"],
+        #         "PostedAfter": interval["start_datetime"],
+        #     },
+        #     extra_context={"FinancialEvents": "ShipmentEventList"},
+        # )
         sync_amazon(
-            command="financial_events",
+            command="financial_events_refunds",
             request_parameters={
                 "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
                 "PostedBefore": interval["end_datetime"],
                 "PostedAfter": interval["start_datetime"],
             },
+            extra_context={"FinancialEvents": "RefundEventList"},
         )
 
-    if args.rebuild_sales_orders:
+    if args.rebuild_sales_orders or args.sync_all:
         rebuild_sales_orders()
 
 
@@ -287,11 +229,15 @@ def sync_shopify(command, request_parameters):
         logger.error(f"sync shopify {command}: failed program", exc_info=1)
 
 
-def sync_amazon(command, request_parameters):
+def sync_amazon(command, request_parameters, extra_context={}):
     try:
         logger.info(f"sync amazon {command}: starting program")
         amazon = Amazon_API(logger=logger)
-        amazon.process_data(command=command, request_parameters=request_parameters)
+        amazon.process_data(
+            command=command,
+            request_parameters=request_parameters,
+            extra_context=extra_context,
+        )
         logger.info(f"sync amazon {command}: completed program")
     except Exception:
         logger.error(f"sync amazon {command}: failed program", exc_info=1)

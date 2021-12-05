@@ -24,9 +24,7 @@ class Amazon_API(object):
         self.service = "execute-api"
         self.host = "sellingpartnerapi-na.amazon.com"
         self.region = "us-east-1"
-        self.user_agent = (
-            "MoonDance Reporting Tool/1.0 (Language=Python/3.7.6; Platform=Windows/10)"
-        )
+        self.user_agent = "MoonDance Reporting Tool/1.0 (Language=Python/3.7.6; Platform=Windows/10)"
         self.current_timestamp = datetime.now().strftime("%Y-%m-%d %H%M%S")
         self.extra_context = {}
 
@@ -37,8 +35,9 @@ class Amazon_API(object):
         self.aws_secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
         self.aws_access_key = os.environ.get("AWS_ACCESS_KEY_ID")
 
-    def process_data(self, command, request_parameters):
+    def process_data(self, command, request_parameters, extra_context):
         self.command = command
+        self.extra_context = extra_context
         self.object_map = {
             "sales_orders": {
                 "pk_list": ["AmazonOrderId"],
@@ -56,10 +55,18 @@ class Amazon_API(object):
                 "api_url": "/orders/v0/orders/{}/orderItems",
                 "request_parameters": request_parameters,
             },
-            "financial_events": {
+            "financial_events_shipments": {
                 "pk_list": ["AmazonOrderId", "PostedDate"],
                 "schema": "amazon",
                 "table_name": "amazon_financial_events",
+                # "json_set": "CatalogItems",
+                "api_url": "/finances/v0/financialEvents",
+                "request_parameters": request_parameters,
+            },
+            "financial_events_refunds": {
+                "pk_list": ["AmazonOrderId", "PostedDate"],
+                "schema": "amazon",
+                "table_name": "amazon_financial_events_refunds",
                 # "json_set": "CatalogItems",
                 "api_url": "/finances/v0/financialEvents",
                 "request_parameters": request_parameters,
@@ -79,9 +86,7 @@ class Amazon_API(object):
             self.object_dd = self.object_map[command]
             self.object_dd.update(
                 {
-                    "table_columns": get_table_columns(
-                        self.db_string, self.object_dd["table_name"]
-                    ),
+                    "table_columns": get_table_columns(self.db_string, self.object_dd["table_name"]),
                     "file_name": "automationtools/data/{}_{}.tsv".format(
                         self.object_dd["table_name"],
                         self.current_timestamp.replace(":", "-"),
@@ -96,15 +101,9 @@ class Amazon_API(object):
         self.refresh_access_token()
 
         if command == "sales_order_lines":
-            self.logger.info(
-                "sync amazon {}: getting order lines to sync".format(self.command)
-            )
+            self.logger.info("sync amazon {}: getting order lines to sync".format(self.command))
             order_lines = self.get_orders()
-            self.logger.info(
-                "sync amazon {}: retrieved {} order lines to sync".format(
-                    self.command, len(order_lines)
-                )
-            )
+            self.logger.info("sync amazon {}: retrieved {} order lines to sync".format(self.command, len(order_lines)))
 
             error_count = 0
             for i, o in enumerate(order_lines):
@@ -113,9 +112,7 @@ class Amazon_API(object):
                         "AmazonOrderId": o["AmazonOrderId"],
                         "LastUpdateDate": o["LastUpdateDate"],
                     }
-                    self.object_dd["api_url_formatted"] = self.object_dd[
-                        "api_url"
-                    ].format(o["AmazonOrderId"])
+                    self.object_dd["api_url_formatted"] = self.object_dd["api_url"].format(o["AmazonOrderId"])
                     self.sync_data()
                 except Exception:
                     if error_count <= 1:
@@ -138,8 +135,8 @@ class Amazon_API(object):
                         )
                         break
         else:
-            if command == "financial_events":
-                self.extra_context = {"FinancialEvents": "ShipmentEventList"}
+            # if "financial_events" in command:
+            # self.extra_context = {"FinancialEvents": "ShipmentEventList"}
             self.sync_data()
 
     def sync_data(self):
@@ -244,9 +241,7 @@ class Amazon_API(object):
             + "\n"
             + payload_hash
         )
-        credential_scope = (
-            datestamp + "/" + self.region + "/" + self.service + "/" + "aws4_request"
-        )
+        credential_scope = datestamp + "/" + self.region + "/" + self.service + "/" + "aws4_request"
 
         string_to_sign = (
             algorithm
@@ -258,12 +253,8 @@ class Amazon_API(object):
             + hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()
         )
 
-        signing_key = self.getSignatureKey(
-            self.aws_secret_key, datestamp, self.region, self.service
-        )
-        signature = hmac.new(
-            signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256
-        ).hexdigest()
+        signing_key = self.getSignatureKey(self.aws_secret_key, datestamp, self.region, self.service)
+        signature = hmac.new(signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256).hexdigest()
         authorization_header = (
             algorithm
             + " "
@@ -278,9 +269,7 @@ class Amazon_API(object):
             + "Signature="
             + signature
         )
-        self.request_url = "https://{}{}?{}".format(
-            self.host, canonical_uri, self.request_parameter_string
-        )
+        self.request_url = "https://{}{}?{}".format(self.host, canonical_uri, self.request_parameter_string)
         self.headers = {
             "x-amz-date": amzdate,
             "x-amz-access-token": self.access_token,
@@ -300,27 +289,17 @@ class Amazon_API(object):
             while True:
                 sleeping = random.uniform(2, 3)
                 time.sleep(sleeping)
-                self.logger.info(
-                    'sync amazon {}: getting data from "{}"'.format(
-                        self.command, self.request_url
-                    )
-                )
+                self.logger.info('sync amazon {}: getting data from "{}"'.format(self.command, self.request_url))
                 r = requests.get(url=self.request_url, headers=self.headers)
                 json_response = json.loads(r.text.replace("\\", "\\\\"))
 
                 try:
-                    if self.command != "financial_events":
+                    if "financial_events" not in self.command:
                         json_data = json_response["payload"][self.object_dd["json_set"]]
                     else:
-                        json_data = json_response["payload"]["FinancialEvents"][
-                            "ShipmentEventList"
-                        ]
+                        json_data = json_response["payload"]["FinancialEvents"][self.extra_context["FinancialEvents"]]
                 except KeyError:
-                    self.logger.error(
-                        "sync amazon {}: getting data failed {}".format(
-                            self.command, r.text
-                        )
-                    )
+                    self.logger.error("sync amazon {}: getting data failed {}".format(self.command, r.text))
 
                     if error_count < 3:
                         time.sleep(3)
@@ -330,11 +309,7 @@ class Amazon_API(object):
                         break
 
                 self.row_count += len(json_data)
-                self.logger.info(
-                    "sync amazon {}: fetched {} rows".format(
-                        self.command, len(json_data)
-                    )
-                )
+                self.logger.info("sync amazon {}: fetched {} rows".format(self.command, len(json_data)))
                 for p in json_data:
                     row = []
 
@@ -358,9 +333,7 @@ class Amazon_API(object):
 
                 if next_token in json_response["payload"]:
                     # add in next parameter
-                    self.object_dd["request_parameters"][next_token] = json_response[
-                        "payload"
-                    ][next_token]
+                    self.object_dd["request_parameters"][next_token] = json_response["payload"][next_token]
                     self.build_parameters_string()
                     self.build_headers()
                 else:

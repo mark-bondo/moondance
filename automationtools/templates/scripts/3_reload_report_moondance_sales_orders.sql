@@ -204,11 +204,27 @@ WITH shopify_line_items AS (
             "FinancialEvents" as event,
             "AmazonOrderId" as order_id,
             "PostedDate" as date_processed,
+            (jsonb_array_elements("ShipmentItemList")->>'QuantityShipped')::INTEGER as quantity,
             (jsonb_array_elements("ShipmentItemList")->>'OrderItemId')::BIGINT as order_line_id,
             jsonb_array_elements(jsonb_array_elements("ShipmentItemList")->'ItemFeeList') as item_fee_list,
             jsonb_array_elements(jsonb_array_elements("ShipmentItemList")->'ItemChargeList') as item_charge_list
         FROM
             amazon.amazon_financial_events
+          --  WHERE 0=1--"AmazonOrderId" = '111-2435860-4555450'
+
+        UNION ALL
+
+        SELECT
+            "FinancialEvents" as event,
+            "AmazonOrderId" as order_id,
+            "PostedDate" as date_processed,
+            -(jsonb_array_elements("ShipmentItemAdjustmentList")->>'QuantityShipped')::INTEGER as quantity,
+            (jsonb_array_elements("ShipmentItemAdjustmentList")->>'OrderAdjustmentItemId')::BIGINT as order_line_id,
+            jsonb_array_elements(jsonb_array_elements("ShipmentItemAdjustmentList")->'ItemFeeAdjustmentList') as item_fee_list,
+            jsonb_array_elements(jsonb_array_elements("ShipmentItemAdjustmentList")->'ItemChargeAdjustmentList') as item_charge_list
+        FROM
+            amazon.amazon_financial_events_refunds
+           -- WHERE "AmazonOrderId" = '112-1029827-9418614'
     )
 
     SELECT
@@ -225,20 +241,25 @@ WITH shopify_line_items AS (
         sl."Title" as product_description_full,
         sh._created as date_created,
         sh."LastUpdateDate" as date_last_updated,
+        NULLIF(events.quantity, 0)::NUMERIC as quantity,
         SUM(
             CASE
-                WHEN (item_charge_list->'ChargeAmount'->>'CurrencyAmount')::NUMERIC < 0 THEN -1
-                ELSE 1
-            END * NULLIF(sl."QuantityOrdered", 0)::NUMERIC 
-        ) as quantity,
-        SUM(
-            CASE
-                WHEN events.item_charge_list->>'ChargeType' NOT ILIKE '%tax%' THEN (events.item_charge_list->'ChargeAmount'->>'CurrencyAmount')::NUMERIC 
+                WHEN events.item_charge_list->>'ChargeType' NOT ILIKE ALL(ARRAY['%tax%', 'gift%', 'ShippingCharge']) THEN (events.item_charge_list->'ChargeAmount'->>'CurrencyAmount')::NUMERIC 
             END
         ) as net_sales,
         SUM(
             CASE
-                WHEN events.item_charge_list->>'ChargeType' ILIKE '%tax%' THEN (events.item_charge_list->'ChargeAmount'->>'CurrencyAmount')::NUMERIC 
+                WHEN events.item_charge_list->>'ChargeType' = 'ShippingCharge' THEN (events.item_charge_list->'ChargeAmount'->>'CurrencyAmount')::NUMERIC 
+            END
+        ) as shipping_collected,
+        SUM(
+            CASE
+                WHEN events.item_charge_list->>'ChargeType' = 'ShippingTax' THEN (events.item_charge_list->'ChargeAmount'->>'CurrencyAmount')::NUMERIC 
+            END
+        ) as tax_collected_shipping,
+        SUM(
+            CASE
+                WHEN events.item_charge_list->>'ChargeType' ILIKE '%tax%' AND events.item_charge_list->>'ChargeType' NOT ILIKE ALL(ARRAY['%shipping%', 'gift%']) THEN (events.item_charge_list->'ChargeAmount'->>'CurrencyAmount')::NUMERIC 
             END
         ) as tax_collected_state,
         -SUM(
@@ -256,6 +277,7 @@ WITH shopify_line_items AS (
     GROUP BY
         --events.item_fee_list->>'FeeType',
         --events.item_charge_list->>'ChargeType',
+        events.quantity,
         events.event,
         events.order_id,
         events.order_line_id,
@@ -339,6 +361,7 @@ FROM
 
 UNION ALL
 
+/* SALES */
 SELECT
     'Amazon' as source_system,
     CASE
@@ -367,6 +390,46 @@ SELECT
     NULL::TEXT as customer_id
 FROM
     amazon_events
+WHERE
+    COALESCE(net_sales, 0) IS NOT NULL
+    OR
+    COALESCE(sales_channel_fees, 0) IS NOT NULL
+    OR
+    COALESCE(tax_collected_state, 0) IS NOT NULL
+
+UNION ALL
+
+/* SHIPPING */
+SELECT
+    'Amazon' as source_system,
+    CASE
+        WHEN fulfillment_channel = 'AFN' THEN 'Amazon FBA'
+        WHEN fulfillment_channel = 'MFN' THEN 'Amazon FBM'
+    END as sales_channel_name,
+    order_id,
+    order_line_id::TEXT as order_line_id,
+    CASE
+        WHEN order_status IN ('Pending', 'Unshipped') THEN 'pending'
+        WHEN order_status IN ('Shipped') THEN 'shipped'
+    END as order_status,
+    order_id as order_number,
+    'Shipping'::TEXT as product_id,
+    'Shipping'::TEXT as product_sku,
+    'Shipping'::TEXT as product_description_full,
+    0::NUMERIC as quantity,
+    shipping_collected as net_sales,
+    tax_collected_shipping as tax_collected_state,
+    0::NUMERIC as sales_channel_fees,
+    NULL::TEXT as ship_to_state,
+    date_created,
+    date_last_updated,
+    date_processed::DATE as date_processed,
+    NULL::TEXT as tags,
+    NULL::TEXT as customer_id
+FROM
+    amazon_events
+WHERE
+    COALESCE(shipping_collected, 0) IS NOT NULL
 ;
 
 
