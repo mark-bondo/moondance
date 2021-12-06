@@ -136,7 +136,7 @@ WITH shopify_line_items AS (
             'variant_id', NULL::BIGINT,
             'sku', 'Shipping',
             'name', 'Shipping',
-            'quantity', 1,
+            'quantity', NULL::INTEGER,
             'price', NULLIF((so.total_shipping_price_set->'shop_money'->>'amount')::NUMERIC, 0),
             'cost', NULLIF(COALESCE(shipping_cost.amount, 0) + COALESCE(shipping_easy.amount, 0), 0)
         ) as line_json,
@@ -210,7 +210,7 @@ WITH shopify_line_items AS (
             jsonb_array_elements(jsonb_array_elements("ShipmentItemList")->'ItemChargeList') as item_charge_list
         FROM
             amazon.amazon_financial_events
-          --  WHERE 0=1--"AmazonOrderId" = '111-2435860-4555450'
+          --  WHERE "AmazonOrderId" = '111-0310293-0325000'
 
         UNION ALL
 
@@ -224,7 +224,7 @@ WITH shopify_line_items AS (
             jsonb_array_elements(jsonb_array_elements("ShipmentItemAdjustmentList")->'ItemChargeAdjustmentList') as item_charge_list
         FROM
             amazon.amazon_financial_events_refunds
-           -- WHERE "AmazonOrderId" = '112-1029827-9418614'
+           -- WHERE 0=1--"AmazonOrderId" = '112-1029827-9418614'
     )
 
     SELECT
@@ -416,7 +416,7 @@ SELECT
     'Shipping'::TEXT as product_id,
     'Shipping'::TEXT as product_sku,
     'Shipping'::TEXT as product_description_full,
-    0::NUMERIC as quantity,
+    NULL::NUMERIC as quantity,
     shipping_collected as net_sales,
     tax_collected_shipping as tax_collected_state,
     0::NUMERIC as sales_channel_fees,
