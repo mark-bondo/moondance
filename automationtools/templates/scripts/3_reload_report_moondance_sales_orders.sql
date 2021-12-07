@@ -68,16 +68,16 @@ CREATE TEMP TABLE taxes ON COMMIT DROP AS
             WHEN (tax_lines->>'rate')::NUMERIC = 0.0200 THEN (tax_lines->>'rate')::NUMERIC
             WHEN (tax_lines->>'rate')::NUMERIC = 0.0225 THEN (tax_lines->>'rate')::NUMERIC
             WHEN (tax_lines->>'rate')::NUMERIC = 0.0250 THEN 0.0200
-            WHEN (tax_lines->>'rate')::NUMERIC = 0.0275 THEN (tax_lines->>'rate')::NUMERIC
+            WHEN (tax_lines->>'rate')::NUMERIC = 0.0275 THEN 0.0225
         END as base_rate,
         SUM(
             CASE
                 WHEN (tax_lines->>'rate')::NUMERIC = 0.0200 THEN 0.0000
                 WHEN (tax_lines->>'rate')::NUMERIC = 0.0225 THEN 0.0000
-                WHEN (tax_lines->>'rate')::NUMERIC = 0.0250 THEN 0.0500
-                WHEN (tax_lines->>'rate')::NUMERIC = 0.0275 THEN 0.0500
+                WHEN (tax_lines->>'rate')::NUMERIC = 0.0250 THEN 0.00500
+                WHEN (tax_lines->>'rate')::NUMERIC = 0.0275 THEN 0.00500
             END 
-        ) as transit_rate,        
+        ) as transit_rate,
         SUM((tax_lines->>'price')::NUMERIC) AS amount
     FROM
         tax_base
