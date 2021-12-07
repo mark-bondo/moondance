@@ -332,7 +332,10 @@ UNION ALL
 /* SALES */
 SELECT
     'Shopify' as source_system,
-    so.sales_channel_name,
+    CASE
+        WHEN (line_json->>'sku') = 'Shipping' THEN 'Shipping Collected'
+        ELSE so.sales_channel_name
+    END as sales_channel_name,
     so.order_id::TEXT as order_id,
     line_json->>'id' as order_line_id,
     so.order_status,
@@ -345,7 +348,7 @@ SELECT
         (
             (line_json->>'price')::NUMERIC -
             COALESCE(discounts.amount / (line_json->>'quantity')::NUMERIC, 0)
-        ) * (line_json->>'quantity')::INTEGER
+        ) * COALESCE((line_json->>'quantity')::NUMERIC, 1::NUMERIC)
     ) as net_sales,
     NULL::NUMERIC as tax_collected_state,
     NULL::NUMERIC as sales_channel_fees,
