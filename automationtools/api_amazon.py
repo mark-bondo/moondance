@@ -58,7 +58,7 @@ class Amazon_API(object):
             "financial_events_shipments": {
                 "pk_list": ["AmazonOrderId", "PostedDate"],
                 "schema": "amazon",
-                "table_name": "amazon_financial_events",
+                "table_name": "amazon_financial_events_shipments",
                 # "json_set": "CatalogItems",
                 "api_url": "/finances/v0/financialEvents",
                 "request_parameters": request_parameters,

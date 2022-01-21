@@ -168,15 +168,15 @@ def cli():
         )
 
     if args.sync_amazon_financial_events or args.sync_all:
-        # sync_amazon(
-        #     command="financial_events_shipments",
-        #     request_parameters={
-        #         "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
-        #         "PostedBefore": interval["end_datetime"],
-        #         "PostedAfter": interval["start_datetime"],
-        #     },
-        #     extra_context={"FinancialEvents": "ShipmentEventList"},
-        # )
+        sync_amazon(
+            command="financial_events_shipments",
+            request_parameters={
+                "MarketplaceIds": AMAZON_MARKETPLACE_IDS,
+                "PostedBefore": interval["end_datetime"],
+                "PostedAfter": interval["start_datetime"],
+            },
+            extra_context={"FinancialEvents": "ShipmentEventList"},
+        )
         sync_amazon(
             command="financial_events_refunds",
             request_parameters={

@@ -209,7 +209,7 @@ WITH shopify_line_items AS (
             jsonb_array_elements(jsonb_array_elements("ShipmentItemList")->'ItemFeeList') as item_fee_list,
             jsonb_array_elements(jsonb_array_elements("ShipmentItemList")->'ItemChargeList') as item_charge_list
         FROM
-            amazon.amazon_financial_events
+            amazon.amazon_financial_events_shipments
           --  WHERE "AmazonOrderId" = '111-0310293-0325000'
 
         UNION ALL
