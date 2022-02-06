@@ -32,7 +32,10 @@ class Inventory_Onhand_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     list_filter = [
         "location",
     ]
-    search_fields = ["sku__description", "sku__sku"]
+    search_fields = [
+        "sku__description",
+        "sku__sku",
+    ]
     autocomplete_fields = [
         "sku",
     ]
@@ -255,6 +258,7 @@ class Invoice_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "date_invoiced",
         "supplier",
         "invoice",
+        "invoice_attachment",
         "order",
         "freight_charges",
         "material_cost",
@@ -273,6 +277,7 @@ class Invoice_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "date_invoiced",
         "supplier",
         "invoice",
+        "invoice_attachment",
         "order",
         "freight_charges",
         "total_cost",
