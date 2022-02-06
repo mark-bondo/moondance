@@ -268,7 +268,10 @@ class Invoice_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "invoice",
         "order",
     ]
-    list_filter = (("supplier", admin.RelatedOnlyFieldListFilter), "date_invoiced")
+    list_filter = (
+        ("supplier", admin.RelatedOnlyFieldListFilter),
+        "date_invoiced",
+    )
     autocomplete_fields = [
         "supplier",
     ]
@@ -299,6 +302,7 @@ class Invoice_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     readonly_fields = (
         "total_cost",
         "material_cost",
+        "total_weight",
     )
 
     def total_cost(self, obj):
