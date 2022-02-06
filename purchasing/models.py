@@ -123,15 +123,14 @@ class Invoice_Line(MetaModel):
         return "{} ({})".format(self.invoice, self.sku)
 
     class Meta:
-        verbose_name = "Recipt Line"
-        verbose_name_plural = "Recipt Lines"
+        verbose_name = "Receipt Line"
+        verbose_name_plural = "Receipt Lines"
         unique_together = (
             (
                 "sku",
                 "invoice",
             ),
         )
-        ordering = ("sku",)
 
 
 class Inventory_Onhand(MetaModel):
