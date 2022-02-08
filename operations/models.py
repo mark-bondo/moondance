@@ -3,6 +3,8 @@ from django.db import models
 from django.apps import apps
 from moondance.meta_models import MetaModel
 from simple_history.models import HistoricalRecords
+from django.forms import ValidationError
+from django.contrib.postgres.fields.ranges import DateRangeField
 
 
 UNIT_OF_MEASURES = (
@@ -65,11 +67,9 @@ def calculate_unit_cost(obj, weight):
         to_measure=obj.sku.unit_of_measure,
         weight=weight,
     )
-    cost = (
-        (obj.sku.unit_material_cost or 0)
-        + (obj.sku.unit_labor_cost or 0)
-        + (obj.sku.unit_freight_cost or 0)
-    ) * (converted_weight or 0)
+    cost = ((obj.sku.unit_material_cost or 0) + (obj.sku.unit_labor_cost or 0) + (obj.sku.unit_freight_cost or 0)) * (
+        converted_weight or 0
+    )
     return round(cost, 5)
 
 
@@ -165,27 +165,13 @@ class Product(MetaModel):
     sku = models.CharField(max_length=200, unique=True, verbose_name="SKU")
     description = models.CharField(max_length=200)
     upc = models.CharField(max_length=200, null=True, blank=True, verbose_name="UPC")
-    sales_channel_type = models.CharField(
-        max_length=100, choices=SALES_CHANNEL_TYPES, default="All"
-    )
-    unit_of_measure = models.CharField(
-        max_length=200, choices=UNIT_OF_MEASURES, default="lbs"
-    )
-    unit_weight = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True
-    )
-    unit_sales_price = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True
-    )
-    unit_material_cost = models.DecimalField(
-        max_digits=12, decimal_places=5, null=True, blank=True
-    )
-    unit_labor_cost = models.DecimalField(
-        max_digits=12, decimal_places=5, null=True, blank=True
-    )
-    unit_freight_cost = models.DecimalField(
-        max_digits=12, decimal_places=5, null=True, blank=True
-    )
+    sales_channel_type = models.CharField(max_length=100, choices=SALES_CHANNEL_TYPES, default="All")
+    unit_of_measure = models.CharField(max_length=200, choices=UNIT_OF_MEASURES)
+    unit_weight = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    unit_sales_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    unit_material_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
+    unit_labor_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
+    unit_freight_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
 
     original_unit_of_measure = None
@@ -195,19 +181,13 @@ class Product(MetaModel):
 
     @property
     def unit_cost_total(self):
-        cost = (
-            (self.unit_material_cost or 0)
-            + (self.unit_labor_cost or 0)
-            + (self.unit_freight_cost or 0)
-        )
+        cost = (self.unit_material_cost or 0) + (self.unit_labor_cost or 0) + (self.unit_freight_cost or 0)
         return round(cost, 5)
 
     @property
     def total_cost(self):
         cost = (
-            (self.unit_material_cost or 0)
-            + (self.unit_labor_cost or 0)
-            + (self.unit_freight_cost or 0)
+            (self.unit_material_cost or 0) + (self.unit_labor_cost or 0) + (self.unit_freight_cost or 0)
         ) * get_sku_quantity(self.pk)
         return round(cost, 5)
 
@@ -231,6 +211,46 @@ class Product(MetaModel):
         ordering = ("sku",)
 
 
+class Product_Cost_History(MetaModel):
+    sku = models.ForeignKey(
+        Product,
+        on_delete=models.PROTECT,
+        related_name="Product_Cost_History_sku_fk",
+    )
+    standard_material_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
+    standard_freight_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
+    standard_labor_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    date_range = DateRangeField()
+
+    class Meta:
+        verbose_name = "Product Cost History"
+        verbose_name_plural = "Product Cost History"
+        ordering = ("start_date",)
+
+    def full_clean(self, *args, **kwargs):
+        super().full_clean(*args, **kwargs)
+
+        if not self.end_date or not self.start_date:
+            raise ValidationError("This field is required")
+        elif self.end_date < self.start_date:
+            raise ValidationError("Start date must be less than or equal to end date")
+
+        self.date_range = (self.start_date, self.end_date)
+        overlap = (
+            Product_Cost_History.objects.filter(
+                sku=self.sku,
+                date_range__overlap=self.date_range,
+            )
+            .exclude(pk=self.pk)
+            .first()
+        )
+
+        if overlap:
+            raise ValidationError("Date range overlaps with another record")
+
+
 class Recipe_Line(MetaModel):
     history = HistoricalRecords()
     sku = models.ForeignKey(
@@ -238,13 +258,9 @@ class Recipe_Line(MetaModel):
         on_delete=models.PROTECT,
         related_name="Recipe_sku_fk",
     )
-    sku_parent = models.ForeignKey(
-        Product, on_delete=models.PROTECT, related_name="Recipe_sku_parent_fk"
-    )
+    sku_parent = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="Recipe_sku_parent_fk")
     quantity = models.DecimalField(max_digits=12, decimal_places=5)
-    unit_of_measure = models.CharField(
-        max_length=200, choices=UNIT_OF_MEASURES, default="grams"
-    )
+    unit_of_measure = models.CharField(max_length=200, choices=UNIT_OF_MEASURES, default="grams")
 
     @property
     def unit_cost(self):
@@ -296,16 +312,10 @@ class Order_Cost_Overlay(MetaModel):
     name = models.CharField(max_length=200)
     type = models.CharField(max_length=200, choices=type_list)
     apply_to = models.CharField(max_length=200, choices=apply_to_list)
-    labor_hourly_rate = models.DecimalField(
-        max_digits=5, decimal_places=2, null=True, blank=True
-    )
+    labor_hourly_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     labor_minutes = models.IntegerField(null=True, blank=True)
-    material_cost = models.DecimalField(
-        max_digits=16, decimal_places=2, null=True, blank=True
-    )
-    sales_percentage = models.DecimalField(
-        max_digits=6, decimal_places=2, null=True, blank=True
-    )
+    material_cost = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
+    sales_percentage = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
 
     def __str__(self):
         return "{}".format(self.name)
