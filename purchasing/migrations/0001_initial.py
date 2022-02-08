@@ -35,15 +35,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        auto_now=True, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(auto_now=True, verbose_name="Datetime Updated"),
                 ),
                 (
                     "type",
@@ -77,9 +73,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "country",
-                    models.CharField(
-                        blank=True, default="United States", max_length=200, null=True
-                    ),
+                    models.CharField(blank=True, default="United States", max_length=200, null=True),
                 ),
                 ("supplier_website", models.URLField(blank=True, null=True)),
                 ("notes", models.TextField(blank=True, null=True)),
@@ -134,24 +128,18 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        auto_now=True, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(auto_now=True, verbose_name="Datetime Updated"),
                 ),
                 ("invoice", models.CharField(blank=True, max_length=200, null=True)),
                 ("order", models.CharField(blank=True, max_length=200, null=True)),
                 ("date_invoiced", models.DateField(default=django.utils.timezone.now)),
                 (
                     "freight_charges",
-                    models.DecimalField(
-                        blank=True, decimal_places=2, max_digits=12, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
                 ),
                 (
                     "_created_by",
@@ -196,9 +184,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.IntegerField(
-                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
-                    ),
+                    models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID"),
                 ),
                 (
                     "_active",
@@ -206,15 +192,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Updated"),
                 ),
                 ("supplier_sku", models.CharField(max_length=200)),
                 ("supplier_sku_description", models.CharField(max_length=200)),
@@ -297,9 +279,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.IntegerField(
-                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
-                    ),
+                    models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID"),
                 ),
                 (
                     "_active",
@@ -307,15 +287,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Updated"),
                 ),
                 (
                     "type",
@@ -349,9 +325,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "country",
-                    models.CharField(
-                        blank=True, default="United States", max_length=200, null=True
-                    ),
+                    models.CharField(blank=True, default="United States", max_length=200, null=True),
                 ),
                 ("supplier_website", models.URLField(blank=True, null=True)),
                 ("notes", models.TextField(blank=True, null=True)),
@@ -415,9 +389,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.IntegerField(
-                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
-                    ),
+                    models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID"),
                 ),
                 (
                     "_active",
@@ -425,15 +397,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Updated"),
                 ),
                 (
                     "unit_of_measure",
@@ -542,9 +510,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.IntegerField(
-                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
-                    ),
+                    models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID"),
                 ),
                 (
                     "_active",
@@ -552,24 +518,18 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Updated"),
                 ),
                 ("invoice", models.CharField(blank=True, max_length=200, null=True)),
                 ("order", models.CharField(blank=True, max_length=200, null=True)),
                 ("date_invoiced", models.DateField(default=django.utils.timezone.now)),
                 (
                     "freight_charges",
-                    models.DecimalField(
-                        blank=True, decimal_places=2, max_digits=12, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
                 ),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
                 ("history_date", models.DateTimeField()),
@@ -639,9 +599,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.IntegerField(
-                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
-                    ),
+                    models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID"),
                 ),
                 (
                     "_active",
@@ -649,15 +607,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Updated"),
                 ),
                 (
                     "location",
@@ -699,9 +653,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "transfer_quantity",
-                    models.DecimalField(
-                        blank=True, decimal_places=2, max_digits=12, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
                 ),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
                 ("history_date", models.DateTimeField()),
@@ -783,15 +735,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        auto_now=True, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(auto_now=True, verbose_name="Datetime Updated"),
                 ),
                 ("supplier_sku", models.CharField(max_length=200)),
                 ("supplier_sku_description", models.CharField(max_length=200)),
@@ -860,15 +808,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        auto_now=True, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(auto_now=True, verbose_name="Datetime Updated"),
                 ),
                 (
                     "unit_of_measure",
@@ -962,15 +906,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        auto_now=True, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(auto_now=True, verbose_name="Datetime Updated"),
                 ),
                 (
                     "location",
@@ -1012,9 +952,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "transfer_quantity",
-                    models.DecimalField(
-                        blank=True, decimal_places=2, max_digits=12, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
                 ),
                 (
                     "_created_by",
@@ -1081,5 +1019,364 @@ class Migration(migrations.Migration):
                 ],
                 max_length=200,
             ),
+        ),
+        migrations.AlterModelOptions(
+            name="historicalinvoice_line",
+            options={
+                "get_latest_by": "history_date",
+                "ordering": ("-history_date", "-history_id"),
+                "verbose_name": "historical Receipt Line",
+            },
+        ),
+        migrations.AlterModelOptions(
+            name="invoice_line",
+            options={"verbose_name": "Receipt Line", "verbose_name_plural": "Receipt Lines"},
+        ),
+        migrations.AddField(
+            model_name="historicalinvoice",
+            name="discounts",
+            field=models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
+        ),
+        migrations.AddField(
+            model_name="historicalinvoice",
+            name="invoice_attachment",
+            field=models.TextField(blank=True, max_length=100, null=True),
+        ),
+        migrations.AddField(
+            model_name="historicalinvoice",
+            name="surcharges",
+            field=models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
+        ),
+        migrations.AddField(
+            model_name="invoice",
+            name="discounts",
+            field=models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
+        ),
+        migrations.AddField(
+            model_name="invoice",
+            name="invoice_attachment",
+            field=models.FileField(blank=True, null=True, upload_to=""),
+        ),
+        migrations.AddField(
+            model_name="invoice",
+            name="surcharges",
+            field=models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
+        ),
+        migrations.AlterField(
+            model_name="historicalinventory_onhand",
+            name="location",
+            field=models.CharField(
+                choices=[
+                    ("Bondo - Garage", "Bondo - Garage"),
+                    ("Workshop", "Workshop"),
+                    ("Fulfillment Area", "Fulfillment Area"),
+                    ("DFM Staging", "DFM Staging"),
+                    ("Curing Room", "Curing Room"),
+                    ("WomanCraft", "WomanCraft"),
+                    ("FBA", "FBA"),
+                    ("Offsite Wrapping", "Offsite Wrapping"),
+                ],
+                max_length=200,
+                verbose_name="Current Location",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalinventory_onhand",
+            name="to_location",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("Bondo - Garage", "Bondo - Garage"),
+                    ("Workshop", "Workshop"),
+                    ("Fulfillment Area", "Fulfillment Area"),
+                    ("DFM Staging", "DFM Staging"),
+                    ("Curing Room", "Curing Room"),
+                    ("WomanCraft", "WomanCraft"),
+                    ("FBA", "FBA"),
+                    ("Offsite Wrapping", "Offsite Wrapping"),
+                ],
+                max_length=200,
+                null=True,
+                verbose_name="Transfer To Location",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalinvoice_line",
+            name="sku",
+            field=models.ForeignKey(
+                blank=True,
+                db_constraint=False,
+                limit_choices_to=models.Q(product_code__type__in=["Raw Materials"]),
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="operations.product",
+                verbose_name="MoonDance SKU",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalinvoice_line",
+            name="unit_of_measure",
+            field=models.CharField(
+                choices=[
+                    ("grams", "grams"),
+                    ("oz", "oz"),
+                    ("lbs", "lbs"),
+                    ("each", "each"),
+                    ("hours", "hours"),
+                    ("minutes", "minutes"),
+                ],
+                max_length=200,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="inventory_onhand",
+            name="location",
+            field=models.CharField(
+                choices=[
+                    ("Bondo - Garage", "Bondo - Garage"),
+                    ("Workshop", "Workshop"),
+                    ("Fulfillment Area", "Fulfillment Area"),
+                    ("DFM Staging", "DFM Staging"),
+                    ("Curing Room", "Curing Room"),
+                    ("WomanCraft", "WomanCraft"),
+                    ("FBA", "FBA"),
+                    ("Offsite Wrapping", "Offsite Wrapping"),
+                ],
+                max_length=200,
+                verbose_name="Current Location",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="inventory_onhand",
+            name="to_location",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("Bondo - Garage", "Bondo - Garage"),
+                    ("Workshop", "Workshop"),
+                    ("Fulfillment Area", "Fulfillment Area"),
+                    ("DFM Staging", "DFM Staging"),
+                    ("Curing Room", "Curing Room"),
+                    ("WomanCraft", "WomanCraft"),
+                    ("FBA", "FBA"),
+                    ("Offsite Wrapping", "Offsite Wrapping"),
+                ],
+                max_length=200,
+                null=True,
+                verbose_name="Transfer To Location",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="invoice_line",
+            name="sku",
+            field=models.ForeignKey(
+                limit_choices_to=models.Q(product_code__type__in=["Raw Materials"]),
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="Invoice_Line_sku_fk",
+                to="operations.product",
+                verbose_name="MoonDance SKU",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="invoice_line",
+            name="unit_of_measure",
+            field=models.CharField(
+                choices=[
+                    ("grams", "grams"),
+                    ("oz", "oz"),
+                    ("lbs", "lbs"),
+                    ("each", "each"),
+                    ("hours", "hours"),
+                    ("minutes", "minutes"),
+                ],
+                max_length=200,
+            ),
+        ),
+        migrations.CreateModel(
+            name="Item_Transaction_History",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("_active", models.BooleanField(default=True, verbose_name="Is Active")),
+                ("_created", models.DateTimeField(auto_now_add=True, verbose_name="Datetime Created")),
+                ("_last_updated", models.DateTimeField(auto_now=True, verbose_name="Datetime Updated")),
+                (
+                    "transaction_type",
+                    models.CharField(
+                        choices=[("Opening Balance", "Opening Balance"), ("Closing Balance", "Closing Balance")],
+                        max_length=200,
+                    ),
+                ),
+                ("transaction_date", models.DateField()),
+                (
+                    "location",
+                    models.CharField(
+                        choices=[
+                            ("Bondo - Garage", "Bondo - Garage"),
+                            ("Workshop", "Workshop"),
+                            ("Fulfillment Area", "Fulfillment Area"),
+                            ("DFM Staging", "DFM Staging"),
+                            ("Curing Room", "Curing Room"),
+                            ("WomanCraft", "WomanCraft"),
+                            ("FBA", "FBA"),
+                            ("Offsite Wrapping", "Offsite Wrapping"),
+                        ],
+                        max_length=200,
+                    ),
+                ),
+                ("quantity", models.DecimalField(decimal_places=2, max_digits=12)),
+                (
+                    "unit_of_measure",
+                    models.CharField(
+                        choices=[
+                            ("grams", "grams"),
+                            ("oz", "oz"),
+                            ("lbs", "lbs"),
+                            ("each", "each"),
+                            ("hours", "hours"),
+                            ("minutes", "minutes"),
+                        ],
+                        max_length=200,
+                    ),
+                ),
+                (
+                    "_created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="item_transaction_history_created_by",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Created By",
+                    ),
+                ),
+                (
+                    "_last_updated_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="item_transaction_history_last_updated_by",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Last Updated By",
+                    ),
+                ),
+                (
+                    "sku",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="Item_Transaction_History_sku_fk",
+                        to="operations.product",
+                    ),
+                ),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="HistoricalItem_Transaction_History",
+            fields=[
+                ("id", models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID")),
+                ("_active", models.BooleanField(default=True, verbose_name="Is Active")),
+                ("_created", models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Created")),
+                ("_last_updated", models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Updated")),
+                (
+                    "transaction_type",
+                    models.CharField(
+                        choices=[("Opening Balance", "Opening Balance"), ("Closing Balance", "Closing Balance")],
+                        max_length=200,
+                    ),
+                ),
+                ("transaction_date", models.DateField()),
+                (
+                    "location",
+                    models.CharField(
+                        choices=[
+                            ("Bondo - Garage", "Bondo - Garage"),
+                            ("Workshop", "Workshop"),
+                            ("Fulfillment Area", "Fulfillment Area"),
+                            ("DFM Staging", "DFM Staging"),
+                            ("Curing Room", "Curing Room"),
+                            ("WomanCraft", "WomanCraft"),
+                            ("FBA", "FBA"),
+                            ("Offsite Wrapping", "Offsite Wrapping"),
+                        ],
+                        max_length=200,
+                    ),
+                ),
+                ("quantity", models.DecimalField(decimal_places=2, max_digits=12)),
+                (
+                    "unit_of_measure",
+                    models.CharField(
+                        choices=[
+                            ("grams", "grams"),
+                            ("oz", "oz"),
+                            ("lbs", "lbs"),
+                            ("each", "each"),
+                            ("hours", "hours"),
+                            ("minutes", "minutes"),
+                        ],
+                        max_length=200,
+                    ),
+                ),
+                ("history_id", models.AutoField(primary_key=True, serialize=False)),
+                ("history_date", models.DateTimeField()),
+                ("history_change_reason", models.CharField(max_length=100, null=True)),
+                (
+                    "history_type",
+                    models.CharField(choices=[("+", "Created"), ("~", "Changed"), ("-", "Deleted")], max_length=1),
+                ),
+                (
+                    "_created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Created By",
+                    ),
+                ),
+                (
+                    "_last_updated_by",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Last Updated By",
+                    ),
+                ),
+                (
+                    "history_user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "sku",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to="operations.product",
+                    ),
+                ),
+            ],
+            options={
+                "verbose_name": "historical item_ transaction_ history",
+                "ordering": ("-history_date", "-history_id"),
+                "get_latest_by": "history_date",
+            },
+            bases=(simple_history.models.HistoricalChanges, models.Model),
         ),
     ]

@@ -85,7 +85,24 @@ class Invoice(MetaModel):
     invoice = models.CharField(max_length=200, blank=True, null=True)
     order = models.CharField(max_length=200, blank=True, null=True)
     date_invoiced = models.DateField(default=timezone.now)
-    freight_charges = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    freight_charges = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    discounts = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    surcharges = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
     invoice_attachment = models.FileField(null=True, blank=True)
 
     def __str__(self):
@@ -105,6 +122,11 @@ class Invoice_Line(MetaModel):
         on_delete=models.PROTECT,
         related_name="Invoice_Line_sku_fk",
         verbose_name="MoonDance SKU",
+        limit_choices_to=models.Q(
+            product_code__type__in=[
+                "Raw Materials",
+            ]
+        ),
     )
     manufacturer = models.ForeignKey(
         Supplier,

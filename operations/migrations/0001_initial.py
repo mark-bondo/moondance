@@ -33,15 +33,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        auto_now=True, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(auto_now=True, verbose_name="Datetime Updated"),
                 ),
                 (
                     "type",
@@ -128,15 +124,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        auto_now=True, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(auto_now=True, verbose_name="Datetime Updated"),
                 ),
                 (
                     "sku",
@@ -145,9 +137,7 @@ class Migration(migrations.Migration):
                 ("description", models.CharField(max_length=200)),
                 (
                     "upc",
-                    models.CharField(
-                        blank=True, max_length=200, null=True, verbose_name="UPC"
-                    ),
+                    models.CharField(blank=True, max_length=200, null=True, verbose_name="UPC"),
                 ),
                 (
                     "unit_of_measure",
@@ -165,27 +155,19 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "unit_weight",
-                    models.DecimalField(
-                        blank=True, decimal_places=2, max_digits=12, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
                 ),
                 (
                     "unit_sales_price",
-                    models.DecimalField(
-                        blank=True, decimal_places=2, max_digits=12, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
                 ),
                 (
                     "unit_material_cost",
-                    models.DecimalField(
-                        blank=True, decimal_places=5, max_digits=12, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=5, max_digits=12, null=True),
                 ),
                 (
                     "unit_labor_cost",
-                    models.DecimalField(
-                        blank=True, decimal_places=5, max_digits=12, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=5, max_digits=12, null=True),
                 ),
                 ("notes", models.TextField(blank=True, null=True)),
                 (
@@ -245,15 +227,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        auto_now=True, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(auto_now=True, verbose_name="Datetime Updated"),
                 ),
                 (
                     "sales_channel",
@@ -290,16 +268,12 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "labor_hourly_rate",
-                    models.DecimalField(
-                        blank=True, decimal_places=2, max_digits=5, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True),
                 ),
                 ("labor_minutes", models.IntegerField(blank=True, null=True)),
                 (
                     "material_cost",
-                    models.DecimalField(
-                        blank=True, decimal_places=2, max_digits=16, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=16, null=True),
                 ),
                 (
                     "_created_by",
@@ -335,9 +309,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.IntegerField(
-                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
-                    ),
+                    models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID"),
                 ),
                 (
                     "_active",
@@ -345,15 +317,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Updated"),
                 ),
                 ("quantity", models.DecimalField(decimal_places=5, max_digits=12)),
                 (
@@ -418,9 +386,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         blank=True,
                         db_constraint=False,
-                        limit_choices_to=models.Q(
-                            _negated=True, product_code__type__in=["Finished Goods"]
-                        ),
+                        limit_choices_to=models.Q(_negated=True, product_code__type__in=["Finished Goods"]),
                         null=True,
                         on_delete=django.db.models.deletion.DO_NOTHING,
                         related_name="+",
@@ -451,9 +417,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.IntegerField(
-                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
-                    ),
+                    models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID"),
                 ),
                 (
                     "_active",
@@ -461,15 +425,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Updated"),
                 ),
                 (
                     "sku",
@@ -478,9 +438,7 @@ class Migration(migrations.Migration):
                 ("description", models.CharField(max_length=200)),
                 (
                     "upc",
-                    models.CharField(
-                        blank=True, max_length=200, null=True, verbose_name="UPC"
-                    ),
+                    models.CharField(blank=True, max_length=200, null=True, verbose_name="UPC"),
                 ),
                 (
                     "unit_of_measure",
@@ -498,27 +456,19 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "unit_weight",
-                    models.DecimalField(
-                        blank=True, decimal_places=2, max_digits=12, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
                 ),
                 (
                     "unit_sales_price",
-                    models.DecimalField(
-                        blank=True, decimal_places=2, max_digits=12, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
                 ),
                 (
                     "unit_material_cost",
-                    models.DecimalField(
-                        blank=True, decimal_places=5, max_digits=12, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=5, max_digits=12, null=True),
                 ),
                 (
                     "unit_labor_cost",
-                    models.DecimalField(
-                        blank=True, decimal_places=5, max_digits=12, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=5, max_digits=12, null=True),
                 ),
                 ("notes", models.TextField(blank=True, null=True)),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
@@ -588,9 +538,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.IntegerField(
-                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
-                    ),
+                    models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID"),
                 ),
                 (
                     "_active",
@@ -598,15 +546,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        blank=True, editable=False, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(blank=True, editable=False, verbose_name="Datetime Updated"),
                 ),
                 (
                     "sales_channel",
@@ -643,16 +587,12 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "labor_hourly_rate",
-                    models.DecimalField(
-                        blank=True, decimal_places=2, max_digits=5, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True),
                 ),
                 ("labor_minutes", models.IntegerField(blank=True, null=True)),
                 (
                     "material_cost",
-                    models.DecimalField(
-                        blank=True, decimal_places=2, max_digits=16, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=16, null=True),
                 ),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
                 ("history_date", models.DateTimeField()),
@@ -723,15 +663,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "_created",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="Datetime Created"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="Datetime Created"),
                 ),
                 (
                     "_last_updated",
-                    models.DateTimeField(
-                        auto_now=True, verbose_name="Datetime Updated"
-                    ),
+                    models.DateTimeField(auto_now=True, verbose_name="Datetime Updated"),
                 ),
                 ("quantity", models.DecimalField(decimal_places=5, max_digits=12)),
                 (
@@ -773,9 +709,7 @@ class Migration(migrations.Migration):
                 (
                     "sku",
                     models.ForeignKey(
-                        limit_choices_to=models.Q(
-                            _negated=True, product_code__type__in=["Finished Goods"]
-                        ),
+                        limit_choices_to=models.Q(_negated=True, product_code__type__in=["Finished Goods"]),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="Recipe_sku_fk",
                         to="operations.product",
@@ -796,5 +730,275 @@ class Migration(migrations.Migration):
                 "ordering": ("sku_parent", "sku"),
                 "unique_together": {("sku", "sku_parent")},
             },
+        ),
+        migrations.CreateModel(
+            name="Weight_Conversions",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "from_measure",
+                    models.CharField(
+                        choices=[
+                            ("grams", "grams"),
+                            ("oz", "oz"),
+                            ("lbs", "lbs"),
+                            ("each", "each"),
+                            ("hours", "hours"),
+                            ("minutes", "minutes"),
+                        ],
+                        max_length=200,
+                    ),
+                ),
+                (
+                    "to_measure",
+                    models.CharField(
+                        choices=[
+                            ("grams", "grams"),
+                            ("oz", "oz"),
+                            ("lbs", "lbs"),
+                            ("each", "each"),
+                            ("hours", "hours"),
+                            ("minutes", "minutes"),
+                        ],
+                        max_length=200,
+                    ),
+                ),
+                ("conversion_rate", models.DecimalField(decimal_places=6, max_digits=16)),
+            ],
+            options={
+                "verbose_name": "Weight Conversion",
+                "verbose_name_plural": "Weight Conversions",
+            },
+        ),
+        migrations.AlterModelOptions(
+            name="historicalrecipe_line",
+            options={
+                "get_latest_by": "history_date",
+                "ordering": ("-history_date", "-history_id"),
+                "verbose_name": "historical Recipe",
+            },
+        ),
+        migrations.AlterModelOptions(
+            name="recipe_line",
+            options={
+                "ordering": ("sku__product_code__family", "sku__sku"),
+                "verbose_name": "Recipe",
+                "verbose_name_plural": "Recipe",
+            },
+        ),
+        migrations.RemoveField(
+            model_name="product_code",
+            name="sales_channel_type",
+        ),
+        migrations.AddField(
+            model_name="historicalorder_cost_overlay",
+            name="sales_percentage",
+            field=models.DecimalField(blank=True, decimal_places=2, max_digits=6, null=True),
+        ),
+        migrations.AddField(
+            model_name="historicalproduct",
+            name="sales_channel_type",
+            field=models.CharField(
+                choices=[("All", "All"), ("FBA", "FBA"), ("MoonDance", "MoonDance")], default="All", max_length=100
+            ),
+        ),
+        migrations.AddField(
+            model_name="historicalproduct",
+            name="unit_freight_cost",
+            field=models.DecimalField(blank=True, decimal_places=5, max_digits=12, null=True),
+        ),
+        migrations.AddField(
+            model_name="order_cost_overlay",
+            name="sales_percentage",
+            field=models.DecimalField(blank=True, decimal_places=2, max_digits=6, null=True),
+        ),
+        migrations.AddField(
+            model_name="product",
+            name="sales_channel_type",
+            field=models.CharField(
+                choices=[("All", "All"), ("FBA", "FBA"), ("MoonDance", "MoonDance")], default="All", max_length=100
+            ),
+        ),
+        migrations.AddField(
+            model_name="product",
+            name="unit_freight_cost",
+            field=models.DecimalField(blank=True, decimal_places=5, max_digits=12, null=True),
+        ),
+        migrations.AlterField(
+            model_name="historicalorder_cost_overlay",
+            name="name",
+            field=models.CharField(max_length=200),
+        ),
+        migrations.AlterField(
+            model_name="historicalorder_cost_overlay",
+            name="sales_channel",
+            field=models.CharField(
+                choices=[
+                    ("Shopify Retail", "Shopify Retail"),
+                    ("Wholesale", "Wholesale"),
+                    ("Amazon FBA", "Amazon FBA"),
+                    ("Amazon FBM", "Amazon FBM"),
+                    ("Farmers Market - Wake Forest", "Farmers Market - Wake Forest"),
+                    ("Farmers Market - Durham", "Farmers Market - Durham"),
+                ],
+                max_length=200,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalorder_cost_overlay",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("Fulfillment Labor", "Fulfillment Labor"),
+                    ("Shipping Materials", "Shipping Materials"),
+                    ("Sales Channel Fees", "Sales Channel Fees"),
+                ],
+                max_length=200,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalproduct",
+            name="unit_of_measure",
+            field=models.CharField(
+                choices=[
+                    ("grams", "grams"),
+                    ("oz", "oz"),
+                    ("lbs", "lbs"),
+                    ("each", "each"),
+                    ("hours", "hours"),
+                    ("minutes", "minutes"),
+                ],
+                default="lbs",
+                max_length=200,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalrecipe_line",
+            name="sku",
+            field=models.ForeignKey(
+                blank=True,
+                db_constraint=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="operations.product",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalrecipe_line",
+            name="unit_of_measure",
+            field=models.CharField(
+                choices=[
+                    ("grams", "grams"),
+                    ("oz", "oz"),
+                    ("lbs", "lbs"),
+                    ("each", "each"),
+                    ("hours", "hours"),
+                    ("minutes", "minutes"),
+                ],
+                default="grams",
+                max_length=200,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="order_cost_overlay",
+            name="name",
+            field=models.CharField(max_length=200),
+        ),
+        migrations.AlterField(
+            model_name="order_cost_overlay",
+            name="sales_channel",
+            field=models.CharField(
+                choices=[
+                    ("Shopify Retail", "Shopify Retail"),
+                    ("Wholesale", "Wholesale"),
+                    ("Amazon FBA", "Amazon FBA"),
+                    ("Amazon FBM", "Amazon FBM"),
+                    ("Farmers Market - Wake Forest", "Farmers Market - Wake Forest"),
+                    ("Farmers Market - Durham", "Farmers Market - Durham"),
+                ],
+                max_length=200,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="order_cost_overlay",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("Fulfillment Labor", "Fulfillment Labor"),
+                    ("Shipping Materials", "Shipping Materials"),
+                    ("Sales Channel Fees", "Sales Channel Fees"),
+                ],
+                max_length=200,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="product",
+            name="unit_of_measure",
+            field=models.CharField(
+                choices=[
+                    ("grams", "grams"),
+                    ("oz", "oz"),
+                    ("lbs", "lbs"),
+                    ("each", "each"),
+                    ("hours", "hours"),
+                    ("minutes", "minutes"),
+                ],
+                default="lbs",
+                max_length=200,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="product_code",
+            name="freight_factor_percentage",
+            field=models.DecimalField(
+                blank=True,
+                decimal_places=2,
+                help_text="Percentage adder to material cost. Use whole numbers with 2 decimals maximum.",
+                max_digits=5,
+                null=True,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="product_code",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("Finished Goods", "Finished Goods"),
+                    ("Raw Materials", "Raw Materials"),
+                    ("Labor", "Labor"),
+                    ("Labor Groups", "Labor Groups"),
+                    ("Services", "Services"),
+                    ("WIP", "WIP"),
+                ],
+                max_length=200,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="recipe_line",
+            name="sku",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT, related_name="Recipe_sku_fk", to="operations.product"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="recipe_line",
+            name="unit_of_measure",
+            field=models.CharField(
+                choices=[
+                    ("grams", "grams"),
+                    ("oz", "oz"),
+                    ("lbs", "lbs"),
+                    ("each", "each"),
+                    ("hours", "hours"),
+                    ("minutes", "minutes"),
+                ],
+                default="grams",
+                max_length=200,
+            ),
+        ),
+        migrations.AlterUniqueTogether(
+            name="order_cost_overlay",
+            unique_together={("name", "sales_channel")},
         ),
     ]

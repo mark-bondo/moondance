@@ -291,10 +291,16 @@ class Invoice_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     fields = (
         "supplier",
         "date_invoiced",
-        "invoice",
-        "invoice_attachment",
         "order",
-        "freight_charges",
+        (
+            "invoice",
+            "invoice_attachment",
+        ),
+        (
+            "freight_charges",
+            "surcharges",
+            "discounts",
+        ),
         "material_cost",
         "total_cost",
         "total_weight",
@@ -307,7 +313,11 @@ class Invoice_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def total_cost(self, obj):
         invoice_lines = Invoice_Line.objects.filter(invoice=obj.pk).select_related()
-        total_cost = obj.freight_charges or 0
+        freight = obj.freight_charges or 0
+        surcharges = obj.surcharges or 0
+        discounts = obj.discounts or 0
+
+        total_cost = freight + surcharges + discounts
 
         for row in invoice_lines:
             total_cost += row.total_cost or 0
