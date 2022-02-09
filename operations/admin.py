@@ -219,18 +219,18 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                 ]
             },
         ),
-        (
-            "Pricing & Costing",
-            {
-                "fields": [
-                    "unit_sales_price",
-                    "unit_material_cost",
-                    "unit_labor_cost",
-                    "unit_freight_cost",
-                    "unit_cost_total",
-                ]
-            },
-        ),
+        # (
+        #     "Pricing & Costing",
+        #     {
+        #         "fields": [
+        #             "unit_sales_price",
+        #             "unit_material_cost",
+        #             "unit_labor_cost",
+        #             "unit_freight_cost",
+        #             "unit_cost_total",
+        #         ]
+        #     },
+        # ),
     )
 
     def add_view(self, request, form_url="", extra_context=None):
@@ -251,8 +251,10 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                 pass
             elif obj.product_code.type in ("Raw Materials"):
                 self.inlines = [Product_Cost_History_Inline_Admin, Supplier_Product_Admin_Inline]
-            elif obj.product_code.type in ("Labor Groups", "WIP"):
+            elif obj.product_code.type in ("Labor Group", "WIP"):
                 self.inlines = [Product_Cost_History_Inline_Admin, Recipe_Line_Inline_Admin]
+            elif obj.product_code.type in ("Labor"):
+                self.inlines = [Product_Cost_History_Inline_Admin]
             else:
                 self.inlines = []
         else:
