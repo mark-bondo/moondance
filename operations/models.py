@@ -224,13 +224,8 @@ class Product_Cost_History(MetaModel):
     end_date = models.DateField()
     date_range = DateRangeField()
 
-    class Meta:
-        verbose_name = "Product Cost History"
-        verbose_name_plural = "Product Cost History"
-        ordering = ("start_date",)
-
     @property
-    def standard_cost_total(self):
+    def standard_total_cost(self):
         cost = (self.standard_material_cost or 0) + (self.standard_freight_cost or 0) + (self.standard_labor_cost or 0)
         return round(cost, 5)
 
@@ -254,6 +249,11 @@ class Product_Cost_History(MetaModel):
 
         if overlap:
             raise ValidationError("Date range overlaps with another record")
+
+    class Meta:
+        verbose_name = "Product Cost History"
+        verbose_name_plural = "Product Cost History"
+        ordering = ("start_date",)
 
 
 class Recipe_Line(MetaModel):

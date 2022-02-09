@@ -142,13 +142,6 @@ class Product_Cost_History_Inline_Admin(admin.TabularInline):
         "start_date",
         "end_date",
     )
-    history_list_display = [
-        "standard_material_cost",
-        "standard_freight_cost",
-        "standard_labor_cost",
-        "start_date",
-        "end_date",
-    ]
     readonly_fields = ("standard_total_cost",)
 
 
