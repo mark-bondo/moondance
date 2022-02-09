@@ -216,6 +216,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                     "onhand_quantity",
                     "total_cost",
                     "_active",
+                    "notes",
                 ]
             },
         ),
@@ -251,7 +252,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                 pass
             elif obj.product_code.type in ("Raw Materials"):
                 self.inlines = [Product_Cost_History_Inline_Admin, Supplier_Product_Admin_Inline]
-            elif obj.product_code.type in ("Labor Group", "WIP"):
+            elif obj.product_code.type in ("Labor Groups", "WIP"):
                 self.inlines = [Product_Cost_History_Inline_Admin, Recipe_Line_Inline_Admin]
             elif obj.product_code.type in ("Labor"):
                 self.inlines = [Product_Cost_History_Inline_Admin]
