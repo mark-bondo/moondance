@@ -229,6 +229,11 @@ class Product_Cost_History(MetaModel):
         verbose_name_plural = "Product Cost History"
         ordering = ("start_date",)
 
+    @property
+    def standard_cost_total(self):
+        cost = (self.standard_material_cost or 0) + (self.standard_freight_cost or 0) + (self.standard_labor_cost or 0)
+        return round(cost, 5)
+
     def full_clean(self, *args, **kwargs):
         super().full_clean(*args, **kwargs)
 

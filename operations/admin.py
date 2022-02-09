@@ -138,6 +138,7 @@ class Product_Cost_History_Inline_Admin(admin.TabularInline):
         "standard_material_cost",
         "standard_freight_cost",
         "standard_labor_cost",
+        "standard_total_cost",
         "start_date",
         "end_date",
     )
@@ -148,6 +149,7 @@ class Product_Cost_History_Inline_Admin(admin.TabularInline):
         "start_date",
         "end_date",
     ]
+    readonly_fields = ("standard_total_cost",)
 
 
 @admin.register(Product)
@@ -220,18 +222,18 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                 ]
             },
         ),
-        # (
-        #     "Pricing & Costing",
-        #     {
-        #         "fields": [
-        #             "unit_sales_price",
-        #             "unit_material_cost",
-        #             "unit_labor_cost",
-        #             "unit_freight_cost",
-        #             "unit_cost_total",
-        #         ]
-        #     },
-        # ),
+        (
+            "Current Costing",
+            {
+                "fields": [
+                    # "unit_sales_price",
+                    "unit_material_cost",
+                    "unit_labor_cost",
+                    "unit_freight_cost",
+                    "unit_cost_total",
+                ]
+            },
+        ),
     )
 
     def add_view(self, request, form_url="", extra_context=None):
@@ -265,8 +267,10 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = (
-            "unit_cost_total",
+            "unit_material_cost",
+            "unit_labor_cost",
             "unit_freight_cost",
+            "unit_cost_total",
             "onhand_quantity",
             "_last_updated",
             "total_cost",
@@ -274,20 +278,20 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             "_created_by",
         )
 
-        if obj and obj.product_code:
-            ptype = obj.product_code.type
-            if ptype in (
-                "WIP",
-                "Labor Groups",
-            ):
-                readonly_fields += (
-                    "unit_material_cost",
-                    "unit_labor_cost",
-                )
-            elif ptype == "Labor":
-                readonly_fields += ("unit_material_cost",)
-            elif ptype == "Raw Materials":
-                readonly_fields += ("unit_labor_cost",)
+        # if obj and obj.product_code:
+        #     ptype = obj.product_code.type
+        #     if ptype in (
+        #         "WIP",
+        #         "Labor Groups",
+        #     ):
+        #         readonly_fields += (
+        #             "unit_material_cost",
+        #             "unit_labor_cost",
+        #         )
+        #     elif ptype == "Labor":
+        #         readonly_fields += ("unit_material_cost",)
+        #     elif ptype == "Raw Materials":
+        #         readonly_fields += ("unit_labor_cost",)
         return readonly_fields
 
     def get_queryset(self, request):
