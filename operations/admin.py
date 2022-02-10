@@ -152,7 +152,6 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Product
     inlines = (
         # Product_Cost_History_Inline_Admin,
-        Invoice_Line_Inline,
         Recipe_Line_Inline_Admin,
         Supplier_Product_Admin_Inline,
     )
@@ -248,6 +247,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                 ]
             elif obj.product_code.type in ("Raw Materials"):
                 self.inlines = [
+                    Invoice_Line_Inline,
                     Supplier_Product_Admin_Inline,
                 ]
             elif obj.product_code.type in ("Labor Groups", "WIP"):
