@@ -275,6 +275,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             if ptype in (
                 "WIP",
                 "Labor Groups",
+                "Finished Goods",
             ):
                 readonly_fields += (
                     "unit_material_cost",
