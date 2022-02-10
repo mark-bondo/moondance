@@ -9,7 +9,6 @@ from .models import (
     Product,
     Recipe_Line,
     Order_Cost_Overlay,
-    Product_Cost_History,
     recalculate_bom_cost,
 )
 from purchasing.admin import Supplier_Product_Admin_Inline
@@ -131,25 +130,25 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
     modify_link.short_description = "Modify Link"
 
 
-class Product_Cost_History_Inline_Admin(admin.TabularInline):
-    model = Product_Cost_History
-    extra = 0
-    fields = (
-        "standard_material_cost",
-        "standard_freight_cost",
-        "standard_labor_cost",
-        "standard_total_cost",
-        "start_date",
-        "end_date",
-    )
-    readonly_fields = ("standard_total_cost",)
+# class Product_Cost_History_Inline_Admin(admin.TabularInline):
+#     model = Product_Cost_History
+#     extra = 0
+#     fields = (
+#         "standard_material_cost",
+#         "standard_freight_cost",
+#         "standard_labor_cost",
+#         "standard_total_cost",
+#         "start_date",
+#         "end_date",
+#     )
+#     readonly_fields = ("standard_total_cost",)
 
 
 @admin.register(Product)
 class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Product
     inlines = (
-        Product_Cost_History_Inline_Admin,
+        # Product_Cost_History_Inline_Admin,
         Recipe_Line_Inline_Admin,
         Supplier_Product_Admin_Inline,
     )
@@ -237,7 +236,6 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     def change_view(self, request, object_id, form_url="", extra_context=None):
         obj = self.model.objects.get(pk=object_id)
         self.inlines = [
-            Product_Cost_History_Inline_Admin,
             Recipe_Line_Inline_Admin,
             Supplier_Product_Admin_Inline,
         ]
@@ -246,15 +244,15 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             if obj.product_code.type in ("Finished Goods"):
                 pass
             elif obj.product_code.type in ("Raw Materials"):
-                self.inlines = [Product_Cost_History_Inline_Admin, Supplier_Product_Admin_Inline]
+                self.inlines = [Supplier_Product_Admin_Inline]
             elif obj.product_code.type in ("Labor Groups", "WIP"):
-                self.inlines = [Product_Cost_History_Inline_Admin, Recipe_Line_Inline_Admin]
+                self.inlines = [Recipe_Line_Inline_Admin]
             elif obj.product_code.type in ("Labor"):
-                self.inlines = [Product_Cost_History_Inline_Admin]
+                self.inlines = []
             else:
                 self.inlines = []
         else:
-            self.inlines = [Product_Cost_History_Inline_Admin]
+            self.inlines = []
 
         return super().change_view(request, object_id, form_url, extra_context)
 

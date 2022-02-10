@@ -57,6 +57,7 @@ def convert_weight(to_measure, from_measure, weight):
                 from_measure = '{from_measure}' AND
                 to_measure = '{to_measure}'
         """
+
         cursor.execute(sql)
         return cursor.fetchall()[0][0]
 
@@ -273,7 +274,7 @@ class Recipe_Line(MetaModel):
 
     @property
     def extended_cost(self):
-        return calculate_unit_cost(self, self.quantity)
+        return calculate_unit_cost(self, self.quantity or 0)
 
     def __str__(self):
         return "{} ({})".format(self.sku, self.sku_parent)
