@@ -1,6 +1,7 @@
 from django.dispatch import receiver
 from django.db.models.signals import post_save
-from .models import Product, Recipe_Line, recalculate_bom_cost, convert_weight
+from operations.models import Product, Recipe_Line
+from utils import common
 from purchasing.models import Inventory_Onhand
 
 
@@ -24,7 +25,7 @@ def post_save(sender, instance, created, **kwargs):
 
         while parents:
             p = parents[0]
-            current_level_parent = recalculate_bom_cost(p)
+            current_level_parent = common.recalculate_bom_cost(p)
             next_level_parent = (
                 Recipe_Line.objects.filter(sku_id=current_level_parent)
                 .order_by("sku_parent_id")
@@ -42,7 +43,7 @@ def post_save(sender, instance, created, **kwargs):
         location_inventory = Inventory_Onhand.objects.filter(sku=instance)
 
         for i in location_inventory:
-            converted_weight = convert_weight(
+            converted_weight = common.convert_weight(
                 from_measure=instance.original_unit_of_measure,
                 to_measure=instance.unit_of_measure,
                 weight=i.quantity_onhand,

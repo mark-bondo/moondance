@@ -1,35 +1,15 @@
 from django.db import models
 from moondance.meta_models import MetaModel
-from operations.models import Product, UNIT_OF_MEASURES
+from operations.models import Product
+from utils import common
 from simple_history.models import HistoricalRecords
 from django.utils import timezone
 
 
-LOCATION_LIST = [
-    ("Bondo - Garage", "Bondo - Garage"),
-    ("Workshop", "Workshop"),
-    ("Fulfillment Area", "Fulfillment Area"),
-    ("DFM Staging", "DFM Staging"),
-    ("Curing Room", "Curing Room"),
-    ("WomanCraft", "WomanCraft"),
-    ("FBA", "FBA"),
-    ("Offsite Wrapping", "Offsite Wrapping"),
-]
-TRANSACTION_TYPES = (
-    ("Opening Balance", "Opening Balance"),
-    ("Closing Balance", "Closing Balance"),
-)
-
-
 class Supplier(MetaModel):
-    type_choices = (
-        ("Distributor", "Distributor"),
-        ("Manufacturer", "Manufacturer"),
-    )
-
     history = HistoricalRecords()
 
-    type = models.CharField(max_length=200, choices=type_choices, default="Manufacturer")
+    type = models.CharField(max_length=200, choices=common.SUPPLIER_CHOICES, default="Manufacturer")
     name = models.CharField(max_length=200, unique=True)
     contact_name = models.CharField(max_length=200, null=True, blank=True)
     contact_email = models.CharField(max_length=200, null=True, blank=True)
@@ -137,9 +117,14 @@ class Invoice_Line(MetaModel):
         null=True,
         help_text="Only needs to be populated if the manufacturer is different than the invoicing supplier.",
     )
-    unit_of_measure = models.CharField(max_length=200, choices=UNIT_OF_MEASURES)
+    unit_of_measure = models.CharField(max_length=200, choices=common.UNIT_OF_MEASURES)
     quantity = models.DecimalField(max_digits=12, decimal_places=2)
     total_cost = models.DecimalField(max_digits=12, decimal_places=2)
+
+    @property
+    def converted_unit_cost(self):
+        if self.quantity and self.quantity != 0:
+            return self.total_cost or 0 / self.quantity
 
     def __str__(self):
         return "{} ({})".format(self.invoice, self.sku)
@@ -163,13 +148,13 @@ class Inventory_Onhand(MetaModel):
         on_delete=models.PROTECT,
         related_name="Inventory_Onhand_sku_fk",
     )
-    location = models.CharField(max_length=200, choices=LOCATION_LIST, verbose_name="Current Location")
+    location = models.CharField(max_length=200, choices=common.LOCATION_LIST, verbose_name="Current Location")
     quantity_onhand = models.DecimalField(max_digits=12, decimal_places=2)
     to_location = models.CharField(
         max_length=200,
         null=True,
         blank=True,
-        choices=LOCATION_LIST,
+        choices=common.LOCATION_LIST,
         verbose_name="Transfer To Location",
     )
     transfer_quantity = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
@@ -197,8 +182,8 @@ class Item_Transaction_History(MetaModel):
         on_delete=models.PROTECT,
         related_name="Item_Transaction_History_sku_fk",
     )
-    transaction_type = models.CharField(max_length=200, choices=TRANSACTION_TYPES)
+    transaction_type = models.CharField(max_length=200, choices=common.TRANSACTION_TYPES)
     transaction_date = models.DateField()
-    location = models.CharField(max_length=200, choices=LOCATION_LIST)
+    location = models.CharField(max_length=200, choices=common.LOCATION_LIST)
     quantity = models.DecimalField(max_digits=12, decimal_places=2)
-    unit_of_measure = models.CharField(max_length=200, choices=UNIT_OF_MEASURES)
+    unit_of_measure = models.CharField(max_length=200, choices=common.UNIT_OF_MEASURES)

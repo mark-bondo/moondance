@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.db import connection
 from django.contrib.auth.decorators import login_required
-from .models import recalculate_bom_cost
+from utils import common
 
 
 @login_required
@@ -19,7 +19,7 @@ def recalculate_cost(request):
         products = cursor.fetchall()
 
     for p in products:
-        recalculate_bom_cost(p[0])
+        common.recalculate_bom_cost(p[0])
 
     return HttpResponse(products, content_type="application/json")
 

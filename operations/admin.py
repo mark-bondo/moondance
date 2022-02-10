@@ -2,14 +2,15 @@ import decimal
 import django.urls as urlresolvers
 from django.utils.safestring import mark_safe
 from django.contrib import admin
+from utils import common
 from moondance.meta_models import set_meta_fields, AdminStaticMixin
 from simple_history.admin import SimpleHistoryAdmin
+from purchasing.models import Invoice_Line
 from .models import (
     Product_Code,
     Product,
     Recipe_Line,
     Order_Cost_Overlay,
-    recalculate_bom_cost,
 )
 from purchasing.admin import Supplier_Product_Admin_Inline
 
@@ -120,7 +121,7 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
         return obj.sku.product_code.family
 
     def modify_link(self, obj):
-        """Generate a link to the history view for the line item."""
+        """Generates link to the view for the line item"""
         app = obj._meta.app_label
         url_str = "admin:{}_{}_change".format(app, "product")
         url = urlresolvers.reverse(url_str, args=[obj.sku_id])
@@ -130,18 +131,20 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
     modify_link.short_description = "Modify Link"
 
 
-# class Product_Cost_History_Inline_Admin(admin.TabularInline):
-#     model = Product_Cost_History
-#     extra = 0
-#     fields = (
-#         "standard_material_cost",
-#         "standard_freight_cost",
-#         "standard_labor_cost",
-#         "standard_total_cost",
-#         "start_date",
-#         "end_date",
-#     )
-#     readonly_fields = ("standard_total_cost",)
+class Invoice_Line_Inline(admin.TabularInline):
+    model = Invoice_Line
+    fields = (
+        "total_cost",
+        "quantity",
+        "unit_of_measure",
+        "manufacturer",
+    )
+    readonly_fields = (
+        "total_cost",
+        "quantity",
+        "unit_of_measure",
+        "manufacturer",
+    )
 
 
 @admin.register(Product)
@@ -149,6 +152,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Product
     inlines = (
         # Product_Cost_History_Inline_Admin,
+        Invoice_Line_Inline,
         Recipe_Line_Inline_Admin,
         Supplier_Product_Admin_Inline,
     )
@@ -235,20 +239,21 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         obj = self.model.objects.get(pk=object_id)
-        self.inlines = [
-            Recipe_Line_Inline_Admin,
-            Supplier_Product_Admin_Inline,
-        ]
 
         if obj.product_code:
             if obj.product_code.type in ("Finished Goods"):
-                pass
+                self.inlines = [
+                    Recipe_Line_Inline_Admin,
+                    Supplier_Product_Admin_Inline,
+                ]
             elif obj.product_code.type in ("Raw Materials"):
-                self.inlines = [Supplier_Product_Admin_Inline]
+                self.inlines = [
+                    Supplier_Product_Admin_Inline,
+                ]
             elif obj.product_code.type in ("Labor Groups", "WIP"):
-                self.inlines = [Recipe_Line_Inline_Admin]
-            elif obj.product_code.type in ("Labor"):
-                self.inlines = []
+                self.inlines = [
+                    Recipe_Line_Inline_Admin,
+                ]
             else:
                 self.inlines = []
         else:
@@ -258,9 +263,6 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = (
-            # "unit_material_cost",
-            # "unit_labor_cost",
-            # "unit_freight_cost",
             "unit_cost_total",
             "onhand_quantity",
             "_last_updated",
@@ -311,7 +313,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         formset.save_m2m()
 
         if formset.model == Recipe_Line:
-            recalculate_bom_cost(form.instance.id)
+            common.recalculate_bom_cost(form.instance.id)
 
 
 @admin.register(Order_Cost_Overlay)
