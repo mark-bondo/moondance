@@ -279,9 +279,13 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                 readonly_fields += (
                     "unit_material_cost",
                     "unit_labor_cost",
+                    "unit_freight_cost",
                 )
             elif ptype == "Labor":
-                readonly_fields += ("unit_material_cost",)
+                readonly_fields += (
+                    "unit_material_cost",
+                    "unit_freight_cost",
+                )
             elif ptype == "Raw Materials":
                 readonly_fields += ("unit_labor_cost",)
         return readonly_fields
