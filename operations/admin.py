@@ -243,7 +243,6 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             if obj.product_code.type in ("Finished Goods"):
                 self.inlines = [
                     Recipe_Line_Inline_Admin,
-                    Supplier_Product_Admin_Inline,
                 ]
             elif obj.product_code.type in ("Raw Materials"):
                 self.inlines = [
