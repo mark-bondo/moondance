@@ -150,11 +150,7 @@ class Invoice_Line_Inline(admin.TabularInline):
 @admin.register(Product)
 class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     model = Product
-    inlines = (
-        # Product_Cost_History_Inline_Admin,
-        Recipe_Line_Inline_Admin,
-        Supplier_Product_Admin_Inline,
-    )
+    inlines = []
     save_as = True
 
     list_display = [
@@ -253,10 +249,6 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                 self.inlines = [
                     Recipe_Line_Inline_Admin,
                 ]
-            else:
-                self.inlines = []
-        else:
-            self.inlines = []
 
         return super().change_view(request, object_id, form_url, extra_context)
 
