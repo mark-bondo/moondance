@@ -258,9 +258,9 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = (
-            "unit_material_cost",
-            "unit_labor_cost",
-            "unit_freight_cost",
+            # "unit_material_cost",
+            # "unit_labor_cost",
+            # "unit_freight_cost",
             "unit_cost_total",
             "onhand_quantity",
             "_last_updated",
@@ -269,20 +269,20 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             "_created_by",
         )
 
-        # if obj and obj.product_code:
-        #     ptype = obj.product_code.type
-        #     if ptype in (
-        #         "WIP",
-        #         "Labor Groups",
-        #     ):
-        #         readonly_fields += (
-        #             "unit_material_cost",
-        #             "unit_labor_cost",
-        #         )
-        #     elif ptype == "Labor":
-        #         readonly_fields += ("unit_material_cost",)
-        #     elif ptype == "Raw Materials":
-        #         readonly_fields += ("unit_labor_cost",)
+        if obj and obj.product_code:
+            ptype = obj.product_code.type
+            if ptype in (
+                "WIP",
+                "Labor Groups",
+            ):
+                readonly_fields += (
+                    "unit_material_cost",
+                    "unit_labor_cost",
+                )
+            elif ptype == "Labor":
+                readonly_fields += ("unit_material_cost",)
+            elif ptype == "Raw Materials":
+                readonly_fields += ("unit_labor_cost",)
         return readonly_fields
 
     def get_queryset(self, request):
