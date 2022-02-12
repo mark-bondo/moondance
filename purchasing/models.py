@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Sum
 from moondance.meta_models import MetaModel
 from operations.models import Product
 from utils import common
@@ -65,7 +66,7 @@ class Invoice(MetaModel):
     invoice = models.CharField(max_length=200, blank=True, null=True)
     order = models.CharField(max_length=200, blank=True, null=True)
     date_invoiced = models.DateField(default=timezone.now)
-    freight_charges = models.DecimalField(
+    freight_cost = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         null=True,
@@ -87,6 +88,28 @@ class Invoice(MetaModel):
 
     def __str__(self):
         return "{} ({})".format(self.invoice, self.supplier)
+
+    @property
+    def total_cost(self):
+        invoice_total_cost = (
+            (Invoice_Line.objects.filter(invoice=self).aggregate(total=Sum("total_cost"))["total"] or 0)
+            + (self.freight_cost or 0)
+            + (self.surcharges or 0)
+            - (self.discounts or 0)
+        )
+        return round(invoice_total_cost, 2)
+
+    @property
+    def total_weight(self):
+        invoice_total_weight = Invoice_Line.objects.filter(invoice=self).aggregate(total=Sum("quantity"))["total"] or 0
+        return round(invoice_total_weight, 2)
+
+    @property
+    def material_cost(self):
+        invoice_material_cost = (
+            Invoice_Line.objects.filter(invoice=self).aggregate(total=Sum("total_cost"))["total"] or 0
+        )
+        return round(invoice_material_cost, 2)
 
     class Meta:
         verbose_name = "Inventory Receipt"
@@ -119,12 +142,51 @@ class Invoice_Line(MetaModel):
     )
     unit_of_measure = models.CharField(max_length=200, choices=common.UNIT_OF_MEASURES)
     quantity = models.DecimalField(max_digits=12, decimal_places=2)
-    total_cost = models.DecimalField(max_digits=12, decimal_places=2)
+    total_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+    )
 
     @property
-    def converted_unit_cost(self):
+    def supplier(self):
+        return self.manufacturer if self.manufacturer else self.invoice.supplier
+
+    @property
+    def date_invoiced(self):
+        return self.invoice.date_invoiced
+
+    @property
+    def unit_material_cost(self):
         if self.quantity and self.quantity != 0:
-            return self.total_cost or 0 / self.quantity
+            return round((self.total_cost or 0) / self.quantity, 3)
+
+    @property
+    def unit_freight_cost(self):
+        if self.quantity and self.quantity != 0:
+            total_weight = self.invoice.total_weight
+            if total_weight and total_weight != 0:
+                unit_freight_cost = ((self.quantity / total_weight) * (self.invoice.freight_cost or 0)) / self.quantity
+        else:
+            unit_freight_cost = 0
+
+        return round(unit_freight_cost, 3)
+
+    @property
+    def unit_adjustments(self):
+        if self.quantity and self.quantity != 0:
+            total_weight = self.invoice.total_weight
+            if total_weight and total_weight != 0:
+                unit_adjustments = (
+                    (self.quantity / total_weight) * ((self.invoice.surcharges or 0) + (self.invoice.discounts or 0))
+                ) / self.quantity
+        else:
+            unit_adjustments = 0
+
+        return -round(unit_adjustments, 3)
+
+    @property
+    def unit_total_cost(self):
+        return (self.unit_material_cost or 0) + (self.unit_freight_cost or 0) + (self.unit_adjustments or 0)
 
     def __str__(self):
         return "{} ({})".format(self.invoice, self.sku)

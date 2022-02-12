@@ -16,6 +16,13 @@ TRANSACTION_TYPES = (
     ("Opening Balance", "Opening Balance"),
     ("Closing Balance", "Closing Balance"),
 )
+COSTING_METHOD_CHOICES = (
+    ("Manual", "Manual"),
+    ("Last Invoice", "Last Invoice"),
+    ("6 Month Average", "6 Month Average"),
+    ("12 Month Average", "12 Month Average"),
+)
+
 UNIT_OF_MEASURES = (
     ("grams", "grams"),
     ("oz", "oz"),

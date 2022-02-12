@@ -5,7 +5,7 @@ from django.contrib import admin
 from utils import common
 from moondance.meta_models import set_meta_fields, AdminStaticMixin
 from simple_history.admin import SimpleHistoryAdmin
-from purchasing.models import Invoice_Line
+from purchasing.models import Invoice, Invoice_Line
 from .models import (
     Product_Code,
     Product,
@@ -85,6 +85,7 @@ class Product_Code_Admin(admin.ModelAdmin):
 
 class Recipe_Line_Inline_Admin(admin.TabularInline):
     model = Recipe_Line
+    extra = 0
     fk_name = "sku_parent"
     fields = (
         "product_code",
@@ -133,18 +134,41 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
 
 class Invoice_Line_Inline(admin.TabularInline):
     model = Invoice_Line
+    extra = 0
     fields = (
-        "total_cost",
-        "quantity",
+        "date_invoiced",
+        "supplier",
         "unit_of_measure",
-        "manufacturer",
+        "unit_material_cost",
+        "unit_freight_cost",
+        "unit_adjustments",
+        "unit_total_cost",
+        "quantity",
+        "total_cost",
+        "view_invoice",
     )
     readonly_fields = (
-        "total_cost",
+        "date_invoiced",
+        "supplier",
+        "unit_material_cost",
+        "unit_freight_cost",
+        "unit_adjustments",
+        "unit_total_cost",
         "quantity",
         "unit_of_measure",
-        "manufacturer",
+        "total_cost",
+        "view_invoice",
     )
+
+    def view_invoice(self, obj):
+        """Generates link to the view for the line item"""
+        app = obj._meta.app_label
+        url_str = "admin:{}_{}_change".format(app, "invoice")
+        url = urlresolvers.reverse(url_str, args=[obj.invoice.id])
+        return mark_safe('<a href="{}">View Invoice</a>'.format(url))
+
+    view_invoice.allow_tags = True
+    view_invoice.short_description = "Invoice Link"
 
 
 @admin.register(Product)
@@ -217,6 +241,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             "Current Costing",
             {
                 "fields": [
+                    "costing_method",
                     # "unit_sales_price",
                     "unit_material_cost",
                     "unit_labor_cost",
@@ -234,6 +259,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         obj = self.model.objects.get(pk=object_id)
+        self.inlines = []
 
         if obj.product_code:
             if obj.product_code.type in ("Finished Goods"):
@@ -262,7 +288,8 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             "_created_by",
         )
 
-        if obj and obj.product_code:
+        # if obj and obj.costing_method == "Manual":
+        if obj and obj.product_code and obj.costing_method == "Manual":
             ptype = obj.product_code.type
             if ptype in (
                 "WIP",
@@ -281,6 +308,12 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                 )
             elif ptype == "Raw Materials":
                 readonly_fields += ("unit_labor_cost",)
+        else:
+            readonly_fields += (
+                "unit_material_cost",
+                "unit_labor_cost",
+                "unit_freight_cost",
+            )
         return readonly_fields
 
     def get_queryset(self, request):
@@ -288,12 +321,37 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def save_model(self, request, obj, form, change):
         obj = set_meta_fields(request, obj, form, change)
-        freight = (
-            obj.product_code.freight_factor_percentage
-            if obj.product_code and obj.product_code.freight_factor_percentage
-            else 0
-        ) / decimal.Decimal(100)
-        obj.unit_freight_cost = (obj.unit_material_cost or 0) * freight
+
+        # # handles inbound freight
+        # if obj and obj.product_code:
+        #     if obj.costing_method == "Manual":
+        #         freight = (
+        #             obj.product_code.freight_factor_percentage
+        #             if obj.product_code and obj.product_code.freight_factor_percentage
+        #             else 0
+        #         ) / decimal.Decimal(100)
+        #         obj.unit_freight_cost = (obj.unit_material_cost or 0) * freight
+        #     else:
+        #         invoice_lines = Invoice_Line.objects.filter(sku=obj).order_by("-date_invoiced")
+
+        #         if invoice_lines:
+        #             invoice = Invoice.objects.get(invoice_lines[0].invoice_id)
+
+        #             if obj.costing_method == "Last Invoice":
+        #                 last_invoice = invoice_lines.first()
+
+        #                 obj.unit_material_cost = common.convert_weight(
+        #                     obj.unit_of_measure, last_invoice.unit_of_measure, 1
+        #                 )
+
+        #                 total_weight = invoice.total_weight
+        #                 if total_weight and total_weight != 0:
+        #                     percent_weight = invoice_lines[0].quantity / total_weight
+
+        #                     obj.unit_freight_cost = percent_weight * (invoice.freight_cost or 0)
+        #                 else:
+        #                     obj.unit_freight_cost = 0
+
         obj.save()
 
     def save_formset(self, request, form, formset, change):

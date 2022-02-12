@@ -259,7 +259,7 @@ class Invoice_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "supplier",
         "invoice",
         "order",
-        "freight_charges",
+        "freight_cost",
         "material_cost",
         "total_cost",
     ]
@@ -280,7 +280,7 @@ class Invoice_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "supplier",
         "invoice",
         "order",
-        "freight_charges",
+        "freight_cost",
         "total_cost",
         "_active",
         "_last_updated",
@@ -297,7 +297,7 @@ class Invoice_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             "invoice_attachment",
         ),
         (
-            "freight_charges",
+            "freight_cost",
             "surcharges",
             "discounts",
         ),
@@ -310,37 +310,6 @@ class Invoice_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "material_cost",
         "total_weight",
     )
-
-    def total_cost(self, obj):
-        invoice_lines = Invoice_Line.objects.filter(invoice=obj.pk).select_related()
-        freight = obj.freight_charges or 0
-        surcharges = obj.surcharges or 0
-        discounts = obj.discounts or 0
-
-        total_cost = freight + surcharges + discounts
-
-        for row in invoice_lines:
-            total_cost += row.total_cost or 0
-
-        return round(total_cost, 2)
-
-    def total_weight(self, obj):
-        invoice_lines = Invoice_Line.objects.filter(invoice=obj.pk).select_related()
-        total_weight = 0
-
-        for row in invoice_lines:
-            total_weight += row.quantity or 0
-
-        return round(total_weight, 2)
-
-    def material_cost(self, obj):
-        invoice_lines = Invoice_Line.objects.filter(invoice=obj.pk).select_related()
-        total_cost = 0
-
-        for row in invoice_lines:
-            total_cost += row.total_cost or 0
-
-        return round(total_cost, 2)
 
     def save_formset(self, request, form, formset, change):
         # set meta fields

@@ -64,6 +64,7 @@ class Product(MetaModel):
     unit_of_measure = models.CharField(max_length=200, choices=common.UNIT_OF_MEASURES)
     unit_weight = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     unit_sales_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    costing_method = models.CharField(max_length=100, choices=common.COSTING_METHOD_CHOICES, default="Manual")
     unit_material_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
     unit_labor_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
     unit_freight_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
@@ -80,15 +81,12 @@ class Product(MetaModel):
         return round(cost, 5)
 
     @property
-    def total_cost(self):
-        cost = (
-            (self.unit_material_cost or 0) + (self.unit_labor_cost or 0) + (self.unit_freight_cost or 0)
-        ) * common.get_sku_quantity(self.pk)
-        return round(cost, 5)
-
-    @property
     def onhand_quantity(self):
         return common.get_sku_quantity(self.pk)
+
+    @property
+    def total_cost(self):
+        return round(self.unit_cost_total * self.onhand_quantity, 5)
 
     def __str__(self):
         return "{} ({})".format(self.description, self.sku)
