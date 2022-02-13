@@ -83,7 +83,7 @@ class Product(MetaModel):
     @property
     def unit_cost_total(self):
         cost = (self.unit_material_cost or 0) + (self.unit_labor_cost or 0) + (self.unit_freight_cost or 0)
-        return round(cost, 5)
+        return round(cost, 3)
 
     @property
     def onhand_quantity(self):

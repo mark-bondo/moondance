@@ -214,6 +214,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     ]
     list_filter = [
         ("_active", admin.BooleanFieldListFilter),
+        "costing_method",
         "product_code__type",
         "product_code__family",
     ]
