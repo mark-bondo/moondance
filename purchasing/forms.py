@@ -31,7 +31,6 @@ class Inventory_Onhand_Form(forms.ModelForm):
             location = loc.location
             # msg = 'SKU already exists at "{}". Change it back to "{}" and use the transfer option instead.'.format(loc.location, self.instance.location)
             # self.add_error('location', msg)
-        # print(location, to_location)
 
         if transfer_quantity:
             if not to_location:

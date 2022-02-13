@@ -17,10 +17,13 @@ TRANSACTION_TYPES = (
     ("Closing Balance", "Closing Balance"),
 )
 COSTING_METHOD_CHOICES = (
-    ("Manual", "Manual"),
+    ("Manual Estimate", "Manual Estimate"),
     ("Last Invoice", "Last Invoice"),
     ("6 Month Average", "6 Month Average"),
     ("12 Month Average", "12 Month Average"),
+    ("No Cost Found", "No Cost Found"),
+    ("Manual Override", "Manual Override"),
+    ("Recipe Cost Rollup", "Recipe Cost Rollup"),
 )
 
 UNIT_OF_MEASURES = (

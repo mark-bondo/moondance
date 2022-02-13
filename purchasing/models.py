@@ -156,16 +156,33 @@ class Invoice_Line(MetaModel):
         return self.invoice.date_invoiced
 
     @property
+    def converted_unit_of_measure(self):
+        return self.sku.unit_of_measure
+
+    @property
+    def converted_quantity(self):
+        default_uom = self.sku.unit_of_measure
+
+        if default_uom == "each":
+            rounding = 0
+        else:
+            rounding = 3
+
+        return round(common.convert_weight(default_uom, self.unit_of_measure, self.quantity), rounding)
+
+    @property
     def unit_material_cost(self):
-        if self.quantity and self.quantity != 0:
-            return round((self.total_cost or 0) / self.quantity, 3)
+        if self.converted_quantity and self.converted_quantity != 0:
+            return round((self.total_cost or 0) / self.converted_quantity, 3)
 
     @property
     def unit_freight_cost(self):
-        if self.quantity and self.quantity != 0:
+        if self.converted_quantity and self.converted_quantity != 0:
             total_weight = self.invoice.total_weight
             if total_weight and total_weight != 0:
-                unit_freight_cost = ((self.quantity / total_weight) * (self.invoice.freight_cost or 0)) / self.quantity
+                unit_freight_cost = (
+                    (self.converted_quantity / total_weight) * (self.invoice.freight_cost or 0)
+                ) / self.converted_quantity
         else:
             unit_freight_cost = 0
 
@@ -173,20 +190,24 @@ class Invoice_Line(MetaModel):
 
     @property
     def unit_adjustments(self):
-        if self.quantity and self.quantity != 0:
+        if self.converted_quantity and self.converted_quantity != 0:
             total_weight = self.invoice.total_weight
             if total_weight and total_weight != 0:
                 unit_adjustments = (
-                    (self.quantity / total_weight) * ((self.invoice.surcharges or 0) + (self.invoice.discounts or 0))
-                ) / self.quantity
+                    (self.converted_quantity / total_weight)
+                    * ((self.invoice.surcharges or 0) - (self.invoice.discounts or 0))
+                ) / self.converted_quantity
         else:
             unit_adjustments = 0
 
-        return -round(unit_adjustments, 3)
+        return round(unit_adjustments, 3)
 
     @property
     def unit_total_cost(self):
         return (self.unit_material_cost or 0) + (self.unit_freight_cost or 0) + (self.unit_adjustments or 0)
+
+    converted_unit_of_measure.fget.short_description = "Unit of Measure"
+    converted_quantity.fget.short_description = "Quantity"
 
     def __str__(self):
         return "{} ({})".format(self.invoice, self.sku)
@@ -200,6 +221,7 @@ class Invoice_Line(MetaModel):
                 "invoice",
             ),
         )
+        ordering = ("-invoice__date_invoiced",)
 
 
 class Inventory_Onhand(MetaModel):

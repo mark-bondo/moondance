@@ -12,6 +12,8 @@ from .models import (
     Recipe_Line,
     Order_Cost_Overlay,
 )
+from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
 from purchasing.admin import Supplier_Product_Admin_Inline
 
 
@@ -135,27 +137,28 @@ class Recipe_Line_Inline_Admin(admin.TabularInline):
 class Invoice_Line_Inline(admin.TabularInline):
     model = Invoice_Line
     extra = 0
+    # order_by = ("-invoice__date_invoiced",)
     fields = (
         "date_invoiced",
         "supplier",
-        "unit_of_measure",
+        "converted_unit_of_measure",
         "unit_material_cost",
         "unit_freight_cost",
         "unit_adjustments",
         "unit_total_cost",
-        "quantity",
+        "converted_quantity",
         "total_cost",
         "view_invoice",
     )
     readonly_fields = (
         "date_invoiced",
         "supplier",
+        "converted_unit_of_measure",
         "unit_material_cost",
         "unit_freight_cost",
         "unit_adjustments",
         "unit_total_cost",
-        "quantity",
-        "unit_of_measure",
+        "converted_quantity",
         "total_cost",
         "view_invoice",
     )
@@ -289,7 +292,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         )
 
         # if obj and obj.costing_method == "Manual":
-        if obj and obj.product_code and obj.costing_method == "Manual":
+        if obj and obj.product_code and obj.costing_method in ("Manual Override", "No Cost Found"):
             ptype = obj.product_code.type
             if ptype in (
                 "WIP",
@@ -300,11 +303,13 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
                     "unit_material_cost",
                     "unit_labor_cost",
                     "unit_freight_cost",
+                    "costing_method",
                 )
             elif ptype == "Labor":
                 readonly_fields += (
                     "unit_material_cost",
                     "unit_freight_cost",
+                    "costing_method",
                 )
             elif ptype == "Raw Materials":
                 readonly_fields += ("unit_labor_cost",)
@@ -321,37 +326,6 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def save_model(self, request, obj, form, change):
         obj = set_meta_fields(request, obj, form, change)
-
-        # # handles inbound freight
-        # if obj and obj.product_code:
-        #     if obj.costing_method == "Manual":
-        #         freight = (
-        #             obj.product_code.freight_factor_percentage
-        #             if obj.product_code and obj.product_code.freight_factor_percentage
-        #             else 0
-        #         ) / decimal.Decimal(100)
-        #         obj.unit_freight_cost = (obj.unit_material_cost or 0) * freight
-        #     else:
-        #         invoice_lines = Invoice_Line.objects.filter(sku=obj).order_by("-date_invoiced")
-
-        #         if invoice_lines:
-        #             invoice = Invoice.objects.get(invoice_lines[0].invoice_id)
-
-        #             if obj.costing_method == "Last Invoice":
-        #                 last_invoice = invoice_lines.first()
-
-        #                 obj.unit_material_cost = common.convert_weight(
-        #                     obj.unit_of_measure, last_invoice.unit_of_measure, 1
-        #                 )
-
-        #                 total_weight = invoice.total_weight
-        #                 if total_weight and total_weight != 0:
-        #                     percent_weight = invoice_lines[0].quantity / total_weight
-
-        #                     obj.unit_freight_cost = percent_weight * (invoice.freight_cost or 0)
-        #                 else:
-        #                     obj.unit_freight_cost = 0
-
         obj.save()
 
     def save_formset(self, request, form, formset, change):

@@ -1,9 +1,13 @@
+import decimal
 from django.db import models
 from moondance.meta_models import MetaModel
 from utils import common
 from simple_history.models import HistoricalRecords
 from django.forms import ValidationError
 from django.contrib.postgres.fields.ranges import DateRangeField
+from datetime import date
+from django.apps import apps
+from dateutil.relativedelta import relativedelta
 
 
 class Weight_Conversions(models.Model):
@@ -97,6 +101,69 @@ class Product(MetaModel):
         self.original_unit_material_cost = self.original_unit_material_cost
         self.original_unit_labor_cost = self.original_unit_labor_cost
         self.original_unit_freight_cost = self.original_unit_freight_cost
+
+    def full_clean(self, *args, **kwargs):
+        super().full_clean(*args, **kwargs)
+
+        if self.product_code and self.product_code.type in (
+            "Finished Goods",
+            "WIP",
+            "Labor Group",
+        ):
+            self.costing_method = "Recipe Cost Rollup"
+        elif self.product_code and self.product_code.type in ("Labor",):
+            self.costing_method = "Manual Estimate"
+        elif self.costing_method != "Manual Override":
+            invoice_lines = (
+                apps.get_model("purchasing.Invoice_Line").objects.filter(sku=self).order_by("-invoice__date_invoiced")
+            )
+
+            if not invoice_lines:
+                if self.unit_material_cost is None or self.unit_material_cost == 0:
+                    self.costing_method = "No Cost Found"
+                else:
+                    freight = (
+                        self.product_code.freight_factor_percentage
+                        if self.product_code and self.product_code.freight_factor_percentage
+                        else 0
+                    ) / decimal.Decimal(100)
+                    self.unit_freight_cost = (self.unit_material_cost or 0) * freight
+                    self.costing_method = "Manual Estimate"
+            else:
+                # first try past 6 months
+                month_delta = 6
+                start_date = date.today() - relativedelta(months=month_delta)
+                invoice_history = invoice_lines.filter(invoice__date_invoiced__gte=start_date)
+
+                # then try past 12 months
+                if not invoice_history:
+                    month_delta = 12
+                    start_date = date.today() - relativedelta(months=month_delta)
+                    invoice_history = invoice_lines.filter(invoice__date_invoiced__gte=start_date)
+
+                    if invoice_history:
+                        self.costing_method = f"{month_delta} Month Average"
+                    else:
+                        # last resort try most recent
+                        invoice_history = [invoice_lines.first()]
+                        self.costing_method = "Last Invoice"
+                else:
+                    self.costing_method = f"{month_delta} Month Average"
+
+                total_material_cost = 0
+                total_freight_cost = 0
+                total_quantity = 0
+
+                for i in invoice_history:
+                    total_material_cost += i.converted_quantity * (
+                        (i.unit_material_cost or 0) + (i.unit_adjustments or 0)
+                    )
+                    total_freight_cost += i.converted_quantity * (i.unit_freight_cost or 0)
+                    total_quantity += i.converted_quantity
+
+                if total_quantity > 0:
+                    self.unit_material_cost = total_material_cost / total_quantity
+                    self.unit_freight_cost = total_freight_cost / total_quantity
 
     class Meta:
         verbose_name = "Product"

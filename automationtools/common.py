@@ -38,23 +38,16 @@ def insert_data(object_dd, db_string):
         sql = f.read() % {
             "schema": object_dd["schema"],
             "table_name": object_dd["table_name"],
-            "column_select": ",".join(
-                ['"{}"'.format(x) for x in object_dd["table_columns"]]
-            ),
+            "column_select": ",".join(['"{}"'.format(x) for x in object_dd["table_columns"]]),
             "delim": "\t",
             "date_append_column": "datetime_updated",
             "primary_key_join": " AND ".join(
-                [
-                    'a."{0}"=b."{0}"'.format(x)
-                    for x in primary_key_list
-                    if primary_key_list
-                ]
+                ['a."{0}"=b."{0}"'.format(x) for x in primary_key_list if primary_key_list]
             ),
         }
 
     with contextlib.closing(psycopg2.connect(db_string)) as conn:
         with contextlib.closing(conn.cursor()) as cursor:
-            # print(sql)
             cursor.copy_expert(sql, open(object_dd["file_name"], "r", encoding="utf-8"))
 
         conn.commit()
