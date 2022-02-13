@@ -10,7 +10,8 @@ from operations.models import Product
 def recalculate_cost(request):
 
     for count, p in enumerate(Product.objects.filter(_active=True), 1):
-        common.recalculate_bom_cost(p.id)
+        p.save()
+        # common.recalculate_bom_cost(p.id)
 
     return HttpResponse(count, content_type="application/json")
 
