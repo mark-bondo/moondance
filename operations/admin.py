@@ -186,28 +186,22 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
         "product_code",
         "unit_cost_total",
         "onhand_quantity",
-        "sales_channel_type",
+        "costing_method",
         "unit_of_measure",
         "_active",
     ]
     list_editable = [
-        "sales_channel_type",
-        "unit_of_measure",
         "_active",
     ]
     history_list_display = [
         "sku",
         "description",
-        "sales_channel_type",
-        "_active",
         "product_code",
-        "unit_of_measure",
         "unit_cost_total",
         "onhand_quantity",
-        "_last_updated",
-        "_last_updated_by",
-        "_created",
-        "_created_by",
+        "costing_method",
+        "unit_of_measure",
+        "_active",
     ]
     autocomplete_fields = [
         "product_code",
