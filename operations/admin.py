@@ -142,12 +142,12 @@ class Invoice_Line_Inline(admin.TabularInline):
         "date_invoiced",
         "supplier",
         "converted_unit_of_measure",
+        "converted_quantity",
+        "total_cost",
         "unit_material_cost",
         "unit_freight_cost",
         "unit_adjustments",
         "unit_total_cost",
-        "converted_quantity",
-        "total_cost",
         "view_invoice",
     )
     readonly_fields = (
@@ -214,7 +214,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
     ]
     list_filter = [
         ("_active", admin.BooleanFieldListFilter),
-        "costing_method",
+        ("costing_method", admin.RelatedOnlyFieldListFilter),
         "product_code__type",
         "product_code__family",
     ]
