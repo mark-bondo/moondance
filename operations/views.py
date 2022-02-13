@@ -3,25 +3,16 @@ from django.http import HttpResponse
 from django.db import connection
 from django.contrib.auth.decorators import login_required
 from utils import common
+from operations.models import Product
 
 
 @login_required
 def recalculate_cost(request):
-    with connection.cursor() as cursor:
-        sql = """
-            SELECT DISTINCT
-                product_id
-            FROM
-                staging.products
-            ;
-        """
-        cursor.execute(sql)
-        products = cursor.fetchall()
 
-    for p in products:
-        common.recalculate_bom_cost(p[0])
+    for count, p in enumerate(Product.objects.filter(_active=True), 1):
+        common.recalculate_bom_cost(p.id)
 
-    return HttpResponse(products, content_type="application/json")
+    return HttpResponse(count, content_type="application/json")
 
 
 @login_required
