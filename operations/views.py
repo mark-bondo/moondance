@@ -10,13 +10,14 @@ from operations.models import Product
 
 @login_required
 def recalculate_cost(request):
+    products = Product.objects.filter(
+        Q(_active=True), Q(last_costing_date__lt=date.today()) | Q(last_costing_date__isnull=True)
+    )
 
-    for count, p in enumerate(
-        Product.objects.filter(
-            Q(_active=True), Q(last_costing_date__lt=date.today()) | Q(last_costing_date__isnull=True)
-        ),
-        1,
-    ):
+    if not products:
+        count = 0
+
+    for count, p in enumerate(products, 1):
         print(p.sku)
 
         try:
