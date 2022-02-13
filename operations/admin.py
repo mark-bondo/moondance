@@ -287,19 +287,19 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             "_created_by",
         )
 
-        if obj and obj.product_code and obj.costing_method in ("Manual Override", "No Cost Found"):
+        if obj and obj.product_code:
             ptype = obj.product_code.type
             if ptype in (
                 "WIP",
                 "Labor Groups",
                 "Finished Goods",
             ):
-                readonly_fields += (
-                    "unit_material_cost",
-                    "unit_labor_cost",
-                    "unit_freight_cost",
-                    "costing_method",
-                )
+                if obj.costing_method in ("Recipe Cost Rollup"):
+                    readonly_fields += (
+                        "unit_material_cost",
+                        "unit_labor_cost",
+                        "unit_freight_cost",
+                    )
             elif ptype == "Labor":
                 readonly_fields += (
                     "unit_material_cost",

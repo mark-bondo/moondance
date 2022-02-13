@@ -108,13 +108,18 @@ class Product(MetaModel):
 
         self.last_costing_date = date.today()
 
-        if self.product_code and self.product_code.type in (
-            "Finished Goods",
-            "WIP",
-            "Labor Group",
+        if (
+            self.product_code
+            and self.costing_method != "Manual Estimate"
+            and self.product_code.type
+            in (
+                "Finished Goods",
+                "WIP",
+                "Labor Group",
+            )
         ):
             self.costing_method = "Recipe Cost Rollup"
-        elif self.product_code and self.product_code.type in ("Labor",):
+        elif self.product_code and self.product_code.type not in ("Raw Materials",):
             self.costing_method = "Manual Estimate"
         elif self.costing_method != "Manual Override":
             invoice_lines = (

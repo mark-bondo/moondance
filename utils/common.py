@@ -88,7 +88,7 @@ def calculate_unit_cost(obj, weight):
     cost = ((obj.sku.unit_material_cost or 0) + (obj.sku.unit_labor_cost or 0) + (obj.sku.unit_freight_cost or 0)) * (
         converted_weight or 0
     )
-    return round(cost, 5)
+    return round(cost, 3)
 
 
 def recalculate_bom_cost(p):
