@@ -61,7 +61,7 @@ class Product(MetaModel):
         blank=True,
         null=True,
     )
-    sku = models.CharField(max_length=200, unique=True, verbose_name="SKU")
+    sku = models.CharField(max_length=200, unique=True, verbose_name="SKU", blank=True, null=True)
     description = models.CharField(max_length=200)
     upc = models.CharField(max_length=200, null=True, blank=True, verbose_name="UPC")
     sales_channel_type = models.CharField(max_length=100, choices=common.SALES_CHANNEL_TYPES, default="All")
@@ -73,6 +73,7 @@ class Product(MetaModel):
     unit_labor_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
     unit_freight_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
+    last_costing_date = models.DateField(null=True, blank=True)
 
     original_unit_of_measure = None
     original_unit_material_cost = None
@@ -104,6 +105,8 @@ class Product(MetaModel):
 
     def full_clean(self, *args, **kwargs):
         super().full_clean(*args, **kwargs)
+
+        self.last_costing_date = date.today()
 
         if self.product_code and self.product_code.type in (
             "Finished Goods",

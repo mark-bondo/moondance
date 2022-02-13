@@ -2,17 +2,30 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.db import connection
 from django.contrib.auth.decorators import login_required
-from utils import common
+from django.db.models import Q
+from datetime import date
+from django.forms import ValidationError
 from operations.models import Product
 
 
 @login_required
 def recalculate_cost(request):
 
-    for count, p in enumerate(Product.objects.filter(_active=True), 1):
-        p.save()
-        # common.recalculate_bom_cost(p.id)
+    for count, p in enumerate(
+        Product.objects.filter(
+            Q(_active=True), Q(last_costing_date__lt=date.today()) | Q(last_costing_date__isnull=True)
+        ),
+        1,
+    ):
+        print(p.sku)
 
+        try:
+            p.full_clean()
+        except ValidationError as e:
+            print(e)
+            break
+
+        p.save()
     return HttpResponse(count, content_type="application/json")
 
 

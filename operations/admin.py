@@ -283,6 +283,7 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = (
+            "last_costing_date",
             "unit_cost_total",
             "onhand_quantity",
             "_last_updated",
@@ -291,7 +292,6 @@ class Product_Admin(AdminStaticMixin, SimpleHistoryAdmin):
             "_created_by",
         )
 
-        # if obj and obj.costing_method == "Manual":
         if obj and obj.product_code and obj.costing_method in ("Manual Override", "No Cost Found"):
             ptype = obj.product_code.type
             if ptype in (
