@@ -215,12 +215,6 @@ class Invoice_Line(MetaModel):
     class Meta:
         verbose_name = "Receipt Line"
         verbose_name_plural = "Receipt Lines"
-        unique_together = (
-            (
-                "sku",
-                "invoice",
-            ),
-        )
         ordering = ("-invoice__date_invoiced",)
 
 

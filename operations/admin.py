@@ -5,15 +5,13 @@ from django.contrib import admin
 from utils import common
 from moondance.meta_models import set_meta_fields, AdminStaticMixin
 from simple_history.admin import SimpleHistoryAdmin
-from purchasing.models import Invoice, Invoice_Line
+from purchasing.models import Invoice_Line
 from .models import (
     Product_Code,
     Product,
     Recipe_Line,
     Order_Cost_Overlay,
 )
-from datetime import date, timedelta
-from dateutil.relativedelta import relativedelta
 from purchasing.admin import Supplier_Product_Admin_Inline
 
 
@@ -26,6 +24,7 @@ class Product_Code_Admin(admin.ModelAdmin):
         "type",
         "family",
         "category",
+        "default_batch_size",
         "freight_factor_percentage",
         "_active",
     ]
@@ -46,6 +45,7 @@ class Product_Code_Admin(admin.ModelAdmin):
                     "type",
                     "family",
                     "category",
+                    "default_batch_size",
                     "freight_factor_percentage",
                     "_active",
                 ]

@@ -31,6 +31,7 @@ class Product_Code(MetaModel):
         blank=True,
         help_text="Percentage adder to material cost. Use whole numbers with 2 decimals maximum.",
     )
+    default_batch_size = models.IntegerField(null=True, blank=True)
 
     original_freight_factor_percentage = None
 
