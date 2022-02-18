@@ -476,7 +476,10 @@ INSERT INTO report_moondance.sales_order (
     unit_sales_price,
     net_sales,
     sales_tax,
-    gross_sales
+    gross_sales,
+    total_material_cost,
+    total_labor_cost,
+    total_cost
 )
 
 SELECT
@@ -559,7 +562,21 @@ SELECT
         COALESCE(so.net_sales, 0) +
         COALESCE(county_tax.amount, 0) +
         COALESCE(state_tax.amount, 0)
-    , 0) as gross_sales
+    , 0) as gross_sales,
+    NULLIF(
+        (
+            COALESCE(product.unit_material_cost, 0) +
+            COALESCE(product.unit_freight_cost, 0)
+        ) * so.quantity
+    , 0) as total_material_cost,
+    NULLIF(product.unit_labor_cost * so.quantity, 0) as total_labor_cost,
+    NULLIF(
+        (
+            COALESCE(product.unit_material_cost, 0) +
+            COALESCE(product.unit_labor_cost, 0) +
+            COALESCE(product.unit_freight_cost, 0)
+        ) * so.quantity
+    , 0) as total_cost
 FROM
     combined so 
     LEFT JOIN shopify.shopify_customer customer ON so.customer_id = customer.id::TEXT
