@@ -10,9 +10,7 @@ from operations.models import Product
 
 @login_required
 def recalculate_cost(request):
-    products = Product.objects.filter(
-        Q(_active=True), Q(last_costing_date__lt=date.today()) | Q(last_costing_date__isnull=True)
-    )
+    products = Product.objects.all()
 
     if not products:
         count = 0
