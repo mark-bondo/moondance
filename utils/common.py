@@ -63,7 +63,7 @@ def get_sku_quantity(sku_id):
     return total_quantity
 
 
-def convert_weight(to_measure, from_measure, weight):
+def convert_weight(to_measure, from_measure, weight, obj=None):
     with connection.cursor() as cursor:
         sql = f"""
             SELECT
@@ -74,16 +74,18 @@ def convert_weight(to_measure, from_measure, weight):
                 from_measure = '{from_measure}' AND
                 to_measure = '{to_measure}'
         """
-
-        cursor.execute(sql)
-        return cursor.fetchall()[0][0]
+        try:
+            cursor.execute(sql)
+            return cursor.fetchall()[0][0]
+        except IndexError:
+            raise ValueError(
+                f"{obj.sku} could not be converted from {obj.unit_of_measure} to {obj.sku.unit_of_measure}"
+            )
 
 
 def calculate_unit_cost(obj, weight):
     converted_weight = convert_weight(
-        from_measure=obj.unit_of_measure,
-        to_measure=obj.sku.unit_of_measure,
-        weight=weight,
+        from_measure=obj.unit_of_measure, to_measure=obj.sku.unit_of_measure, weight=weight, obj=obj
     )
     cost = ((obj.sku.unit_material_cost or 0) + (obj.sku.unit_labor_cost or 0) + (obj.sku.unit_freight_cost or 0)) * (
         converted_weight or 0
