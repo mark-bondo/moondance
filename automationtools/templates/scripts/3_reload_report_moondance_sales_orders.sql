@@ -479,7 +479,8 @@ INSERT INTO report_moondance.sales_order (
     gross_sales,
     total_material_cost,
     total_labor_cost,
-    total_cost
+    total_cost,
+    labor_method
 )
 
 SELECT
@@ -565,18 +566,38 @@ SELECT
     , 0) as gross_sales,
     NULLIF(
         (
-            COALESCE(product.unit_material_cost, 0) +
+            CASE
+                WHEN COALESCE(product.unit_material_cost, 0) = 0 THEN (COALESCE(so.net_sales / NULLIF(quantity, 0), 0)) * 0.25::NUMERIC
+                ELSE COALESCE(product.unit_material_cost, 0)
+            END +
             COALESCE(product.unit_freight_cost, 0)
         ) * so.quantity
     , 0) as total_material_cost,
-    NULLIF(product.unit_labor_cost * so.quantity, 0) as total_labor_cost,
+    NULLIF(
+        CASE 
+            WHEN COALESCE(product.unit_labor_cost, 0) = 0 AND COALESCE(product.unit_material_cost, 0) = 0 THEN (COALESCE(so.net_sales / NULLIF(quantity, 0), 0)) * 0.25::NUMERIC * 0.25::NUMERIC
+            WHEN COALESCE(product.unit_labor_cost, 0) = 0 THEN COALESCE(product.unit_material_cost, 0) * 0.25::NUMERIC
+            ELSE COALESCE(product.unit_labor_cost, 0)
+        END * so.quantity
+    , 0) as total_labor_cost,
     NULLIF(
         (
-            COALESCE(product.unit_material_cost, 0) +
-            COALESCE(product.unit_labor_cost, 0) +
+            CASE
+                WHEN COALESCE(product.unit_material_cost, 0) = 0 THEN (COALESCE(so.net_sales / NULLIF(quantity, 0), 0)) * 0.25::NUMERIC
+                ELSE COALESCE(product.unit_material_cost, 0)
+            END +
+            CASE 
+                WHEN COALESCE(product.unit_labor_cost, 0) = 0 AND COALESCE(product.unit_material_cost, 0) = 0 THEN (COALESCE(so.net_sales / NULLIF(quantity, 0), 0)) * 0.25::NUMERIC * 0.25::NUMERIC
+                WHEN COALESCE(product.unit_labor_cost, 0) = 0 THEN COALESCE(product.unit_material_cost, 0) * 0.25::NUMERIC
+                ELSE COALESCE(product.unit_labor_cost, 0)
+            END +
             COALESCE(product.unit_freight_cost, 0)
         ) * so.quantity
-    , 0) as total_cost
+    , 0) as total_cost,
+    CASE
+        WHEN COALESCE(product.unit_labor_cost, 0) = 0 THEN '25% of materials'
+        ELSE 'Estimate'
+    END::TEXT as labor_method
 FROM
     combined so 
     LEFT JOIN shopify.shopify_customer customer ON so.customer_id = customer.id::TEXT
