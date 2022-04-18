@@ -9,7 +9,8 @@ INSERT INTO public.operations_product (
     unit_of_measure,
     unit_sales_price,
     _created_by_id,
-    _last_updated_by_id
+    _last_updated_by_id,
+    costing_method
 )
 
 SELECT DISTINCT ON (shopify_sku)
@@ -23,7 +24,8 @@ SELECT DISTINCT ON (shopify_sku)
     'each' as unit_of_measure,
     "price" as unit_sales_price,
     1 as _created_by_id,
-    1 as _last_updated_by_id
+    1 as _last_updated_by_id,
+    'No Cost Found'::TEXT as costing_method
 FROM
     public.integration_shopify_product shop
 WHERE
