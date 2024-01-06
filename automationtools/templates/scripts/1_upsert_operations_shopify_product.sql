@@ -39,7 +39,7 @@ WITH skus AS (
 SELECT
     skus.id as shopify_id,
     (v->>'id')::BIGINT as variant_id,
-    v->>'sku' as shopify_sku,
+    COALESCE(v->>'sku', '') as shopify_sku,
     skus.status,
     (
         CASE
