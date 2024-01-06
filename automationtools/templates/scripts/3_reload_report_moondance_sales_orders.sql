@@ -14,7 +14,7 @@ CREATE TEMP TABLE shopify_so ON COMMIT DROP AS
                 OR 
                 so.location_id = '61830463637'
                 THEN 'Farmers Market - Durham'
-            WHEN so.source_name IN ('279941', '580111', 'web', 'shopify_draft_order', 'android', 'pos', 'iphone') THEN 'Online Retail'
+            WHEN so.source_name IN ('2329312', '3890849',  '279941', '580111', 'web', 'shopify_draft_order', 'android', 'pos', 'iphone') THEN 'Online Retail'
             ELSE so.source_name
         END as sales_channel_name,
         CASE
