@@ -31,7 +31,7 @@ class Shopify_API(object):
                 "table_name": "shopify_sales_order",
                 "schema": "shopify",
                 "json_set": "orders",
-                "api_url": "2021-10/orders.json",
+                "api_url": "2024-01/orders.json",
                 "request_parameters": request_parameters,
             },
             "products": {
@@ -39,7 +39,7 @@ class Shopify_API(object):
                 "table_name": "shopify_product",
                 "schema": "shopify",
                 "json_set": "products",
-                "api_url": "2021-10/products.json",
+                "api_url": "2024-01/products.json",
                 "request_parameters": request_parameters,
             },
             "sync_shopify_order_events": {
@@ -47,7 +47,7 @@ class Shopify_API(object):
                 "table_name": "shopify_order_events",
                 "schema": "shopify",
                 "json_set": "events",
-                "api_url": "2021-10/orders/{}/events.json",
+                "api_url": "2024-01/orders/{}/events.json",
                 "request_parameters": request_parameters,
             },
             "customers": {
@@ -55,7 +55,7 @@ class Shopify_API(object):
                 "table_name": "shopify_customer",
                 "schema": "shopify",
                 "json_set": "customers",
-                "api_url": "2021-10/customers.json",
+                "api_url": "2024-01/customers.json",
                 "request_parameters": request_parameters,
             },
         }
@@ -65,7 +65,9 @@ class Shopify_API(object):
             self.object_dd = self.object_map[command]
             self.object_dd.update(
                 {
-                    "table_columns": get_table_columns(self.db_string, self.object_dd["table_name"]),
+                    "table_columns": get_table_columns(
+                        self.db_string, self.object_dd["table_name"]
+                    ),
                     "file_name": "automationtools/data/{}_{}.tsv".format(
                         self.object_dd["table_name"],
                         self.current_timestamp.replace(":", "-"),
@@ -77,10 +79,14 @@ class Shopify_API(object):
             raise "{} is not a valid command".format(command)
 
         if command == "sync_shopify_order_events":
-            self.logger.info("sync shopify {}: getting order events to sync".format(self.command))
+            self.logger.info(
+                "sync shopify {}: getting order events to sync".format(self.command)
+            )
             order_lines = self.get_orders()
             self.logger.info(
-                "sync shopify {}: retrieved {} order events to sync".format(self.command, len(order_lines))
+                "sync shopify {}: retrieved {} order events to sync".format(
+                    self.command, len(order_lines)
+                )
             )
 
             for i, o in enumerate(order_lines):
@@ -89,11 +95,15 @@ class Shopify_API(object):
                         "order_id": o["id"],
                         "order_updated_at": o["updated_at"],
                     }
-                    self.object_dd["api_url_formatted"] = self.object_dd["api_url"].format(o["id"])
+                    self.object_dd["api_url_formatted"] = self.object_dd[
+                        "api_url"
+                    ].format(o["id"])
                     self.sync_data()
                 except Exception:
                     self.logger.error(
-                        "sync shopify {}: failed getting order events, exiting program".format(self.command),
+                        "sync shopify {}: failed getting order events, exiting program".format(
+                            self.command
+                        ),
                         exc_info=1,
                     )
         else:
@@ -141,7 +151,12 @@ class Shopify_API(object):
                 self.password,
                 self.shopify_url,
                 self.object_dd["api_url_formatted"],
-                "&".join(["{}={}".format(k, v) for k, v in self.object_dd["request_parameters"].items()]),
+                "&".join(
+                    [
+                        "{}={}".format(k, v)
+                        for k, v in self.object_dd["request_parameters"].items()
+                    ]
+                ),
             )
 
             w.write("\t".join(self.object_dd["table_columns"]))
@@ -149,7 +164,9 @@ class Shopify_API(object):
 
             while True:
                 self.logger.info(
-                    'sync shopify {}: getting data from "https://{}"'.format(self.command, url.split("@")[1])
+                    'sync shopify {}: getting data from "https://{}"'.format(
+                        self.command, url.split("@")[1]
+                    )
                 )
                 time.sleep(1)
 
@@ -158,7 +175,11 @@ class Shopify_API(object):
                 json_data = json_string[self.object_dd["json_set"]]
                 self.row_count += len(json_data)
 
-                self.logger.info("sync shopify {}: fetched {} rows".format(self.command, len(json_data)))
+                self.logger.info(
+                    "sync shopify {}: fetched {} rows".format(
+                        self.command, len(json_data)
+                    )
+                )
                 for order in json_data:
                     row = []
 
@@ -181,7 +202,9 @@ class Shopify_API(object):
                     line = "{}\n".format("\t".join(row))
                     w.write(line)
 
-                next_page = response.headers["link"] if "link" in response.headers else None
+                next_page = (
+                    response.headers["link"] if "link" in response.headers else None
+                )
 
                 if next_page and 'rel="next"' in next_page:
                     next_page = next_page.split(",")[-1]
